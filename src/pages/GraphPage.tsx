@@ -1,18 +1,25 @@
 import { GraphCanvas } from '@/components/graph/GraphCanvas'
 import { SidePanel } from '@/components/layout/SidePanel'
 import { useGraphStore } from '@/features/graph-explorer/graphExplorerStore'
-import { setMCPBaseUrl } from '@/services/mcpClient'
 import { getFullGraph, querySubgraph } from '@/services/mcpTools'
+import { useSessionStore } from '@/services/sessionStore'
 import { cksToReactFlow, traceInferenceChain } from '@/shared/utils/graphUtils'
 import type { Node } from '@xyflow/react'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 
 export function GraphPage() {
   const [selectedNode, setSelectedNode] = useState<Node | null>(null)
-  const [serverUrl, setServerUrl] = useState('http://127.0.0.1:8765')
-  const [sessionId, setSessionId] = useState('')
   const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+
+  const {
+    serverUrl,
+    sessionId,
+    setServerUrl,
+    setSessionId,
+    error,
+    setError,
+    setStatus,
+  } = useSessionStore()
 
   const {
     setNodes,
@@ -25,13 +32,10 @@ export function GraphPage() {
     clearHighlight,
   } = useGraphStore()
 
-  useEffect(() => {
-    setMCPBaseUrl(serverUrl)
-  }, [serverUrl])
-
   const handleConnect = async () => {
     if (!sessionId.trim()) return
     setIsLoading(true)
+    setStatus('connecting')
     setError(null)
     try {
       const subgraph = await getFullGraph(sessionId.trim())
@@ -45,6 +49,7 @@ export function GraphPage() {
       const { nodes, edges } = cksToReactFlow(subgraph)
       setNodes(nodes)
       setEdges(edges)
+      setStatus('connected')
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Unknown error')
     } finally {
@@ -79,7 +84,7 @@ export function GraphPage() {
   }
 
   return (
-    <div className="h-screen flex flex-col">
+    <div className="h-full flex flex-col">
       <header className="bg-gray-900 border-b border-gray-800 px-4 py-3 flex items-center gap-4 flex-wrap">
         <h1 className="text-lg font-semibold">CKS Studio</h1>
         <div className="flex items-center gap-2 text-sm">
