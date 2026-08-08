@@ -1,16 +1,16 @@
-import { useCallback } from 'react'
 import {
-  ReactFlow,
   Background,
   Controls,
   MiniMap,
   type Node,
+  ReactFlow,
 } from '@xyflow/react'
+import { useCallback } from 'react'
 import '@xyflow/react/dist/style.css'
 import { nodeTypes } from '@/components/graph/nodes'
 import { useGraphStore } from '@/features/graph-explorer/graphExplorerStore'
+import type { GraphState } from '@/features/graph-explorer/graphExplorerStore'
 import { useGraphLayout } from '@/features/graph-explorer/useGraphLayout'
-import { type GraphState } from '@/features/graph-explorer/graphExplorerStore'
 
 export function GraphCanvas({
   onNodeSelect,
