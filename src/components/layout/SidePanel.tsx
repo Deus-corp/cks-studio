@@ -1,22 +1,26 @@
-import type { Node } from '@xyflow/react'
 import { ForkDiffPanel } from '@/features/fork-diff/ForkDiffPanel'
 import type { ForkVersionData } from '@/shared/types/graph'
+import type { Node } from '@xyflow/react'
+
+const STATUS_COLORS: Record<string, string> = {
+  awaiting_research: '#6b7280',
+  awaiting_review: '#3b82f6',
+  needs_research: '#ef4444',
+  resolved: '#10b981',
+}
 
 export function SidePanel({ node }: { node: Node | null }) {
   if (!node) {
-    return <div className="p-4 text-gray-500 text-sm">Click a node to inspect it.</div>
+    return (
+      <div className="p-4 text-gray-500 text-sm">
+        Click a node to inspect it.
+      </div>
+    )
   }
 
   const data = node.data as Record<string, unknown>
   const structure = (data.structure as Record<string, unknown>) || {}
   const cksType = data.cksType as string
-
-  const STATUS_COLORS: Record<string, string> = {
-    awaiting_research: '#6b7280',
-    awaiting_review: '#3b82f6',
-    needs_research: '#ef4444',
-    resolved: '#10b981',
-  }
 
   // Если это форк — показываем специальную панель
   if (cksType === 'Fork' && structure.versions) {
@@ -35,24 +39,40 @@ export function SidePanel({ node }: { node: Node | null }) {
     return (
       <div className="p-4 text-gray-200">
         <h3 className="text-lg font-semibold mb-2">{data.label as string}</h3>
-        <div className="text-xs text-gray-400 uppercase tracking-wide mb-1">{cksType}</div>
+        <div className="text-xs text-gray-400 uppercase tracking-wide mb-1">
+          {cksType}
+        </div>
         <div className="mb-3 flex items-center gap-2">
           <span className="text-sm text-gray-500">Status:</span>
-          <span className="text-sm font-medium px-2 py-0.5 rounded" style={{ backgroundColor: STATUS_COLORS[currentStatus] || '#6b7280' }}>
+          <span
+            className="text-sm font-medium px-2 py-0.5 rounded"
+            style={{
+              backgroundColor: STATUS_COLORS[currentStatus] || '#6b7280',
+            }}
+          >
             {currentStatus.replace(/_/g, ' ')}
           </span>
         </div>
         <div className="text-sm space-y-2">
           <div className="font-semibold text-gray-400">Transitions</div>
-          {log.map((entry, idx) => (
-            <div key={idx} className="bg-gray-800 rounded p-2">
-              <div className="flex justify-between text-xs text-gray-500">
-                <span>{entry.agent as string}</span>
-                <span className="uppercase">{entry.transitioned_to as string}</span>
+          {log.map((entry) => {
+            const key =
+              (entry.content_hash as string) ||
+              `${entry.agent}_${entry.action}_${entry.transitioned_to}`
+            return (
+              <div key={key} className="bg-gray-800 rounded p-2">
+                <div className="flex justify-between text-xs text-gray-500">
+                  <span>{entry.agent as string}</span>
+                  <span className="uppercase">
+                    {entry.transitioned_to as string}
+                  </span>
+                </div>
+                <div className="text-gray-400 text-xs mt-1">
+                  action: {entry.action as string}
+                </div>
               </div>
-              <div className="text-gray-400 text-xs mt-1">action: {entry.action as string}</div>
-            </div>
-          ))}
+            )
+          })}
         </div>
       </div>
     )
@@ -61,10 +81,16 @@ export function SidePanel({ node }: { node: Node | null }) {
   return (
     <div className="p-4 text-gray-200">
       <h3 className="text-lg font-semibold mb-2">{data.label as string}</h3>
-      <div className="text-xs text-gray-400 uppercase tracking-wide mb-1">{cksType}</div>
+      <div className="text-xs text-gray-400 uppercase tracking-wide mb-1">
+        {cksType}
+      </div>
       <div className="text-sm space-y-1">
-        <div><span className="text-gray-500">ID:</span> {node.id}</div>
-        <div><span className="text-gray-500">Type:</span> {cksType}</div>
+        <div>
+          <span className="text-gray-500">ID:</span> {node.id}
+        </div>
+        <div>
+          <span className="text-gray-500">Type:</span> {cksType}
+        </div>
         {Object.entries(structure).map(([key, value]) => (
           <div key={key}>
             <span className="text-gray-500">{key}:</span>{' '}

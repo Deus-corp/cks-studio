@@ -1,12 +1,12 @@
-import { useEffect, useState } from 'react'
-import type { Node } from '@xyflow/react'
 import { GraphCanvas } from '@/components/graph/GraphCanvas'
 import { SidePanel } from '@/components/layout/SidePanel'
 import { useGraphStore } from '@/features/graph-explorer/graphExplorerStore'
+import { querySubgraph } from '@/services/mcpTools'
+import { getMockGraph } from '@/services/mockData'
 import { cksToReactFlow } from '@/shared/utils/graphUtils'
 import { traceInferenceChain } from '@/shared/utils/graphUtils'
-import { getMockGraph } from '@/services/mockData'
-import { querySubgraph } from '@/services/mcpTools'
+import type { Node } from '@xyflow/react'
+import { useEffect, useState } from 'react'
 
 export function GraphPage() {
   const [selectedNode, setSelectedNode] = useState<Node | null>(null)
@@ -66,6 +66,7 @@ export function GraphPage() {
           <SidePanel node={selectedNode} />
           <div className="p-4 border-t border-gray-800 space-y-2 mt-auto">
             <button
+              type="button"
               onClick={handleExplore}
               disabled={!selectedNodeId || isLoading}
               className="w-full rounded bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
@@ -80,6 +81,7 @@ export function GraphPage() {
               )}
             </button>
             <button
+              type="button"
               onClick={handleTrace}
               disabled={!selectedNodeId}
               className="w-full rounded bg-amber-600 px-4 py-2 text-sm font-medium text-white hover:bg-amber-500 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -87,6 +89,7 @@ export function GraphPage() {
               Trace Inference
             </button>
             <button
+              type="button"
               onClick={handleClearHighlight}
               className="w-full rounded bg-gray-700 px-4 py-2 text-xs text-gray-300 hover:bg-gray-600"
             >

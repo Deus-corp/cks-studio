@@ -1,5 +1,5 @@
+import type { Edge, Node } from '@xyflow/react'
 import { create } from 'zustand'
-import type { Node, Edge } from '@xyflow/react'
 
 interface GraphState {
   nodes: Node[]
@@ -25,13 +25,17 @@ export const useGraphStore = create<GraphState>((set) => ({
   addNodes: (newNodes) =>
     set((state) => {
       const existing = new Set(state.nodes.map((n) => n.id))
-      return { nodes: [...state.nodes, ...newNodes.filter((n) => !existing.has(n.id))] }
+      return {
+        nodes: [...state.nodes, ...newNodes.filter((n) => !existing.has(n.id))],
+      }
     }),
   addEdges: (newEdges) =>
     set((state) => {
-      const existing = new Set(state.edges.map((e) => `${e.source}->${e.target}:${e.label}`))
+      const existing = new Set(
+        state.edges.map((e) => `${e.source}->${e.target}:${e.label}`),
+      )
       const filtered = newEdges.filter(
-        (e) => !existing.has(`${e.source}->${e.target}:${e.label}`)
+        (e) => !existing.has(`${e.source}->${e.target}:${e.label}`),
       )
       return { edges: [...state.edges, ...filtered] }
     }),

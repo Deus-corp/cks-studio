@@ -1,5 +1,5 @@
-import { callTool } from './mcpClient'
 import type { SubgraphResult } from '@/shared/types/graph'
+import { callTool } from './mcpClient'
 
 export async function querySubgraph(
   sessionId: string,

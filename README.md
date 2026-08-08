@@ -64,7 +64,7 @@ CKS Studio is a thin, stateless frontend. All knowledge and logic live
 in the backend; the studio only reads and sends commands through MCP.
 
 ```
-┌──────────────────┐       MCP (JSON-RPC)       ┌──────────────┐
+┌──────────────────┐       MCP (JSON-RPC)        ┌──────────────┐
 │   CKS Studio     │ ◄─────────────────────────► │   cks-mcp    │
 │  (React SPA)     │        HTTP / stdio         │  (Python)    │
 └──────────────────┘                             └──────┬───────┘

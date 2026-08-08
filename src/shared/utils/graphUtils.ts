@@ -1,5 +1,5 @@
-import type { Node, Edge } from '@xyflow/react'
 import type { SubgraphResult } from '@/shared/types/graph'
+import type { Edge, Node } from '@xyflow/react'
 
 /** Преобразует SubgraphResult в массив узлов и рёбер React Flow */
 export function cksToReactFlow(data: SubgraphResult): {

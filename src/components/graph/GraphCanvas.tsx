@@ -1,17 +1,28 @@
+import {
+  Background,
+  Controls,
+  MiniMap,
+  type Node,
+  ReactFlow,
+} from '@xyflow/react'
 import { useCallback } from 'react'
-import { ReactFlow, Background, Controls, MiniMap, type Node } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import { nodeTypes } from '@/components/graph/nodes'
-import { useGraphLayout } from '@/features/graph-explorer/useGraphLayout'
 import { useGraphStore } from '@/features/graph-explorer/graphExplorerStore'
+import { useGraphLayout } from '@/features/graph-explorer/useGraphLayout'
 
-export function GraphCanvas({ onNodeSelect }: { onNodeSelect?: (node: Node) => void }) {
+export function GraphCanvas({
+  onNodeSelect,
+}: { onNodeSelect?: (node: Node) => void }) {
   const nodes = useGraphStore((s) => s.nodes)
   const edges = useGraphStore((s) => s.edges)
   const highlightedEdgeIds = useGraphStore((s) => s.highlightedEdgeIds)
   const selectNode = useGraphStore((s) => s.selectNode)
 
-  const { nodes: layoutedNodes, edges: layoutedEdges } = useGraphLayout(nodes, edges)
+  const { nodes: layoutedNodes, edges: layoutedEdges } = useGraphLayout(
+    nodes,
+    edges,
+  )
 
   // Применяем стиль подсветки
   const styledEdges = layoutedEdges.map((edge) => ({

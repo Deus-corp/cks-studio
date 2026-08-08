@@ -9,13 +9,22 @@ export function getMockGraph(): SubgraphResult {
         structure: { description: 'Canonical representation of information' },
       },
       {
-        identity: { id: 'concept-2', type: 'Claim', name: 'Knowledge is immutable' },
+        identity: {
+          id: 'concept-2',
+          type: 'Claim',
+          name: 'Knowledge is immutable',
+        },
         structure: { statement: 'Knowledge, once validated, never changes.' },
       },
       {
-        identity: { id: 'concept-3', type: 'Claim', name: 'Immutability prevents tampering' },
+        identity: {
+          id: 'concept-3',
+          type: 'Claim',
+          name: 'Immutability prevents tampering',
+        },
         structure: {
-          statement: 'Immutability guarantees that knowledge cannot be altered.',
+          statement:
+            'Immutability guarantees that knowledge cannot be altered.',
         },
       },
     ],
@@ -28,7 +37,11 @@ export function getMockGraph(): SubgraphResult {
 
 // ------------------- Fork data -------------------
 const FORK_NODE = {
-  identity: { id: 'fork-1', type: 'Fork', name: 'Conflicting definition of Knowledge' },
+  identity: {
+    id: 'fork-1',
+    type: 'Fork',
+    name: 'Conflicting definition of Knowledge',
+  },
   structure: {
     pointer_key: 'concept-1',
     versions: [
@@ -55,13 +68,21 @@ const FORK_EDGES = [
 /** Скрытые узлы, которые появляются при drill-down */
 const HIDDEN_NODES = [
   {
-    identity: { id: 'concept-4', type: 'Claim', name: 'Tampering detected by hash' },
+    identity: {
+      id: 'concept-4',
+      type: 'Claim',
+      name: 'Tampering detected by hash',
+    },
     structure: {
       statement: 'Any tampering attempt changes the Merkle root hash.',
     },
   },
   {
-    identity: { id: 'concept-5', type: 'Claim', name: 'Validation pipeline is deterministic' },
+    identity: {
+      id: 'concept-5',
+      type: 'Claim',
+      name: 'Validation pipeline is deterministic',
+    },
     structure: {
       statement: 'The same input always produces the same validation result.',
     },
@@ -85,9 +106,14 @@ function getFullGraph(): SubgraphResult {
 // ------------------- Pipeline data -------------------
 const PIPELINE_NODES = [
   {
-    identity: { id: 'pipe-1', type: 'Claim', name: 'LLMs need canonical grounding' },
+    identity: {
+      id: 'pipe-1',
+      type: 'Claim',
+      name: 'LLMs need canonical grounding',
+    },
     structure: {
-      statement: 'Language models benefit from a verifiable knowledge structure.',
+      statement:
+        'Language models benefit from a verifiable knowledge structure.',
       transition_log: [
         {
           agent: 'ResearcherAgent',
@@ -100,9 +126,14 @@ const PIPELINE_NODES = [
     },
   },
   {
-    identity: { id: 'pipe-2', type: 'Claim', name: 'CKS reduces hallucinations' },
+    identity: {
+      id: 'pipe-2',
+      type: 'Claim',
+      name: 'CKS reduces hallucinations',
+    },
     structure: {
-      statement: 'Canonical knowledge structures eliminate source hallucinations.',
+      statement:
+        'Canonical knowledge structures eliminate source hallucinations.',
       transition_log: [
         {
           agent: 'ResearcherAgent',
