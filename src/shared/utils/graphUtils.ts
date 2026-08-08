@@ -1,15 +1,18 @@
-import type { SubgraphResult } from '@/shared/types/graph'
+import type { CksObject, SubgraphResult } from '@/shared/types/graph'
 import type { Edge, Node } from '@xyflow/react'
+
+/** Тип ребра в ответе subgraph */
+type EdgeData = { source: string; target: string; relation_type: string }
 
 /** Преобразует SubgraphResult в массив узлов и рёбер React Flow */
 export function cksToReactFlow(data: SubgraphResult): {
   nodes: Node[]
   edges: Edge[]
 } {
-  const nodes: Node[] = data.nodes.map((obj) => ({
+  const nodes: Node[] = data.nodes.map((obj: CksObject) => ({
     id: obj.identity.id,
-    type: 'cksNode', // кастомный тип узла (создадим позже)
-    position: { x: 0, y: 0 }, // Dagre расставит сам
+    type: 'cksNode',
+    position: { x: 0, y: 0 },
     data: {
       label: obj.identity.name,
       cksType: obj.identity.type,
@@ -17,7 +20,7 @@ export function cksToReactFlow(data: SubgraphResult): {
     },
   }))
 
-  const edges: Edge[] = data.edges.map((rel, idx) => ({
+  const edges: Edge[] = data.edges.map((rel: EdgeData, idx: number) => ({
     id: `edge-${rel.source}-${rel.target}-${idx}`,
     source: rel.source,
     target: rel.target,

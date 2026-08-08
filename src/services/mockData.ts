@@ -1,4 +1,10 @@
-import type { SubgraphResult } from '@/shared/types/graph'
+import type { CksObject, SubgraphResult } from '@/shared/types/graph'
+
+type MockEdge = {
+  source: string
+  target: string
+  relation_type: string
+}
 
 /** Начальный граф (то, что видно сразу) */
 export function getMockGraph(): SubgraphResult {
@@ -167,7 +173,7 @@ export async function mockCallTool(
     return mockQuerySubgraph(
       (args.seed_ids as string[]) || [],
       (args.depth as number) || 1,
-    )
+    ) as unknown as Record<string, unknown>
   }
   throw new Error(`Unknown tool: ${toolName}`)
 }

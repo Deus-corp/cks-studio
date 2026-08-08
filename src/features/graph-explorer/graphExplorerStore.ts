@@ -1,7 +1,7 @@
 import type { Edge, Node } from '@xyflow/react'
 import { create } from 'zustand'
 
-interface GraphState {
+export interface GraphState {
   nodes: Node[]
   edges: Edge[]
   selectedNodeId: string | null
