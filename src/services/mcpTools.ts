@@ -1,8 +1,10 @@
 import type {
   CksObject,
+  ExplainDiffResult,
   GraphHealthResult,
   GraphHealthUnavailable,
   GraphRegistryEntry,
+  ListVersionsResult,
   SubgraphResult,
 } from '@/shared/types/graph'
 import { callTool } from './mcpClient'
@@ -168,4 +170,34 @@ export async function checkGraphHealth(
 ): Promise<GraphHealthResult | GraphHealthUnavailable> {
   const result = await callTool('check_graph_health', { name })
   return result as unknown as GraphHealthResult | GraphHealthUnavailable
+}
+
+// ---------------------------------------------------------------------------
+// Version diff: list_versions / explain_diff
+// ---------------------------------------------------------------------------
+
+export async function listVersions(
+  sessionId: string,
+): Promise<ListVersionsResult> {
+  const result = await callTool('list_versions', { session_id: sessionId })
+  return result as unknown as ListVersionsResult
+}
+
+/**
+ * explain_diff сравнивает ТЕКУЩЕЕ состояние сессии с версией
+ * targetVersionId (см. cks_mcp/tools/explain_diff/handler.py) — то есть
+ * это всегда "что изменилось с версии X до сейчас", а не диапазон между
+ * двумя произвольными версиями. Для сравнения двух конкретных прошлых
+ * версий пришлось бы сначала revert_version в одну из них — эта функция
+ * такого не делает.
+ */
+export async function explainDiff(
+  sessionId: string,
+  targetVersionId: string,
+): Promise<ExplainDiffResult> {
+  const result = await callTool('explain_diff', {
+    session_id: sessionId,
+    target_version_id: targetVersionId,
+  })
+  return result as unknown as ExplainDiffResult
 }

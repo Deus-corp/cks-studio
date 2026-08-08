@@ -20,9 +20,12 @@ export function GraphPage() {
     error,
     setError,
     setStatus,
+    recentSessions,
+    recordConnection,
   } = useSessionStore()
 
   const {
+    nodes,
     setNodes,
     setEdges,
     addNodes,
@@ -51,12 +54,13 @@ export function GraphPage() {
       setNodes(nodes)
       setEdges(edges)
       setStatus('connected')
+      recordConnection()
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Unknown error')
     } finally {
       setIsLoading(false)
     }
-  }, [sessionId, setStatus, setError, setNodes, setEdges])
+  }, [sessionId, setStatus, setError, setNodes, setEdges, recordConnection])
 
   useEffect(() => {
     if (sessionId.trim()) {
@@ -90,6 +94,22 @@ export function GraphPage() {
     setHighlightedEdges(chain)
   }
 
+  const handleResetGraph = () => {
+    setNodes([])
+    setEdges([])
+    clearHighlight()
+    setSelectedNode(null)
+    setError(null)
+  }
+
+  const handleSelectRecent = (recent: {
+    serverUrl: string
+    sessionId: string
+  }) => {
+    setServerUrl(recent.serverUrl)
+    setSessionId(recent.sessionId)
+  }
+
   return (
     <div className="h-full flex flex-col">
       <header className="bg-gray-900 border-b border-gray-800 px-4 py-3 flex items-center gap-4 flex-wrap">
@@ -117,6 +137,32 @@ export function GraphPage() {
           >
             {isLoading ? 'Loading...' : 'Connect'}
           </button>
+          {recentSessions.length > 0 && (
+            <select
+              aria-label="Recent sessions"
+              value=""
+              onChange={(e) => {
+                const recent = recentSessions.find(
+                  (r) => `${r.serverUrl}|${r.sessionId}` === e.target.value,
+                )
+                if (recent) handleSelectRecent(recent)
+              }}
+              className="bg-gray-800 border border-gray-700 rounded px-2 py-1 text-gray-200 text-xs max-w-[10rem]"
+            >
+              <option value="" disabled>
+                Recent sessions
+              </option>
+              {recentSessions.map((r) => (
+                <option
+                  key={`${r.serverUrl}|${r.sessionId}`}
+                  value={`${r.serverUrl}|${r.sessionId}`}
+                >
+                  {r.sessionId.slice(0, 12)}
+                  {r.sessionId.length > 12 ? '…' : ''} ({r.serverUrl})
+                </option>
+              ))}
+            </select>
+          )}
           <ConnectionStatus />
         </div>
         {error && <p className="text-red-400 text-xs w-full">{error}</p>}
@@ -157,6 +203,14 @@ export function GraphPage() {
               className="w-full rounded bg-gray-700 px-4 py-2 text-xs text-gray-300 hover:bg-gray-600"
             >
               Clear Highlight
+            </button>
+            <button
+              type="button"
+              onClick={handleResetGraph}
+              disabled={nodes.length === 0}
+              className="w-full rounded bg-red-900/60 border border-red-800 px-4 py-2 text-xs text-red-200 hover:bg-red-800/60 disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              Reset graph
             </button>
           </div>
         </aside>

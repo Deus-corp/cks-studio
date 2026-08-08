@@ -55,3 +55,62 @@ export function traceInferenceChain(
   dfs(seedId)
   return result
 }
+
+/**
+ * Кратчайший путь между двумя узлами (BFS по неориентированному графу
+ * рёбер — направление связи для подсветки пути неважно, в отличие от
+ * traceInferenceChain, где направление принципиально).
+ *
+ * Возвращает Set id рёбер, входящих в путь, либо пустой Set, если пути
+ * нет (в т.ч. если fromId === toId, или один из узлов отсутствует).
+ */
+export function findPathBetweenNodes(
+  fromId: string,
+  toId: string,
+  edges: Edge[],
+): Set<string> {
+  if (fromId === toId) return new Set()
+
+  // adjacency: nodeId -> [{ edgeId, neighborId }]
+  const adjacency = new Map<string, { edgeId: string; neighborId: string }[]>()
+  for (const edge of edges) {
+    if (!edge.source || !edge.target) continue
+    if (!adjacency.has(edge.source)) adjacency.set(edge.source, [])
+    if (!adjacency.has(edge.target)) adjacency.set(edge.target, [])
+    adjacency
+      .get(edge.source)
+      ?.push({ edgeId: edge.id, neighborId: edge.target })
+    adjacency
+      .get(edge.target)
+      ?.push({ edgeId: edge.id, neighborId: edge.source })
+  }
+
+  const visited = new Set<string>([fromId])
+  // nodeId -> { edgeId used to reach it, previous nodeId }
+  const cameFrom = new Map<string, { edgeId: string; prevId: string }>()
+  const queue: string[] = [fromId]
+
+  while (queue.length > 0) {
+    const current = queue.shift()
+    if (current === undefined) break
+    if (current === toId) break
+    for (const { edgeId, neighborId } of adjacency.get(current) ?? []) {
+      if (visited.has(neighborId)) continue
+      visited.add(neighborId)
+      cameFrom.set(neighborId, { edgeId, prevId: current })
+      queue.push(neighborId)
+    }
+  }
+
+  if (!visited.has(toId)) return new Set()
+
+  const pathEdgeIds = new Set<string>()
+  let cursor = toId
+  while (cursor !== fromId) {
+    const step = cameFrom.get(cursor)
+    if (!step) break
+    pathEdgeIds.add(step.edgeId)
+    cursor = step.prevId
+  }
+  return pathEdgeIds
+}

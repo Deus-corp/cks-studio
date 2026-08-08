@@ -3,8 +3,11 @@
 import { create } from 'zustand'
 import {
   DEFAULT_MCP_SERVER_URL,
+  type RecentSession,
+  readRecentSessions,
   readStoredServerUrl,
   readStoredSessionId,
+  writeRecentSession,
   writeStoredServerUrl,
   writeStoredSessionId,
 } from './connectionConfig'
@@ -26,10 +29,14 @@ export interface SessionState {
   sessionId: string
   status: ConnectionStatus
   error: string | null
+  recentSessions: RecentSession[]
   setServerUrl: (url: string) => void
   setSessionId: (sessionId: string) => void
   setStatus: (status: ConnectionStatus) => void
   setError: (error: string | null) => void
+  /** Записывает текущее (serverUrl, sessionId) в историю подключений.
+   *  Вызывать при успешном connect, а не при каждом вводе sessionId. */
+  recordConnection: () => void
   reset: () => void
 }
 
@@ -43,6 +50,7 @@ export const useSessionStore = create<SessionState>((set) => ({
   sessionId: readStoredSessionId(),
   status: 'idle',
   error: null,
+  recentSessions: readRecentSessions(),
   setServerUrl: (url) => {
     writeStoredServerUrl(url)
     setMCPBaseUrl(url)
@@ -54,6 +62,13 @@ export const useSessionStore = create<SessionState>((set) => ({
   },
   setStatus: (status) => set({ status }),
   setError: (error) => set({ error, status: error ? 'error' : 'idle' }),
+  recordConnection: () =>
+    set((state) => ({
+      recentSessions: writeRecentSession({
+        serverUrl: state.serverUrl,
+        sessionId: state.sessionId,
+      }),
+    })),
   reset: () =>
     set({
       serverUrl: DEFAULT_MCP_SERVER_URL,

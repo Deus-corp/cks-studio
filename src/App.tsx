@@ -1,5 +1,6 @@
 import { ErrorBoundary } from '@/components/common/ErrorBoundary'
 import { BrowserRouter, Link, Route, Routes } from 'react-router-dom'
+import { DiffPage } from './pages/DiffPage'
 import { GalleryPage } from './pages/GalleryPage'
 import { GraphPage } from './pages/GraphPage'
 import { PipelinePage } from './pages/PipelinePage'
@@ -18,6 +19,9 @@ function NavBar() {
       </Link>
       <Link to="/gallery" className={linkClass}>
         Gallery
+      </Link>
+      <Link to="/diff" className={linkClass}>
+        Diff
       </Link>
       <Link to="/settings" className={linkClass}>
         Settings
@@ -38,6 +42,7 @@ export function App() {
               <Route path="/" element={<GraphPage />} />
               <Route path="/pipeline" element={<PipelinePage />} />
               <Route path="/gallery" element={<GalleryPage />} />
+              <Route path="/diff" element={<DiffPage />} />
               <Route path="/settings" element={<SettingsPage />} />
               {/* остальные страницы — позже */}
             </Routes>
