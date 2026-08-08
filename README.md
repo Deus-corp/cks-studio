@@ -3,7 +3,7 @@
 > Interactive visual workspace for the Canonical Knowledge Structure ecosystem.
 
 ![TypeScript](https://img.shields.io/badge/typescript-5.7%2B-blue)
-![React](https://img.shields.io/badge/react-19-61DAFB)
+![React](https://img.shields.io/badge/react-26-61DAFB)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Status](https://img.shields.io/badge/status-alpha-orange)
 

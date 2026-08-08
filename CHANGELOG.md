@@ -6,6 +6,24 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 
 ---
 
+## [0.3.0] - 2026-08-08
+
+### Added
+- **Version Diff** – compare the current session state with any previous version (via `explain_diff`), with color-coded object/relation changes and summary counters.
+- **Export graph to PNG / SVG** – buttons in the top-right corner of the canvas, using `html-to-image`.
+- **Type legend** – shows the color mapping for CKS object types (Definition, Claim, Fork, etc.) in the bottom-left corner.
+- **Drag-and-drop subgraph JSON files** – drop a `query_subgraph` export directly onto the canvas to load it.
+- **Shortest path highlighting** – `Shift+click` two nodes to highlight the path between them (BFS over all edges).
+- **Recent sessions** – a dropdown in the header remembers the last 5 connected session/server pairs (stored in `localStorage`).
+- **Reset graph** – clears the canvas to start fresh.
+- New tests for `findPathBetweenNodes`, `graphExport`, `versionDiffUtils`.
+
+### Changed
+- `GraphPage` now auto-connects when a `sessionId` is already present (e.g., from Gallery).
+- `traceInferenceChain` now highlights all incoming edges, not just `depends_on`.
+
+---
+
 ## [0.2.0] - 2026-08-08
 
 ### Added
