@@ -6,7 +6,7 @@ import { getFullGraph, querySubgraph } from '@/services/mcpTools'
 import { useSessionStore } from '@/services/sessionStore'
 import { cksToReactFlow, traceInferenceChain } from '@/shared/utils/graphUtils'
 import type { Node } from '@xyflow/react'
-import { useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 
 export function GraphPage() {
   const [selectedNode, setSelectedNode] = useState<Node | null>(null)
@@ -33,7 +33,7 @@ export function GraphPage() {
     clearHighlight,
   } = useGraphStore()
 
-  const handleConnect = async () => {
+  const handleConnect = useCallback(async () => {
     if (!sessionId.trim()) return
     setIsLoading(true)
     setStatus('connecting')
@@ -56,7 +56,13 @@ export function GraphPage() {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [sessionId, setStatus, setError, setNodes, setEdges])
+
+  useEffect(() => {
+    if (sessionId.trim()) {
+      handleConnect()
+    }
+  }, [sessionId, handleConnect])
 
   const handleExplore = async () => {
     if (!selectedNodeId || isLoading) return

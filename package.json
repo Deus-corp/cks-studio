@@ -1,7 +1,7 @@
 {
   "name": "cks-studio",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.2.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -11,7 +11,9 @@
     "test:watch": "vitest",
     "lint": "biome check --write src/",
     "ci": "biome ci src/ && tsc --noEmit && vitest run",
-    "mcp": "bash start-mcp.sh"
+    "mcp": "bash start-mcp.sh",
+    "mcp:create-demo": "bash scripts/create-demo-session.sh",
+    "mcp:import-ecosystem": "python3 scripts/import-ecosystem-graph.py"
   },
   "dependencies": {
     "@dagrejs/dagre": "^1.0.0",

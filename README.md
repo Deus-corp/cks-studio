@@ -119,6 +119,26 @@ npm run dev
 Open `http://localhost:5173` and enter a `session_id` or browse the
 public gallery.
 
+### Demo: Explore the CKS Ecosystem Graph
+
+We ship a pre-built knowledge graph of the entire CKS project
+(277 objects, 158 relations). To see it in one command:
+
+```bash
+# Terminal 1: Start the MCP server
+npm run mcp
+
+# Terminal 2: Import the ecosystem graph (registers it in the Gallery)
+npm run mcp:import-ecosystem
+
+# Terminal 3: Launch the studio
+npm run dev
+```
+
+Open `http://localhost:5173`, go to the **Gallery** tab, and click
+**Open in Graph** on the `cks-ecosystem` card. The full project
+architecture appears instantly — no configuration needed.
+
 ---
 
 # Project Status

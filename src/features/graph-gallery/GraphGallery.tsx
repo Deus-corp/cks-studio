@@ -26,7 +26,8 @@ function GraphCard({ graph }: { graph: GraphRegistryEntry }) {
 
   const handleOpen = () => {
     setSessionId(graph.session_id)
-    navigate('/')
+    // Автоматически запускаем подключение после перехода
+    setTimeout(() => navigate('/'), 0)
   }
 
   return (
@@ -154,9 +155,9 @@ export function GraphGallery() {
 
       {!error && !isLoading && graphs.length === 0 && (
         <p className="text-xs text-gray-500 px-4 py-3">
-          Ничего не найдено. Графы попадают сюда через register_graph(...,
-          public=true) — если ожидали что-то увидеть, проверьте, что граф
-          действительно зарегистрирован как публичный.
+          No graphs found. Graphs appear here when registered via register_graph
+          with public=true. If you expected to see a graph here, verify it was
+          registered as public.
         </p>
       )}
 

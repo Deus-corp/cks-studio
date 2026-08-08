@@ -1,0 +1,11 @@
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "method": "tools/call",
+  "params": {
+    "name": "validate_knowledge",
+    "arguments": {
+      "json_data": "{\"objects\":[{\"identity\":{\"id\":\"concept-1\",\"type\":\"Definition\",\"name\":\"Knowledge\"},\"structure\":{\"description\":\"Canonical representation of information\"}},{\"identity\":{\"id\":\"concept-2\",\"type\":\"Claim\",\"name\":\"Knowledge is immutable\"},\"structure\":{\"statement\":\"Knowledge, once validated, never changes.\"}},{\"identity\":{\"id\":\"concept-3\",\"type\":\"Claim\",\"name\":\"Immutability prevents tampering\"},\"structure\":{\"statement\":\"Immutability guarantees that knowledge cannot be altered.\"}},{\"identity\":{\"id\":\"rel-1\",\"type\":\"Relation\",\"name\":\"depends_on\"},\"structure\":{\"participants\":[\"concept-2\",\"concept-1\"],\"relation_type\":\"depends_on\"}},{\"identity\":{\"id\":\"rel-2\",\"type\":\"Relation\",\"name\":\"supports\"},\"structure\":{\"participants\":[\"concept-3\",\"concept-2\"],\"relation_type\":\"supports\"}}]}"
+    }
+  }
+}

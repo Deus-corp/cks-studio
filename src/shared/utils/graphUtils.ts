@@ -33,7 +33,7 @@ export function cksToReactFlow(data: SubgraphResult): {
   return { nodes, edges }
 }
 
-/** Собирает все ребра цепочки depends_on от заданного узла (рекурсивно вглубь) */
+/** Собирает все входящие рёбра от заданного узла (рекурсивно вглубь). */
 export function traceInferenceChain(
   seedId: string,
   edges: Edge[],
@@ -45,7 +45,7 @@ export function traceInferenceChain(
     if (visited.has(currentId)) return
     visited.add(currentId)
     for (const edge of edges) {
-      if (edge.target === currentId && edge.label === 'depends_on') {
+      if (edge.target === currentId) {
         result.add(edge.id)
         dfs(edge.source)
       }
