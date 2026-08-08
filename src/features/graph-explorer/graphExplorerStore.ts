@@ -1,6 +1,11 @@
 import type { Edge, Node } from '@xyflow/react'
 import { create } from 'zustand'
 
+export interface RelationDraftState {
+  active: boolean
+  participantIds: string[]
+}
+
 export interface GraphState {
   nodes: Node[]
   edges: Edge[]
@@ -13,6 +18,16 @@ export interface GraphState {
   selectNode: (id: string | null) => void
   setHighlightedEdges: (edgeIds: Set<string>) => void
   clearHighlight: () => void
+  addPendingNode: (node: Node) => void
+  commitPendingNode: (id: string) => void
+  rollbackPendingNode: (id: string) => void
+  addPendingEdge: (edge: Edge) => void
+  commitPendingEdge: (id: string) => void
+  rollbackPendingEdge: (id: string) => void
+  relationDraft: RelationDraftState
+  startRelationDraft: () => void
+  cancelRelationDraft: () => void
+  toggleRelationParticipant: (id: string) => void
 }
 
 export const useGraphStore = create<GraphState>((set) => ({
@@ -42,4 +57,73 @@ export const useGraphStore = create<GraphState>((set) => ({
   selectNode: (id) => set({ selectedNodeId: id }),
   setHighlightedEdges: (edgeIds) => set({ highlightedEdgeIds: edgeIds }),
   clearHighlight: () => set({ highlightedEdgeIds: new Set() }),
+
+  addPendingNode: (node) =>
+    set((state) => {
+      if (state.nodes.some((n) => n.id === node.id)) return state
+      return {
+        nodes: [
+          ...state.nodes,
+          { ...node, data: { ...node.data, _pending: true } },
+        ],
+      }
+    }),
+  commitPendingNode: (id) =>
+    set((state) => ({
+      nodes: state.nodes.map((n) =>
+        n.id === id ? { ...n, data: { ...n.data, _pending: false } } : n,
+      ),
+    })),
+  rollbackPendingNode: (id) =>
+    set((state) => ({
+      nodes: state.nodes.filter((n) => !(n.id === id && n.data._pending)),
+    })),
+
+  addPendingEdge: (edge) =>
+    set((state) => {
+      if (state.edges.some((e) => e.id === edge.id)) return state
+      return {
+        edges: [
+          ...state.edges,
+          {
+            ...edge,
+            style: { ...edge.style, strokeDasharray: '4 4' },
+            data: { ...edge.data, _pending: true },
+          },
+        ],
+      }
+    }),
+  commitPendingEdge: (id) =>
+    set((state) => ({
+      edges: state.edges.map((e) =>
+        e.id === id
+          ? {
+              ...e,
+              style: { ...e.style, strokeDasharray: undefined },
+              data: { ...e.data, _pending: false },
+            }
+          : e,
+      ),
+    })),
+  rollbackPendingEdge: (id) =>
+    set((state) => ({
+      edges: state.edges.filter((e) => !(e.id === id && e.data?._pending)),
+    })),
+
+  relationDraft: { active: false, participantIds: [] },
+  startRelationDraft: () =>
+    set({ relationDraft: { active: true, participantIds: [] } }),
+  cancelRelationDraft: () =>
+    set({ relationDraft: { active: false, participantIds: [] } }),
+  toggleRelationParticipant: (id) =>
+    set((state) => {
+      const { participantIds } = state.relationDraft
+      const alreadySelected = participantIds.includes(id)
+      const next = alreadySelected
+        ? participantIds.filter((p) => p !== id)
+        : participantIds.length < 2
+          ? [...participantIds, id]
+          : participantIds
+      return { relationDraft: { active: true, participantIds: next } }
+    }),
 }))

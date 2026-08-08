@@ -135,3 +135,74 @@ export interface ExplainDiffResult {
     added_inference_steps: InferenceStepDiffEntry[]
   }
 }
+
+// ---------------------------------------------------------------------------
+// evolve_knowledge — see cks-mcp src/cks_mcp/tools/evolve/schema.py
+// ---------------------------------------------------------------------------
+
+/**
+ * Операторы эволюции, поддерживаемые evolve_knowledge. Оставлены только
+ * 'add_object' и 'add_relation' — это единственные операторы, которые
+ * нужны create-форме студии (студия сейчас read-only, remove/update/rename
+ * не используются UI). Остальные типы из схемы бэкенда сюда осознанно не
+ * включены, чтобы не создавать видимость поддержки того, чего нет в UI.
+ */
+export type EvolveOperation =
+  | {
+      type: 'add_object'
+      identity: CksIdentity
+      structure?: Record<string, unknown>
+    }
+  | {
+      type: 'add_relation'
+      identity: CksIdentity
+      participants: [string, string]
+      relation_type: string
+      structure?: Record<string, unknown>
+    }
+
+/** Один diagnostic из validate_knowledge / evolve_knowledge, см.
+ *  cks_mcp/tools/evolve/handler.py::non_blocking_diagnostics и
+ *  validation_failed-ветку. */
+export interface EvolveDiagnostic {
+  code: string
+  severity: 'error' | 'warning' | 'information'
+  message: string
+  location?: string
+}
+
+/** Успешный ответ evolve_knowledge (см. handler.py, конец функции).
+ *  'diagnostics' здесь — это НЕ blocking-ошибки: коммит уже прошёл,
+ *  это warning/info-уровня находки (например
+ *  CKS-EXT-INFERENCE-CONFIDENCE-CONFLICT), которые стоит показать
+ *  пользователю, но не как fail-состояние формы. */
+export interface EvolveSuccess {
+  evolved: true
+  serialized: string
+  operations_applied: number
+  version_id: string
+  session_id: string
+  cascade_removed_relations?: string[]
+  extensions_applied?: string[]
+  diagnostics?: EvolveDiagnostic[]
+}
+
+/** Ошибка evolve_knowledge. Приходит как обычный 200 с JSON-RPC-уровня
+ *  успехом, но с полем 'error' внутри распарсенного tool result — см.
+ *  примечание в services/mcpTools.ts::evolveKnowledge про то, почему
+ *  это нельзя различить через try/catch вокруг callTool. */
+export interface EvolveError {
+  error: string
+  message?: string
+  /** Только при error === 'validation_failed'. */
+  diagnostics?: EvolveDiagnostic[]
+  /** Только при error === 'validation_failed' для provenance-отказа
+   *  (blocking-diagnostics из provenance.verify_structure_provenance). */
+  details?: EvolveDiagnostic[]
+}
+
+export type EvolveResult = EvolveSuccess | EvolveError
+
+export function isEvolveError(result: EvolveResult): result is EvolveError {
+  return 'error' in result
+}

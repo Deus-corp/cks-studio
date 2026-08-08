@@ -1,6 +1,8 @@
 import { GraphCanvas } from '@/components/graph/GraphCanvas'
 import { SidePanel } from '@/components/layout/SidePanel'
 import { ConnectionStatus } from '@/components/mcp/ConnectionStatus'
+import { CreateNodeForm } from '@/features/graph-explorer/CreateNodeForm'
+import { CreateRelationForm } from '@/features/graph-explorer/CreateRelationForm'
 import { useGraphStore } from '@/features/graph-explorer/graphExplorerStore'
 import { getFullGraph, querySubgraph } from '@/services/mcpTools'
 import { useSessionStore } from '@/services/sessionStore'
@@ -8,9 +10,12 @@ import { cksToReactFlow, traceInferenceChain } from '@/shared/utils/graphUtils'
 import type { Node } from '@xyflow/react'
 import { useCallback, useEffect, useState } from 'react'
 
+type CreateMode = 'none' | 'node' | 'relation'
+
 export function GraphPage() {
   const [selectedNode, setSelectedNode] = useState<Node | null>(null)
   const [isLoading, setIsLoading] = useState(false)
+  const [createMode, setCreateMode] = useState<CreateMode>('none')
 
   const {
     serverUrl,
@@ -176,6 +181,31 @@ export function GraphPage() {
           <div className="p-4 border-t border-gray-800 space-y-2 mt-auto">
             <button
               type="button"
+              onClick={() =>
+                setCreateMode((m) => (m === 'node' ? 'none' : 'node'))
+              }
+              disabled={!sessionId.trim()}
+              className="w-full rounded bg-emerald-700 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {createMode === 'node' ? 'Close' : 'New object'}
+            </button>
+            <button
+              type="button"
+              onClick={() =>
+                setCreateMode((m) => (m === 'relation' ? 'none' : 'relation'))
+              }
+              disabled={!sessionId.trim() || nodes.length < 2}
+              title={
+                nodes.length < 2
+                  ? 'Need at least two objects on the canvas'
+                  : undefined
+              }
+              className="w-full rounded bg-emerald-800 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {createMode === 'relation' ? 'Close' : 'New relation'}
+            </button>
+            <button
+              type="button"
               onClick={handleExplore}
               disabled={!selectedNodeId || isLoading}
               className="w-full rounded bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
@@ -213,6 +243,20 @@ export function GraphPage() {
               Reset graph
             </button>
           </div>
+          {createMode === 'node' && (
+            <CreateNodeForm
+              sessionId={sessionId}
+              onCreated={() => setCreateMode('none')}
+              onCancel={() => setCreateMode('none')}
+            />
+          )}
+          {createMode === 'relation' && (
+            <CreateRelationForm
+              sessionId={sessionId}
+              onCreated={() => setCreateMode('none')}
+              onCancel={() => setCreateMode('none')}
+            />
+          )}
         </aside>
       </div>
     </div>

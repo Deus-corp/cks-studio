@@ -6,6 +6,24 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 
 ---
 
+## [0.3.1] - 2026-08-09
+
+### Added
+- **Object creation form** – add new nodes directly from the studio with optimistic UI and error feedback.
+- **Relation creation form** – select source/target nodes on canvas and define a relation type.
+- **Optimistic updates** – new nodes/edges appear immediately (dashed/pending style) and are rolled back on failure.
+- **Relation draft mode** – visual picker for selecting relation participants with amber highlight.
+- **`useEvolveMutation` hook** – reusable hook for `evolve_knowledge` calls with diagnostics handling.
+- **Recent sessions** – stores last 5 connected sessions in `localStorage` for quick switching.
+
+### Changed
+- `GraphPage` uses `CreateMode` switch (`none` | `node` | `relation`) instead of a boolean.
+- `GraphCanvas` and `CksNode` support relation draft mode and pending states.
+- `graphExplorerStore` extended with pending and relation draft state.
+- `mcpTools` exports `evolveKnowledge` with proper error discrimination.
+
+---
+
 ## [0.3.0] - 2026-08-08
 
 ### Added

@@ -16,11 +16,6 @@ import { useGraphLayout } from '@/features/graph-explorer/useGraphLayout'
 import type { SubgraphResult } from '@/shared/types/graph'
 import { cksToReactFlow, findPathBetweenNodes } from '@/shared/utils/graphUtils'
 
-/** Грубая проверка, что раскрытый JSON похож на SubgraphResult
- *  ({nodes, edges}, как отдаёт query_subgraph), а не на "сырой" .cks.json
- *  ({objects: [...]}), который требует создания сессии на сервере
- *  через construct_knowledge/validate_knowledge (см. scripts/import-ecosystem-graph.py) —
- *  такой файл нельзя просто отрендерить локально. */
 function looksLikeSubgraphResult(value: unknown): value is SubgraphResult {
   if (!value || typeof value !== 'object') return false
   const v = value as Record<string, unknown>
@@ -41,16 +36,31 @@ export function GraphCanvas({
   const setHighlightedEdges = useGraphStore(
     (s: GraphState) => s.setHighlightedEdges,
   )
+  const relationDraft = useGraphStore((s: GraphState) => s.relationDraft)
+  const toggleRelationParticipant = useGraphStore(
+    (s: GraphState) => s.toggleRelationParticipant,
+  )
 
   const [isDragOver, setIsDragOver] = useState(false)
   const [dropError, setDropError] = useState<string | null>(null)
-  // Первый узел, выбранный Shift+click, для подсветки пути до второго.
   const [pathStartId, setPathStartId] = useState<string | null>(null)
 
   const { nodes: layoutedNodes, edges: layoutedEdges } = useGraphLayout(
     nodes,
     edges,
   )
+
+  const displayNodes = relationDraft.active
+    ? layoutedNodes.map((node) => {
+        const idx = relationDraft.participantIds.indexOf(node.id)
+        return idx === -1
+          ? node
+          : {
+              ...node,
+              data: { ...node.data, _relationSelectedIndex: idx },
+            }
+      })
+    : layoutedNodes
 
   const styledEdges = layoutedEdges.map((edge) => ({
     ...edge,
@@ -62,6 +72,10 @@ export function GraphCanvas({
 
   const handleNodeClick = useCallback(
     (event: React.MouseEvent, node: Node) => {
+      if (relationDraft.active && !event.shiftKey) {
+        toggleRelationParticipant(node.id)
+        return
+      }
       if (event.shiftKey) {
         if (!pathStartId) {
           setPathStartId(node.id)
@@ -75,7 +89,15 @@ export function GraphCanvas({
       selectNode(node.id)
       onNodeSelect?.(node)
     },
-    [selectNode, onNodeSelect, pathStartId, edges, setHighlightedEdges],
+    [
+      selectNode,
+      onNodeSelect,
+      pathStartId,
+      edges,
+      setHighlightedEdges,
+      relationDraft.active,
+      toggleRelationParticipant,
+    ],
   )
 
   const handlePaneClick = useCallback(() => {
@@ -137,7 +159,7 @@ export function GraphCanvas({
       onDrop={handleDrop}
     >
       <ReactFlow
-        nodes={layoutedNodes}
+        nodes={displayNodes}
         edges={styledEdges}
         nodeTypes={nodeTypes}
         onNodeClick={handleNodeClick}
@@ -160,6 +182,14 @@ export function GraphCanvas({
       {pathStartId && (
         <div className="absolute top-3 left-3 z-10 bg-amber-900/90 border border-amber-700 text-amber-100 text-xs rounded px-3 py-1.5">
           Shift+click второй узел, чтобы подсветить путь до него
+        </div>
+      )}
+
+      {relationDraft.active && (
+        <div className="absolute top-3 left-3 z-10 bg-amber-900/90 border border-amber-700 text-amber-100 text-xs rounded px-3 py-1.5">
+          Кликните{' '}
+          {relationDraft.participantIds.length === 0 ? 'source' : 'target'}-узел{' '}
+          ({relationDraft.participantIds.length}/2 выбрано)
         </div>
       )}
 

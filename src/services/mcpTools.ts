@@ -1,5 +1,7 @@
 import type {
   CksObject,
+  EvolveOperation,
+  EvolveResult,
   ExplainDiffResult,
   GraphHealthResult,
   GraphHealthUnavailable,
@@ -200,4 +202,62 @@ export async function explainDiff(
     target_version_id: targetVersionId,
   })
   return result as unknown as ExplainDiffResult
+}
+
+// ---------------------------------------------------------------------------
+// evolve_knowledge — первая write-операция студии (add_object / add_relation)
+// ---------------------------------------------------------------------------
+
+/**
+ * Вызывает evolve_knowledge с одной или несколькими операциями против
+ * существующей сессии.
+ *
+ * ВАЖНО про обработку ошибок: evolve_knowledge не сигнализирует отказ
+ * (например validation_failed) через JSON-RPC error / HTTP-статус — это
+ * обычный успешный tools/call, просто распарсенный result содержит поле
+ * 'error' (см. cks_mcp/tools/evolve/handler.py). callTool() в mcpClient.ts
+ * бросает исключение только на транспортном уровне (не-2xx, JSON-RPC
+ * error-объект) и иначе возвращает распарсенный content как есть — значит
+ * try/catch вокруг callTool НЕ поймает validation_failed, invalid_json,
+ * unknown_extension и т.п. Поэтому здесь мы не бросаем исключение на
+ * бизнес-уровне ошибки, а возвращаем discriminated union (EvolveResult) и
+ * оставляем try/catch вызывающему коду только для сетевых сбоев.
+ */
+export async function evolveKnowledge(
+  sessionId: string,
+  operations: EvolveOperation[],
+): Promise<EvolveResult> {
+  const result = await callTool('evolve_knowledge', {
+    session_id: sessionId,
+    // json_data формально required в схеме бэкенда, но handler.py игнорирует
+    // его при переданном session_id (ветка `if session_id: ... else: parse
+    // json_data`) — пустая строка тут ничего не парсит и не используется.
+    json_data: '',
+    operations,
+  })
+  return result as unknown as EvolveResult
+}
+
+/** Удобный хелпер для формы создания одного узла. */
+export function addObjectOperation(
+  identity: { id: string; type: string; name: string },
+  structure: Record<string, unknown> = {},
+): EvolveOperation {
+  return { type: 'add_object', identity, structure }
+}
+
+/** Удобный хелпер для формы создания одной связи между двумя узлами. */
+export function addRelationOperation(
+  identity: { id: string; type: string; name: string },
+  participants: [string, string],
+  relationType: string,
+  structure: Record<string, unknown> = {},
+): EvolveOperation {
+  return {
+    type: 'add_relation',
+    identity,
+    participants,
+    relation_type: relationType,
+    structure,
+  }
 }
