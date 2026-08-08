@@ -1,5 +1,7 @@
 // Copyright (c) 2025 Deus Corp. Licensed under MIT.
 
+import { scoreColor } from '@/shared/utils/colorUtils'
+
 /** Разбирает comma-separated tags (как хранится в graph_registry) в массив. */
 export function formatTags(tags: string): string[] {
   return tags
@@ -8,9 +10,9 @@ export function formatTags(tags: string): string[] {
     .filter(Boolean)
 }
 
-/** Цвет health-бэйджа по health_score (0..1), см. check_graph_health. */
-export function healthColor(score: number): string {
-  if (score >= 0.8) return '#10b981'
-  if (score >= 0.5) return '#f59e0b'
-  return '#ef4444'
-}
+/**
+ * Цвет health-бэйджа по health_score (0..1), см. check_graph_health.
+ * Реэкспорт shared/utils/colorUtils::scoreColor под привычным для этого
+ * фича-модуля именем — сохраняет существующие импорты/тесты рабочими.
+ */
+export const healthColor = scoreColor

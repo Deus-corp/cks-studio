@@ -7,13 +7,10 @@ import type {
 } from '@/shared/types/graph'
 import { callTool } from './mcpClient'
 
-/** Плоская форма ноды, которую в compact_mode реально отдаёт query_subgraph_tool. */
-interface CompactSubgraphNode {
-  id: string
-  type: string
-  name: string
-  props: Record<string, unknown>
-}
+/** Канонический узел, который в compact_mode отдаёт query_subgraph_tool
+ *  (см. cks-mcp src/cks_mcp/tools/query_subgraph/handler.py) — та же форма
+ *  {identity: {id, type, name}, structure}, что и в serialize_knowledge. */
+type CompactSubgraphNode = CksObject
 
 /** Плоская форма ребра в compact_mode: source/target/type (НЕ relation_type). */
 interface CompactSubgraphEdge {
@@ -34,13 +31,12 @@ interface CompactQuerySubgraphResponse {
  * src/cks_mcp/tools/query_subgraph/handler.py, compact_mode-ветка):
  *
  * - узлы/рёбра лежат ВНУТРИ result.subgraph, не на верхнем уровне ответа;
- * - узел — плоский {id, type, name, props}, а не канонический
- *   {identity: {id, type, name}, structure} как в serialize_knowledge;
- * - ребро использует ключ `type`, а не `relation_type`.
- *
- * TODO(cks-mcp): когда backend начнёт отдавать канонический формат нод
- * (см. обсуждение "query_subgraph без seed_ids"), этот адаптер можно будет
- * упростить до простого unwrap result.subgraph без переименования полей.
+ * - узел уже в каноническом виде {identity: {id, type, name}, structure},
+ *   как и в serialize_knowledge (с 2026-08-08 backend больше не отдаёт
+ *   плоский {id, type, name, props} — см. обсуждение "query_subgraph без
+ *   seed_ids");
+ * - ребро использует ключ `type`, а не `relation_type` — это по-прежнему
+ *   нормализуем.
  */
 export function normalizeCompactSubgraphResponse(
   raw: Record<string, unknown>,
@@ -50,8 +46,12 @@ export function normalizeCompactSubgraphResponse(
   const rawEdges = response.subgraph?.edges ?? []
 
   const nodes: CksObject[] = rawNodes.map((n) => ({
-    identity: { id: n.id, type: n.type, name: n.name },
-    structure: n.props ?? {},
+    identity: {
+      id: n.identity.id,
+      type: n.identity.type,
+      name: n.identity.name,
+    },
+    structure: n.structure ?? {},
   }))
 
   const edges: SubgraphResult['edges'] = rawEdges

@@ -82,6 +82,8 @@ in the backend; the studio only reads and sends commands through MCP.
   backend.
 - **Visualisation** – React Flow + Dagre for the graph canvas, custom
   nodes for different CKS object types.
+- **Pipeline monitor** — watch objects move through Researcher → Reviewer steps with live auto-refresh.
+- **Graph gallery** — search, filter, and inspect public graphs registered via `register_graph`.
 
 ---
 
@@ -128,12 +130,12 @@ gallery.
 
 | Feature | Status |
 |---------|--------|
-| Graph exploration (query_subgraph) | 🚧 In progress |
-| Custom nodes (Definition, Claim, Fork, Resolution) | 🚧 In progress |
-| Inference chain inspector | 📅 Planned |
-| CRDT fork diff view | 📅 Planned |
-| Pipeline monitor | 📅 Planned |
-| Graph gallery | 📅 Planned |
+| Graph exploration (query_subgraph) | ✅ Complete |
+| Custom nodes (Definition, Claim, Fork, Resolution) | ✅ Complete |
+| Inference chain inspector | ✅ Complete |
+| CRDT fork diff view | ✅ Complete |
+| Pipeline monitor | ✅ Complete |
+| Graph gallery | ✅ Complete |
 | Agent control panel | 📅 Planned |
 
 ---

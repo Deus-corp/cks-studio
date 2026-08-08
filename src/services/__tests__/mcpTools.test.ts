@@ -1,22 +1,20 @@
-// Copyright (c) 2025 Deus Corp. Licensed under MIT.
-
 import { describe, expect, it } from 'vitest'
 import { normalizeCompactSubgraphResponse } from '../mcpTools'
 
 describe('normalizeCompactSubgraphResponse', () => {
   it('unwraps nodes/edges from the real query_subgraph_tool compact_mode shape', () => {
-    // Форма скопирована из cks-mcp src/cks_mcp/tools/query_subgraph/handler.py
     const raw = {
       session_id: 's1',
       subgraph: {
         nodes: [
           {
-            id: 'a1',
-            type: 'Claim',
-            name: 'Claim A',
-            props: { status: 'active' },
+            identity: { id: 'a1', type: 'Claim', name: 'Claim A' },
+            structure: { status: 'active' },
           },
-          { id: 'a2', type: 'Definition', name: 'Def A', props: {} },
+          {
+            identity: { id: 'a2', type: 'Definition', name: 'Def A' },
+            structure: {},
+          },
         ],
         edges: [{ source: 'a1', target: 'a2', type: 'depends_on' }],
       },

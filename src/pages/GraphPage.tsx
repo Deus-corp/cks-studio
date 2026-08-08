@@ -1,5 +1,6 @@
 import { GraphCanvas } from '@/components/graph/GraphCanvas'
 import { SidePanel } from '@/components/layout/SidePanel'
+import { ConnectionStatus } from '@/components/mcp/ConnectionStatus'
 import { useGraphStore } from '@/features/graph-explorer/graphExplorerStore'
 import { getFullGraph, querySubgraph } from '@/services/mcpTools'
 import { useSessionStore } from '@/services/sessionStore'
@@ -110,6 +111,7 @@ export function GraphPage() {
           >
             {isLoading ? 'Loading...' : 'Connect'}
           </button>
+          <ConnectionStatus />
         </div>
         {error && <p className="text-red-400 text-xs w-full">{error}</p>}
       </header>

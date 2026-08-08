@@ -1,13 +1,8 @@
+import { StatusBadge } from '@/components/common/StatusBadge'
 import { ForkDiffPanel } from '@/features/fork-diff/ForkDiffPanel'
+import { pipelineStatusColor } from '@/shared/constants/nodeTypes'
 import type { ForkVersionData } from '@/shared/types/graph'
 import type { Node } from '@xyflow/react'
-
-const STATUS_COLORS: Record<string, string> = {
-  awaiting_research: '#6b7280',
-  awaiting_review: '#3b82f6',
-  needs_research: '#ef4444',
-  resolved: '#10b981',
-}
 
 export function SidePanel({ node }: { node: Node | null }) {
   if (!node) {
@@ -44,14 +39,10 @@ export function SidePanel({ node }: { node: Node | null }) {
         </div>
         <div className="mb-3 flex items-center gap-2">
           <span className="text-sm text-gray-500">Status:</span>
-          <span
-            className="text-sm font-medium px-2 py-0.5 rounded"
-            style={{
-              backgroundColor: STATUS_COLORS[currentStatus] || '#6b7280',
-            }}
-          >
-            {currentStatus.replace(/_/g, ' ')}
-          </span>
+          <StatusBadge
+            status={currentStatus}
+            color={pipelineStatusColor(currentStatus)}
+          />
         </div>
         <div className="text-sm space-y-2">
           <div className="font-semibold text-gray-400">Transitions</div>

@@ -1,44 +1,23 @@
 // Copyright (c) 2025 Deus Corp. Licensed under MIT.
 
+import { HealthIndicator } from '@/components/common/HealthIndicator'
 import { useSessionStore } from '@/services/sessionStore'
 import type { GraphRegistryEntry } from '@/shared/types/graph'
+import { formatDateTime } from '@/shared/utils/formatUtils'
 import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useGalleryStore } from './galleryStore'
-import { formatTags, healthColor } from './galleryUtils'
+import { formatTags } from './galleryUtils'
 
 function HealthBadge({ name }: { name: string }) {
   const { health, healthLoading, loadHealth } = useGalleryStore()
-  const result = health[name]
-  const loading = healthLoading[name]
-
-  if (!result && !loading) {
-    return (
-      <button
-        type="button"
-        onClick={() => loadHealth(name)}
-        className="text-xs text-gray-500 hover:text-gray-300 underline"
-      >
-        Check health
-      </button>
-    )
-  }
-
-  if (loading) {
-    return <span className="text-xs text-gray-500">Checking…</span>
-  }
-
-  if (result && 'health_score' in result) {
-    const score = result.health_score
-    const color = healthColor(score)
-    return (
-      <span className="text-xs font-medium" style={{ color }}>
-        Health: {(score * 100).toFixed(0)}%
-      </span>
-    )
-  }
-
-  return <span className="text-xs text-gray-500">Session not loaded</span>
+  return (
+    <HealthIndicator
+      result={health[name]}
+      loading={Boolean(healthLoading[name])}
+      onCheck={() => loadHealth(name)}
+    />
+  )
 }
 
 function GraphCard({ graph }: { graph: GraphRegistryEntry }) {
@@ -84,7 +63,7 @@ function GraphCard({ graph }: { graph: GraphRegistryEntry }) {
       )}
 
       <p className="text-[10px] text-gray-600">
-        Updated {new Date(graph.updated_at).toLocaleString()}
+        Updated {formatDateTime(graph.updated_at)}
       </p>
 
       <div className="flex items-center justify-between mt-1">

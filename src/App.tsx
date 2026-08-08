@@ -1,3 +1,4 @@
+import { ErrorBoundary } from '@/components/common/ErrorBoundary'
 import { BrowserRouter, Link, Route, Routes } from 'react-router-dom'
 import { GalleryPage } from './pages/GalleryPage'
 import { GraphPage } from './pages/GraphPage'
@@ -21,7 +22,7 @@ function NavBar() {
       <Link to="/settings" className={linkClass}>
         Settings
       </Link>
-      {/* Agents — заглушка, добавится когда feature перестанет быть пустым файлом */}
+      {/* Agents — раздел не спроектирован, страницу удалили как пустую заготовку без спеки */}
     </nav>
   )
 }
@@ -32,13 +33,15 @@ export function App() {
       <div className="h-screen flex flex-col">
         <NavBar />
         <div className="flex-1 min-h-0">
-          <Routes>
-            <Route path="/" element={<GraphPage />} />
-            <Route path="/pipeline" element={<PipelinePage />} />
-            <Route path="/gallery" element={<GalleryPage />} />
-            <Route path="/settings" element={<SettingsPage />} />
-            {/* остальные страницы — позже */}
-          </Routes>
+          <ErrorBoundary>
+            <Routes>
+              <Route path="/" element={<GraphPage />} />
+              <Route path="/pipeline" element={<PipelinePage />} />
+              <Route path="/gallery" element={<GalleryPage />} />
+              <Route path="/settings" element={<SettingsPage />} />
+              {/* остальные страницы — позже */}
+            </Routes>
+          </ErrorBoundary>
         </div>
       </div>
     </BrowserRouter>
