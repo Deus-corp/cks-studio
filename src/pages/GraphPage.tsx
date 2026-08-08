@@ -1,15 +1,19 @@
 import { GraphCanvas } from '@/components/graph/GraphCanvas'
 import { SidePanel } from '@/components/layout/SidePanel'
 import { useGraphStore } from '@/features/graph-explorer/graphExplorerStore'
-import { querySubgraph } from '@/services/mcpTools'
-import { getMockGraph } from '@/services/mockData'
-import { cksToReactFlow } from '@/shared/utils/graphUtils'
-import { traceInferenceChain } from '@/shared/utils/graphUtils'
+import { setMCPBaseUrl } from '@/services/mcpClient'
+import { getFullGraph, querySubgraph } from '@/services/mcpTools'
+import { cksToReactFlow, traceInferenceChain } from '@/shared/utils/graphUtils'
 import type { Node } from '@xyflow/react'
 import { useEffect, useState } from 'react'
 
 export function GraphPage() {
   const [selectedNode, setSelectedNode] = useState<Node | null>(null)
+  const [serverUrl, setServerUrl] = useState('http://127.0.0.1:8765')
+  const [sessionId, setSessionId] = useState('')
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
   const {
     setNodes,
     setEdges,
@@ -20,23 +24,49 @@ export function GraphPage() {
     setHighlightedEdges,
     clearHighlight,
   } = useGraphStore()
-  const [isLoading, setIsLoading] = useState(false)
 
   useEffect(() => {
-    const data = getMockGraph()
-    const { nodes, edges } = cksToReactFlow(data)
-    setNodes(nodes)
-    setEdges(edges)
-  }, [setNodes, setEdges])
+    setMCPBaseUrl(serverUrl)
+  }, [serverUrl])
+
+  const handleConnect = async () => {
+    if (!sessionId.trim()) return
+    setIsLoading(true)
+    setError(null)
+    try {
+      const subgraph = await getFullGraph(sessionId.trim())
+      if (!subgraph.nodes || subgraph.nodes.length === 0) {
+        setError(
+          'No objects found in this session. Please check session_id and try again.',
+        )
+        setIsLoading(false)
+        return
+      }
+      const { nodes, edges } = cksToReactFlow(subgraph)
+      setNodes(nodes)
+      setEdges(edges)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Unknown error')
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   const handleExplore = async () => {
     if (!selectedNodeId || isLoading) return
     setIsLoading(true)
     try {
-      const subgraph = await querySubgraph('mock-session', [selectedNodeId], 1)
+      const subgraph = await querySubgraph(sessionId, [selectedNodeId], 1)
+      if (!subgraph.nodes || subgraph.nodes.length === 0) {
+        setError('No neighbours found for this node.')
+        setIsLoading(false)
+        return
+      }
       const { nodes: newNodes, edges: newEdges } = cksToReactFlow(subgraph)
       addNodes(newNodes)
       addEdges(newEdges)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Unknown error')
     } finally {
       setIsLoading(false)
     }
@@ -48,15 +78,35 @@ export function GraphPage() {
     setHighlightedEdges(chain)
   }
 
-  const handleClearHighlight = () => {
-    clearHighlight()
-  }
-
   return (
     <div className="h-screen flex flex-col">
-      <header className="bg-gray-900 border-b border-gray-800 px-4 py-3">
+      <header className="bg-gray-900 border-b border-gray-800 px-4 py-3 flex items-center gap-4 flex-wrap">
         <h1 className="text-lg font-semibold">CKS Studio</h1>
-        <p className="text-sm text-gray-400">Interactive knowledge graph</p>
+        <div className="flex items-center gap-2 text-sm">
+          <input
+            type="text"
+            placeholder="http://127.0.0.1:8765"
+            value={serverUrl}
+            onChange={(e) => setServerUrl(e.target.value)}
+            className="bg-gray-800 border border-gray-700 rounded px-2 py-1 w-48 text-gray-200"
+          />
+          <input
+            type="text"
+            placeholder="session_id"
+            value={sessionId}
+            onChange={(e) => setSessionId(e.target.value)}
+            className="bg-gray-800 border border-gray-700 rounded px-2 py-1 w-64 text-gray-200"
+          />
+          <button
+            type="button"
+            onClick={handleConnect}
+            disabled={isLoading || !sessionId.trim()}
+            className="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded disabled:opacity-50"
+          >
+            {isLoading ? 'Loading...' : 'Connect'}
+          </button>
+        </div>
+        {error && <p className="text-red-400 text-xs w-full">{error}</p>}
       </header>
       <div className="flex-1 flex">
         <main className="flex-1">
@@ -90,7 +140,7 @@ export function GraphPage() {
             </button>
             <button
               type="button"
-              onClick={handleClearHighlight}
+              onClick={clearHighlight}
               className="w-full rounded bg-gray-700 px-4 py-2 text-xs text-gray-300 hover:bg-gray-600"
             >
               Clear Highlight
