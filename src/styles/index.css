@@ -1,0 +1,19 @@
+@import "tailwindcss";
+
+@theme {
+  --color-gray-950: #0a0a0a;
+}
+
+body {
+  @apply bg-gray-950 text-gray-100 antialiased;
+}
+
+::selection {
+  background: #3b82f6;
+  color: #fff;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #374151 #111827;
+}

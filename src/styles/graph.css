@@ -1,0 +1,50 @@
+.react-flow__node {
+  font-size: 12px;
+}
+
+.react-flow__controls {
+  background: #1f2937;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.react-flow__controls-button {
+  background: #1f2937;
+  border-bottom: 1px solid #374151;
+  fill: #d1d5db;
+}
+
+.react-flow__controls-button:hover {
+  background: #374151;
+}
+
+.react-flow__minimap {
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.react-flow__background {
+  background: #030712;
+}
+
+.react-flow__node {
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: scale(0.9); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.react-flow__edge-path {
+  transition: stroke 0.2s ease, stroke-width 0.2s ease;
+}
+
+.react-flow__node {
+  transition: box-shadow 0.2s ease;
+}
+
+.react-flow__node:hover > div {
+  box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.7), 0 4px 12px rgba(0, 0, 0, 0.3);
+  border-radius: 0.5rem;
+}
