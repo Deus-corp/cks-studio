@@ -114,9 +114,7 @@ describe('AgentPanel', () => {
     render(<AgentPanel />)
 
     expect(
-      screen.getByText(
-        /Failed to fetch agents status: connection refused/,
-      ),
+      screen.getByText(/Failed to fetch agents status: connection refused/),
     ).toBeInTheDocument()
   })
 
