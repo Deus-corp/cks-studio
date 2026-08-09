@@ -55,6 +55,8 @@ CKS Studio is that human window:
   community or your team.
 - **Agent control panel** — start, stop, and observe the autonomous
   agents (Critic, Enrichment, Fork Resolution, Pipeline).
+- **Agent observability** — monitor the status of all background sweepers
+  (contradiction, staleness, health, etc.) in real time via the Agents page.
 
 ---
 
@@ -156,6 +158,7 @@ gallery.
 | CRDT fork diff view | ✅ Complete |
 | Pipeline monitor | ✅ Complete |
 | Graph gallery | ✅ Complete |
+| Agent observability (list_agents) | ✅ Complete |
 | Agent control panel | 📅 Planned |
 
 ---
