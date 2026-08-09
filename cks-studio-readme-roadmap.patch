@@ -1,0 +1,456 @@
+diff --git a/README.md b/README.md
+index 6e13831..e3e6f71 100644
+--- a/README.md
++++ b/README.md
+@@ -3,16 +3,17 @@
+ > Interactive visual workspace for the Canonical Knowledge Structure ecosystem.
+ 
+ ![TypeScript](https://img.shields.io/badge/typescript-5.7%2B-blue)
+-![React](https://img.shields.io/badge/react-60-61DAFB)
++![React](https://img.shields.io/badge/react-19-61DAFB)
++![Tests](https://img.shields.io/badge/tests-60%20passed-brightgreen)
+ ![License](https://img.shields.io/badge/license-MIT-green)
+-![Status](https://img.shields.io/badge/status-alpha-orange)
++![Status](https://img.shields.io/badge/status-v0.5.1-orange)
+ 
+ **CKS Studio** is the graphical interface of the CKS ecosystem — a
+ single-page application where you can **explore knowledge graphs**,
+ **inspect inference chains**, **review CRDT forks**, **monitor agent
+-pipelines**, **browse the public graph gallery**, **chat with an LLM**
+-that can call tools and modify the graph, all connected to
+-one or more `cks-mcp` servers over the Model Context Protocol (MCP).
++pipelines**, **browse the public graph gallery**, and **chat with an
++LLM** that can call tools and modify the graph, all connected to one
++or more `cks-mcp` servers over the Model Context Protocol (MCP).
+ 
+ It complements the three backend repositories by providing a visual
+ layer that makes the canonical knowledge immediately accessible to
+@@ -30,36 +31,85 @@ CKS Studio completes the CKS toolchain:
+ | **cks-core** | Canonical semantic engine. | [Deus-corp/cks-core](https://github.com/Deus-corp/cks-core) |
+ | **cks-runtime** | Operational environment – sessions, transactions, persistence. | [Deus-corp/cks-runtime](https://github.com/Deus-corp/cks-runtime) |
+ | **cks-mcp** | MCP server – exposes CKS to LLMs and agents. | [Deus-corp/cks-mcp](https://github.com/Deus-corp/cks-mcp) |
+-| **cks-studio** | Visual workspace – explore, monitor, and manage graphs. | [Deus-corp/cks-studio](https://github.com/Deus-corp/cks-studio) |
++| **cks-studio** | Visual workspace – explore, monitor, and manage graphs (this repository). | [Deus-corp/cks-studio](https://github.com/Deus-corp/cks-studio) |
++
++---
++
++# Quick Start
++
++> **Prerequisites:** Node.js ≥ 20, a running `cks-mcp` instance
++> (with HTTP transport enabled).
++
++```bash
++git clone https://github.com/Deus-corp/cks-studio.git
++cd cks-studio
++npm install
++cp .env.example .env.local   # edit the MCP server URL
++npm run dev
++```
++
++Open `http://localhost:5173` and enter a `session_id`, or browse the
++public gallery.
++
++### Demo: explore the CKS Ecosystem Graph
++
++We ship a pre-built knowledge graph of the entire CKS project
++(277 objects, 158 relations). To see it in one command:
++
++```bash
++# Terminal 1: start the MCP server
++npm run mcp
++
++# Terminal 2: import the ecosystem graph (registers it in the Gallery)
++npm run mcp:import-ecosystem
++
++# Terminal 3: launch the studio
++npm run dev
++```
++
++Open `http://localhost:5173`, go to the **Gallery** tab, and click
++**Open in Graph** on the `cks-ecosystem` card. The full project
++architecture appears instantly — no configuration needed.
+ 
+ ---
+ 
+ # Why CKS Studio?
+ 
+-`cks-mcp` already gives LLMs 53+ tools to create, validate, evolve, and
++`cks-mcp` already gives LLMs 61+ tools to create, validate, evolve, and
+ query knowledge structures. But humans and operators also need to see
+ what the agents are doing — to inspect a graph visually, to compare
+-forked versions of an object, or to watch a multi‑step reasoning
++forked versions of an object, or to watch a multi-step reasoning
+ pipeline unfold.
+ 
+ CKS Studio is that human window:
+ 
+-- **Interactive graph exploration** — zoom, pan, drill‑down by clicking
+-  on nodes, all with automatic layout.
++- **Interactive graph exploration** — zoom, pan, and drill down by
++  clicking on nodes, with automatic Dagre layout.
++- **Cmd/Ctrl+K quick jump** — fuzzy search across every node on the
++  canvas by name or id, keyboard-navigable, centres the viewport on the
++  match. No more scrolling a large graph to find one node.
++- **Type filter** — click a type in the legend to hide/show every node
++  of that type, so a dense graph can breathe.
+ - **Inference chain inspector** — follow `depends_on` edges from a
+   conclusion back to its axioms.
+-- **CRDT fork diff** — compare conflicting object versions side‑by‑side
+-  with colour‑coded branches.
++- **CRDT fork diff** — compare conflicting object versions side by side
++  with colour-coded branches.
+ - **Pipeline monitor** — see the status of objects moving through
+   Researcher → Reviewer → Synthesizer → Arbiter steps.
+ - **Graph gallery** — browse public knowledge graphs registered by the
+   community or your team.
+-- **Agent Control Panel** — start/stop in‑process sweepers and request graceful shutdown of standalone agents directly from the UI.
+-- **Agent observability** — monitor the status of all background sweepers
+-  (contradiction, staleness, health, etc.) in real time via the Agents page.
+-- **AI Chat** — built‑in assistant that can answer questions,
+-  create objects, evolve the graph, and explain its reasoning,
+-  all scoped to the current session.
++- **Agent control panel** — start/stop in-process sweepers and request
++  graceful shutdown of standalone agents directly from the UI.
++- **Agent observability** — monitor the status of all background
++  sweepers (contradiction, staleness, health, etc.) in real time via
++  the Agents page.
++- **AI Chat** — built-in assistant that can answer questions, create
++  objects, evolve the graph, and explain its reasoning, all scoped to
++  the current session.
++- **Dark and light themes** — a single set of design tokens driving
++  both; respects your OS preference on first visit, remembered after.
++- **Import subgraphs by drag-and-drop** — drop a `query_subgraph`
++  `.json` export straight onto the canvas.
+ 
+ ---
+ 
+@@ -83,12 +133,15 @@ in the backend; the studio only reads and sends commands through MCP.
+ 
+ - **MCP Client layer** – typed wrappers around `tools/call` for every
+   CKS tool.
+-- **State management** – Zustand stores keep the UI in sync with the
+-  backend.
+-- **Visualisation** – React Flow + Dagre for the graph canvas, custom
+-  nodes for different CKS object types.
+-- **Pipeline monitor** — watch objects move through Researcher → Reviewer steps with live auto-refresh.
+-- **Graph gallery** — search, filter, and inspect public graphs registered via `register_graph`.
++- **State management** – Zustand stores (`graphExplorerStore`,
++  `sessionStore`, `themeStore`, ...) keep the UI in sync with the
++  backend and with user preferences.
++- **Graph layout** – React Flow for rendering/interaction, Dagre for
++  automatic layout, custom nodes per CKS object type.
++- **Design tokens** – a single Tailwind v4 `@theme` block
++  (`surface-0`…`surface-3`, `border`, `text`, `accent`) drives both the
++  dark (default) and `[data-theme="light"]` themes; components never
++  hardcode colours.
+ 
+ ---
+ 
+@@ -108,79 +161,49 @@ in the backend; the studio only reads and sends commands through MCP.
+ 
+ ---
+ 
+-# Quick Start
+-
+-> **Prerequisites:** Node.js ≥ 20, a running `cks-mcp` instance
+-> (with HTTP transport enabled).
+-
+-```bash
+-git clone https://github.com/Deus-corp/cks-studio.git
+-cd cks-studio
+-npm install
+-cp .env.example .env.local   # edit the MCP server URL
+-npm run dev
+-```
+-
+-Open `http://localhost:5173` and enter a `session_id` or browse the
+-public gallery.
+-
+-### Demo: Explore the CKS Ecosystem Graph
+-
+-We ship a pre-built knowledge graph of the entire CKS project
+-(277 objects, 158 relations). To see it in one command:
+-
+-```bash
+-# Terminal 1: Start the MCP server
+-npm run mcp
+-
+-# Terminal 2: Import the ecosystem graph (registers it in the Gallery)
+-npm run mcp:import-ecosystem
+-
+-# Terminal 3: Launch the studio
+-npm run dev
+-```
+-
+-Open `http://localhost:5173`, go to the **Gallery** tab, and click
+-**Open in Graph** on the `cks-ecosystem` card. The full project
+-architecture appears instantly — no configuration needed.
+-
+----
+-
+ # Project Status
+ 
+-CKS Studio is in **active early development**. The MVP delivers
+-read‑only graph exploration with drill‑down. Subsequent milestones add
+-inference chain inspection, fork diff, pipeline monitoring, and the
+-gallery.
++CKS Studio is in **active development**, currently at **v0.5.1**. All
++core exploration, review, and monitoring surfaces are implemented and
++connected to live `cks-mcp` tools.
+ 
+ | Feature | Status |
+ |---------|--------|
+-| Graph exploration (query_subgraph) | ✅ Complete |
+-| Custom nodes (Definition, Claim, Fork, Resolution) | ✅ Complete |
++| Graph exploration (`query_subgraph`) | ✅ Complete |
++| Custom nodes (Definition, Claim, Concept, Fork, Resolution) | ✅ Complete |
++| Cmd/Ctrl+K node search | ✅ Complete |
++| Type filter (legend checkboxes) | ✅ Complete |
++| Graph empty state & skeleton loading | ✅ Complete |
+ | Inference chain inspector | ✅ Complete |
+ | CRDT fork diff view | ✅ Complete |
+ | Pipeline monitor | ✅ Complete |
+ | Graph gallery | ✅ Complete |
+-| Agent observability (list_agents) | ✅ Complete |
+-| Agent control panel | ✅ Complete |
+-| Dark theme | ✅ Complete |
++| Agent observability (`list_agents`) | ✅ Complete |
++| Agent control panel (start/stop/request-stop) | ✅ Complete |
++| Dark / light theme | ✅ Complete |
+ | AI Chat panel | ✅ Complete |
++| Real-time gossip visualiser | 🔲 Planned |
++| Graph gallery clone-into-session | 🔲 Planned |
++
++See [ROADMAP.md](ROADMAP.md) for what's next, and
++[CHANGELOG.md](CHANGELOG.md) for the full release history.
+ 
+ ---
+ 
+-# Roadmap
++# Testing
++
++```bash
++npm run test   # vitest
++npm run ci     # biome + tsc --noEmit + vitest, same as CI
++```
+ 
+-- **v0.1** – Read‑only graph explorer with automatic layout.
+-- **v0.2** – Inference chain inspector.
+-- **v0.3** – Fork diff view (LCA comparison).
+-- **v0.4** – Pipeline monitor (transition_log visualisation).
+-- **v0.5** — AI Chat panel, node redesign, directional edges.
++60+ tests, all passing.
+ 
+ ---
+ 
+ # Contributing
+ 
+-Contributions are welcome! Please open an issue to discuss what you’d
++Contributions are welcome! Please open an issue to discuss what you'd
+ like to work on. See the [CKS Core repository](https://github.com/Deus-corp/cks-core)
+ for the overall project conventions.
+ 
+diff --git a/ROADMAP.md b/ROADMAP.md
+index ff6a283..51a22cc 100644
+--- a/ROADMAP.md
++++ b/ROADMAP.md
+@@ -1,37 +1,163 @@
+ # Roadmap
+ 
+-CKS Studio is the visual workspace for the Canonical Knowledge Structure ecosystem.
+-
+-## v0.1 — Graph Explorer (current)
+-- ✅ Interactive graph canvas with React Flow + Dagre
+-- ✅ Custom nodes (Definition, Claim, Fork, Resolution)
+-- ✅ Drill-down (click to expand neighbourhood)
+-- ✅ Inference Chain Inspector
+-- ✅ Fork Diff View
+-- ✅ Pipeline status badges
+-
+-## v0.2 — Real MCP Integration
+-- 🔲 HTTP transport in `cks-mcp`
+-- 🔲 Replace mock data with live `query_subgraph`, `explain_inference`, `list_gossip_conflicts`
+-- 🔲 Session selector (connect to running `cks-mcp`)
+-
+-## v0.3 — Agent Control Panel
+-- 🔲 Start/stop autonomous agents (Critic, Enrichment, Fork Resolution, Pipeline)
+-- 🔲 Live outbox queue viewer
+-
+-## v0.4 — Graph Gallery
+-- 🔲 Browse public graphs from `graph_registry`
+-- 🔲 Clone a graph into your own session
+-
+-## v0.5 — Pipeline Orchestrator UI
+-- 🔲 Visual pipeline builder (drag & drop steps)
+-- 🔲 Pipeline run history and logs
+-
+-## v0.6 — Desktop Application (Electron)
+-- 🔲 Single installer bundling `cks-studio` + `cks-mcp` + `cks-core` + `cks-runtime`
+-- 🔲 One-click start for local knowledge management
+-
+-## Beyond
+-- 🔲 Real-time collaboration via CRDT gossip
+-- 🔲 Plugin marketplace
+-- 🔲 Federated graph search
+\ No newline at end of file
++This roadmap outlines the planned evolution of CKS Studio, the visual
++workspace for the Canonical Knowledge Structure ecosystem. It reflects
++the current state of the project and charts the course towards a
++production-ready, real-time visual layer over `cks-mcp`.
++
++---
++
++# Current Status (v0.5.1 — August 2026)
++
++CKS Studio has grown from a read-only graph viewer into a full
++**human control surface for the CKS ecosystem**: graph exploration with
++type filtering and quick-jump search, inference and fork inspection,
++pipeline and agent monitoring with live control, a public gallery, an
++AI chat panel wired to the same MCP tools an LLM would use, and a
++dark/light theme built on a single token system. 60+ tests, TypeScript
++strict mode, Biome-enforced formatting.
++
++## ✅ Completed Milestones
++
++### Graph Canvas
++- Interactive graph canvas — React Flow + Dagre automatic layout.
++- Custom nodes for every CKS object type (Definition, Claim, Concept,
++  Fork, Resolution), colour- and icon-coded by type, status dot for
++  pipeline state.
++- Drill-down — click a node to expand its neighbourhood
++  (`query_subgraph`).
++- **Cmd/Ctrl+K search palette** — fuzzy match on label/id, arrow-key
++  navigation, centres the viewport on the selected node.
++- **Type filter** — legend doubles as a checkbox filter; hidden types
++  and their edges are dropped before layout.
++- **MiniMap coloured by type**, matching the main canvas and legend.
++- **Empty state** and **skeleton loading** — the canvas now always
++  explains what's happening instead of showing a blank rectangle.
++- Drag-and-drop import of `query_subgraph` `.json` exports.
++- PNG/SVG graph export.
++- Path highlighting between two nodes (Shift+click).
++
++### Inspection & Review
++- Inference Chain Inspector — trace `depends_on` from a conclusion
++  back to its axioms.
++- CRDT Fork Diff View — LCA-based comparison of conflicting branches.
++- Version Diff — current session state vs. any past version
++  (`explain_diff`).
++
++### Monitoring & Control
++- Pipeline Monitor — live status of objects moving through the
++  Researcher → Reviewer → Synthesizer → Arbiter pipeline, transition
++  log per object.
++- Agent Observability — real-time status of every background sweeper
++  (contradiction, inference/provenance/temporal staleness, graph
++  freshness, graph health) via `list_agents` / `agent_status`.
++- Agent Control Panel — start/stop in-process sweepers and request
++  graceful shutdown of standalone agents (Critic, Enrichment, Fork
++  Resolution, Pipeline Agent) via `start_agent` / `stop_agent` /
++  `request_process_stop`.
++
++### Discovery & Collaboration
++- Graph Gallery — search, filter, and inspect public graphs registered
++  via `register_graph`.
++- AI Chat panel — LLM assistant scoped to the current session, can
++  call the same MCP tools to read and mutate the graph, with a
++  collapsible tool-call disclosure and live graph refresh.
++
++### Platform & Design
++- Design token system (`surface-0`…`surface-3`, `border`, `text`,
++  `accent`) driving both dark (default) and light
++  (`[data-theme="light"]`) themes.
++- Dark/light toggle on the Settings page, persisted per device,
++  defaults to `prefers-color-scheme` on first visit.
++- Self-hosted variable fonts (Manrope, JetBrains Mono), graph-paper
++  background texture, `:focus-visible` accessibility styling.
++- English-only UI strings (remaining Russian JSDoc comments are
++  developer-facing only, not user-visible).
++
++---
++
++# Next Up
++
++## Real MCP Session Presence (🔴 P0)
++
++**Goal:** Make the canvas reflect what's actually happening on the
++server in real time, not just on the actions a user takes locally.
++
++- [ ] **WebSocket/SSE subscription** to session events so a graph
++  mutated by an agent or another user updates without a manual
++  `query_subgraph` re-fetch.
++- [ ] **Optimistic-update reconciliation** — the existing pending-node
++  / pending-edge dashed-edge treatment already covers local
++  create/evolve calls; extend it to reconcile against server-pushed
++  state instead of only the local mutation's own response.
++- [ ] **Presence indicators** — show which other sessions/agents are
++  currently connected to the same `session_id`.
++
++## Graph Gallery: Clone & Fork (🟡 P1)
++
++- [ ] **Clone a public graph** into the user's own session instead of
++  only viewing it read-only.
++- [ ] **Filters** by category, tags, date, popularity in the Gallery
++  search bar.
++- [ ] **Health score badge** on gallery cards, sourced from
++  `check_graph_health`.
++
++## Pipeline Orchestrator UI (🟡 P1)
++
++- [ ] **Visual pipeline builder** — drag-and-drop `AgentStep`
++  configuration instead of editing `cks-pipeline-agent` config by
++  hand.
++- [ ] **Run history and logs** view per pipeline execution.
++
++## Conflict Resolution UI (🟢 P2)
++
++- [ ] **Dead-letter review queue** — surface
++  `list_dead_lettered_conflicts` with `approve_resolution` /
++  `reject_resolution` actions directly from the studio, instead of
++  only via raw tool calls.
++- [ ] **Gossip conflict inspector** — visualise
++  `list_gossip_conflicts` / `list_inference_conflicts` on the graph
++  canvas (highlight the conflicting nodes/edges in place).
++
++## Accessibility & Performance (🟢 P2)
++
++- [ ] **Code-splitting** — the current single JS bundle is ~550 kB
++  minified; split the AI Chat, Gallery, and export (`html-to-image`)
++  code paths into async chunks.
++- [ ] **Full keyboard navigation** of the graph canvas (tab through
++  nodes, arrow-key pan) for parity with mouse/touch interaction.
++- [ ] **Virtualised MiniMap/legend** for graphs with 500+ distinct
++  types.
++
++## Desktop Application (🔵 P3)
++
++- [ ] Single installer (Electron or Tauri) bundling `cks-studio` +
++  `cks-mcp` + `cks-core` + `cks-runtime` for one-click local knowledge
++  management, no `npm install`/`pip install` required.
++
++---
++
++# Beyond
++
++- **Real-time collaborative graph editing** via CRDT gossip, multiple
++  cursors on the same canvas.
++- **Plugin marketplace** — surface `list_plugins` results as
++  installable/configurable panels inside the studio.
++- **Federated graph search** across multiple registered `cks-mcp`
++  servers from a single gallery view.
++- **Domain-specific canvas themes** — layout and iconography presets
++  for science/law/medicine constraint packs as `cks-mcp` grows domain
++  packs.
++
++---
++
++## Operational Notes
++
++- CKS Studio is a pure frontend: it has no knowledge or business logic
++  of its own, everything shown here depends on the corresponding
++  `cks-mcp` tool already existing and reachable over HTTP. Roadmap
++  items above are UI/UX work on top of tools that already exist in
++  `cks-mcp`, except where explicitly noted as needing a new tool.
++- See [cks-mcp's ROADMAP](https://github.com/Deus-corp/cks-mcp/blob/main/ROADMAP.md)
++  for backend-side work (e.g. the LCA Arbiter) that some of the items
++  above build on.
