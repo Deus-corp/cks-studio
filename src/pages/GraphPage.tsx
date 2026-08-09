@@ -172,7 +172,7 @@ export function GraphPage() {
       </header>
       <div className="flex-1 flex">
         <main className="flex-1">
-          <GraphCanvas onNodeSelect={setSelectedNode} />
+          <GraphCanvas onNodeSelect={setSelectedNode} isLoading={isLoading} />
         </main>
         <aside className="w-72 border-l border-gray-800 bg-gray-900 overflow-y-auto flex flex-col">
           <SidePanel node={selectedNode} />

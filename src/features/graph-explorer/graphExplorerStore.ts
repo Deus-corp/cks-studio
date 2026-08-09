@@ -28,6 +28,10 @@ export interface GraphState {
   startRelationDraft: () => void
   cancelRelationDraft: () => void
   toggleRelationParticipant: (id: string) => void
+  /** CKS types currently hidden from the canvas (legend checkboxes). */
+  hiddenTypes: Set<string>
+  toggleTypeVisibility: (type: string) => void
+  showAllTypes: () => void
 }
 
 export const useGraphStore = create<GraphState>((set) => ({
@@ -126,4 +130,17 @@ export const useGraphStore = create<GraphState>((set) => ({
           : participantIds
       return { relationDraft: { active: true, participantIds: next } }
     }),
+
+  hiddenTypes: new Set(),
+  toggleTypeVisibility: (type) =>
+    set((state) => {
+      const next = new Set(state.hiddenTypes)
+      if (next.has(type)) {
+        next.delete(type)
+      } else {
+        next.add(type)
+      }
+      return { hiddenTypes: next }
+    }),
+  showAllTypes: () => set({ hiddenTypes: new Set() }),
 }))

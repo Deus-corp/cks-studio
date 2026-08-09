@@ -120,3 +120,52 @@ body {
   outline-offset: 2px;
   border-radius: 4px;
 }
+
+/*
+ * Light theme override. Same token names as the dark theme above, so any
+ * component built with bg-surface-1/text-text-primary/etc. picks this up
+ * automatically — no component changes needed, just this block plus the
+ * `data-theme="light"` attribute set on <html> by useThemeStore (see
+ * shared/stores/themeStore.ts) and the toggle in SettingsPage.
+ */
+[data-theme="light"] {
+  --color-surface-0: #f7f7f9;
+  --color-surface-1: #ffffff;
+  --color-surface-2: #f0f1f4;
+  --color-surface-3: #e5e7ec;
+
+  --color-border-subtle: #e5e7eb;
+  --color-border: #d8dae0;
+  --color-border-strong: #c2c5cc;
+
+  --color-text-primary: #16181d;
+  --color-text-secondary: #565c68;
+  --color-text-tertiary: #8a8f9a;
+
+  --color-accent: #3b64e0;
+  --color-accent-strong: #2a4fc4;
+  --color-accent-muted: #3b64e01a;
+}
+
+[data-theme="light"] body {
+  background-image:
+    radial-gradient(
+      ellipse 900px 500px at 15% -10%,
+      color-mix(in srgb, var(--color-accent) 5%, transparent),
+      transparent 60%
+    ),
+    linear-gradient(
+      to right,
+      color-mix(in srgb, var(--color-text-primary) 4%, transparent) 1px,
+      transparent 1px
+    ),
+    linear-gradient(
+      to bottom,
+      color-mix(in srgb, var(--color-text-primary) 4%, transparent) 1px,
+      transparent 1px
+    );
+}
+
+[data-theme="light"] ::selection {
+  color: #fff;
+}

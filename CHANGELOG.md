@@ -6,6 +6,25 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 
 ---
 
+## [0.5.1] - 2026-08-09
+
+### Added
+- **Graph skeleton** – shows a pulsing placeholder while a session's graph is loading, instead of an empty canvas.
+- **Graph empty state** – invites the user to connect a session or drag in a subgraph export when no graph is loaded.
+- **Cmd/Ctrl+K search palette** – fuzzy search over all nodes by label or id with keyboard navigation (arrows + Enter), centres the viewport on the selected node.
+- **Type filter in the legend** – clicking a type toggles its visibility on the canvas; a "Show all" button resets the filter. The legend now shows only types actually present in the graph.
+- **Light theme** – new `[data-theme="light"]` overrides in `index.css`, a theme store (`themeStore.ts`), and a light/dark toggle on the Settings page. Respects `prefers-color-scheme: light` on first visit.
+- **MiniMap node colours** – now reflects the actual CKS type colour.
+
+### Changed
+- **English i18n** – remaining Russian strings in `AgentPanel`, `VersionDiff`, and `GraphCanvas` replaced with English.
+- **GraphCanvas** accepts an `isLoading` prop; the skeleton renders only while loading and no nodes are on screen.
+- **Type legend** is now interactive (checkboxes) instead of static text.
+- **Settings page** shows the theme toggle as the first working preference.
+- **`hiddenTypes`** added to `graphExplorerStore` to support the type filter.
+
+---
+
 ## [0.5.0] - 2026-08-09
 
 ### Added

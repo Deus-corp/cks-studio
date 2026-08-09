@@ -265,7 +265,7 @@ export function AgentPanel() {
         if (isNotFound(result)) {
           setAgentActionErrors((prev) => ({
             ...prev,
-            [agentId]: 'Sweeper не найден — отключён через конфиг Runtime?',
+            [agentId]: 'Sweeper not found — disabled via Runtime config?',
           }))
         }
       } catch (e) {
@@ -298,7 +298,7 @@ export function AgentPanel() {
         if (isNotFound(result)) {
           setAgentActionErrors((prev) => ({
             ...prev,
-            [agentId]: 'Sweeper не найден — отключён через конфиг Runtime?',
+            [agentId]: 'Sweeper not found — disabled via Runtime config?',
           }))
         }
       } catch (e) {
@@ -332,12 +332,12 @@ export function AgentPanel() {
         if ('found' in result && result.found === false) {
           setProcessActionErrors((prev) => ({
             ...prev,
-            [key]: 'Процесс не найден — heartbeat ни разу не приходил?',
+            [key]: 'Process not found — heartbeat never received?',
           }))
         } else if (!('accepted' in result) || !result.accepted) {
           setProcessActionErrors((prev) => ({
             ...prev,
-            [key]: 'Запрос на остановку не был принят.',
+            [key]: 'Stop request was not accepted.',
           }))
         } else {
           setStopRequestedInstances((prev) => new Set(prev).add(key))

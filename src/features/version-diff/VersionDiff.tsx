@@ -199,7 +199,7 @@ export function VersionDiff() {
   if (!sessionId.trim()) {
     return (
       <div className="p-8 text-gray-500 text-sm">
-        Подключитесь к сессии на странице Graph, чтобы посмотреть дифф версий.
+        Connect to a session on the Graph page to view the version diff.
       </div>
     )
   }

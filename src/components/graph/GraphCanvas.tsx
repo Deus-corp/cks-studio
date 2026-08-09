@@ -3,16 +3,21 @@ import {
   Controls,
   MiniMap,
   type Node,
+  Panel,
   ReactFlow,
 } from '@xyflow/react'
 import { useCallback, useState } from 'react'
 import '@xyflow/react/dist/style.css'
 import { ExportControls } from '@/components/graph/ExportControls'
+import { GraphEmptyState } from '@/components/graph/GraphEmptyState'
+import { GraphSearchPalette } from '@/components/graph/GraphSearchPalette'
+import { GraphSkeleton } from '@/components/graph/GraphSkeleton'
 import { nodeTypes } from '@/components/graph/nodes'
 import { TypeLegend } from '@/components/graph/TypeLegend'
 import type { GraphState } from '@/features/graph-explorer/graphExplorerStore'
 import { useGraphStore } from '@/features/graph-explorer/graphExplorerStore'
 import { useGraphLayout } from '@/features/graph-explorer/useGraphLayout'
+import { nodeTypeColor } from '@/shared/constants/nodeTypes'
 import type { SubgraphResult } from '@/shared/types/graph'
 import { cksToReactFlow, findPathBetweenNodes } from '@/shared/utils/graphUtils'
 
@@ -24,8 +29,11 @@ function looksLikeSubgraphResult(value: unknown): value is SubgraphResult {
 
 export function GraphCanvas({
   onNodeSelect,
+  isLoading,
 }: {
   onNodeSelect?: (node: Node) => void
+  /** True while the initial session graph fetch is in flight (shows a skeleton instead of an empty canvas). */
+  isLoading?: boolean
 }) {
   const nodes = useGraphStore((s: GraphState) => s.nodes)
   const edges = useGraphStore((s: GraphState) => s.edges)
@@ -42,14 +50,36 @@ export function GraphCanvas({
   const toggleRelationParticipant = useGraphStore(
     (s: GraphState) => s.toggleRelationParticipant,
   )
+  const hiddenTypes = useGraphStore((s: GraphState) => s.hiddenTypes)
 
   const [isDragOver, setIsDragOver] = useState(false)
   const [dropError, setDropError] = useState<string | null>(null)
   const [pathStartId, setPathStartId] = useState<string | null>(null)
+  const [isSearchOpen, setIsSearchOpen] = useState(false)
+
+  // Type-filtered view of the graph — hidden types (toggled from
+  // TypeLegend) are dropped before layout so dagre doesn't reserve space
+  // for nodes that aren't shown, and their incident edges are dropped
+  // with them so nothing dangles.
+  const visibleNodes =
+    hiddenTypes.size === 0
+      ? nodes
+      : nodes.filter(
+          (node) =>
+            !hiddenTypes.has((node.data?.cksType as string) || 'Concept'),
+        )
+  const visibleNodeIds =
+    hiddenTypes.size === 0 ? null : new Set(visibleNodes.map((n) => n.id))
+  const visibleEdges = visibleNodeIds
+    ? edges.filter(
+        (edge) =>
+          visibleNodeIds.has(edge.source) && visibleNodeIds.has(edge.target),
+      )
+    : edges
 
   const { nodes: layoutedNodes, edges: layoutedEdges } = useGraphLayout(
-    nodes,
-    edges,
+    visibleNodes,
+    visibleEdges,
   )
 
   const displayNodes = relationDraft.active
@@ -131,7 +161,7 @@ export function GraphCanvas({
       const file = event.dataTransfer.files?.[0]
       if (!file) return
       if (!file.name.endsWith('.json')) {
-        setDropError('Ожидается .json файл с подграфом (nodes/edges).')
+        setDropError('Expected a .json file with a subgraph (nodes/edges).')
         return
       }
 
@@ -141,9 +171,9 @@ export function GraphCanvas({
           const parsed = JSON.parse(String(reader.result))
           if (!looksLikeSubgraphResult(parsed)) {
             setDropError(
-              'Файл не похож на экспорт query_subgraph ({nodes, edges}). ' +
-                'Полный .cks.json ({objects: [...]}) нужно импортировать через ' +
-                'scripts/import-ecosystem-graph.py — это требует создания сессии на сервере.',
+              "File doesn't look like a query_subgraph export ({nodes, edges}). " +
+                'A full .cks.json ({objects: [...]}) needs to be imported via ' +
+                'scripts/import-ecosystem-graph.py — that requires creating a session on the server.',
             )
             return
           }
@@ -151,7 +181,7 @@ export function GraphCanvas({
           setNodes(newNodes)
           setEdges(newEdges)
         } catch {
-          setDropError('Не удалось разобрать JSON.')
+          setDropError('Could not parse JSON.')
         }
       }
       reader.readAsText(file)
@@ -179,33 +209,80 @@ export function GraphCanvas({
         <Controls />
         <MiniMap
           nodeStrokeWidth={3}
+          nodeColor={(node) => nodeTypeColor(node.data?.cksType as string)}
           pannable
           zoomable
           style={{ backgroundColor: 'var(--color-surface-2)' }}
         />
         <ExportControls />
+        {nodes.length > 0 && (
+          <Panel position="top-left">
+            <button
+              type="button"
+              onClick={() => setIsSearchOpen(true)}
+              className="flex items-center gap-1.5 bg-surface-1/95 backdrop-blur-sm border border-border-subtle hover:border-border rounded-md px-2.5 py-1.5 text-xs text-text-secondary hover:text-text-primary shadow-lg transition-colors"
+            >
+              <svg
+                width="12"
+                height="12"
+                viewBox="0 0 24 24"
+                fill="none"
+                aria-hidden="true"
+              >
+                <circle
+                  cx="11"
+                  cy="11"
+                  r="7"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                />
+                <line
+                  x1="21"
+                  y1="21"
+                  x2="16.65"
+                  y2="16.65"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                />
+              </svg>
+              Search nodes
+              <kbd className="font-mono text-[10px] text-text-tertiary border border-border-subtle rounded px-1">
+                ⌘K
+              </kbd>
+            </button>
+          </Panel>
+        )}
+        <GraphSearchPalette
+          isOpen={isSearchOpen}
+          onOpenChange={setIsSearchOpen}
+          onSelect={(id) => selectNode(id)}
+        />
       </ReactFlow>
+
+      {nodes.length === 0 && !isLoading && <GraphEmptyState />}
+      {isLoading && nodes.length === 0 && <GraphSkeleton />}
 
       <TypeLegend />
 
       {pathStartId && (
         <div className="absolute top-3 left-3 z-10 bg-amber-900/90 border border-amber-700 text-amber-100 text-xs rounded px-3 py-1.5">
-          Shift+click второй узел, чтобы подсветить путь до него
+          Shift+click a second node to highlight the path to it
         </div>
       )}
 
       {relationDraft.active && (
         <div className="absolute top-3 left-3 z-10 bg-amber-900/90 border border-amber-700 text-amber-100 text-xs rounded px-3 py-1.5">
-          Кликните{' '}
-          {relationDraft.participantIds.length === 0 ? 'source' : 'target'}-узел{' '}
-          ({relationDraft.participantIds.length}/2 выбрано)
+          Click the{' '}
+          {relationDraft.participantIds.length === 0 ? 'source' : 'target'} node
+          ({relationDraft.participantIds.length}/2 selected)
         </div>
       )}
 
       {isDragOver && (
         <div className="absolute inset-0 z-10 bg-blue-500/10 border-2 border-dashed border-blue-500 flex items-center justify-center pointer-events-none">
           <span className="text-blue-300 text-sm bg-gray-900/90 px-3 py-1.5 rounded">
-            Отпустите, чтобы загрузить подграф (.json)
+            Drop to load subgraph (.json)
           </span>
         </div>
       )}
@@ -218,7 +295,7 @@ export function GraphCanvas({
             onClick={() => setDropError(null)}
             className="ml-2 underline"
           >
-            Закрыть
+            Dismiss
           </button>
         </div>
       )}
