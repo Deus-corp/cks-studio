@@ -265,6 +265,50 @@ export async function getAgentStatus(
   return result as unknown as AgentStatus | AgentNotFound
 }
 
+/**
+ * Один инстанс standalone-агентского процесса (Critic/Enrichment/Fork
+ * Resolution/Pipeline Agent) из общей таблицы cks_agent_liveness (см.
+ * cks-runtime ADR-014, cks-mcp ADR-008 / list_processes schema.py).
+ *
+ * ВАЖНО: в отличие от AgentStatus (sweeper'ы этого MCP-сервера), это
+ * общая для всех процессов таблица хранилища — в multi-node деплое
+ * может вернуть данные с другого узла. instance_id — новый uuid4 на
+ * каждый рестарт процесса, старые записи остаются как история.
+ */
+export interface ProcessStatus {
+  instance_id: string
+  process_kind: 'critic' | 'enrichment' | 'fork_resolution' | 'pipeline'
+  hostname: string
+  pid: number
+  liveness_interval_s: number
+  started_at: string
+  last_heartbeat_at: string
+  current_task_id: number | null
+  current_task_type: string | null
+  status: 'alive' | 'stopped'
+}
+
+/** Ответ process_status, когда данный process_kind ни разу не писал
+ *  heartbeat (или хранилище было очищено с тех пор). */
+export interface ProcessNotFound {
+  process_kind: string
+  found: false
+}
+
+/** list_processes, как и list_agents, не принимает session_id — данные
+ *  не привязаны к конкретной сессии/графу. */
+export async function listProcesses(): Promise<{ processes: ProcessStatus[] }> {
+  const result = await callTool('list_processes', {})
+  return { processes: (result.processes as ProcessStatus[]) ?? [] }
+}
+
+export async function getProcessStatus(
+  processKind: ProcessStatus['process_kind'],
+): Promise<ProcessStatus | ProcessNotFound> {
+  const result = await callTool('process_status', { process_kind: processKind })
+  return result as unknown as ProcessStatus | ProcessNotFound
+}
+
 export async function evolveKnowledge(
   sessionId: string,
   operations: EvolveOperation[],

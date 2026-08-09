@@ -6,6 +6,17 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 
 ---
 
+## [0.3.3] - 2026-08-09
+
+### Added
+- **Standalone-agent visibility in Agent Panel** – now displays Critic, Enrichment, Fork Resolution, and Pipeline Agent processes from the shared `cks_agent_liveness` table, alongside the existing sweeper cards.
+- **`useProcessesPolling` hook** – polls `list_processes` with visibility pause and race-safe request sequencing.
+- **`ProcessCard` component** – shows process kind, PID, hostname, heartbeat/started times, status (alive/stopped), and current task.
+- **`listProcesses` and `getProcessStatus` functions** in `mcpTools.ts` – typed wrappers.
+- **Tests** – 9 UI tests for `AgentPanel`, 6 hook tests for `useProcessesPolling`, and `test/setup.ts` cleanup registration to enable multiple renders per test file.
+
+---
+
 ## [0.3.2] - 2026-08-09
 
 ### Added
