@@ -1,6 +1,5 @@
 import { GraphCanvas } from '@/components/graph/GraphCanvas'
 import { SidePanel } from '@/components/layout/SidePanel'
-import { ConnectionStatus } from '@/components/mcp/ConnectionStatus'
 import { CreateNodeForm } from '@/features/graph-explorer/CreateNodeForm'
 import { CreateRelationForm } from '@/features/graph-explorer/CreateRelationForm'
 import { useGraphStore } from '@/features/graph-explorer/graphExplorerStore'
@@ -168,7 +167,6 @@ export function GraphPage() {
               ))}
             </select>
           )}
-          <ConnectionStatus />
         </div>
         {error && <p className="text-red-400 text-xs w-full">{error}</p>}
       </header>

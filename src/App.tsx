@@ -1,5 +1,12 @@
 import { ErrorBoundary } from '@/components/common/ErrorBoundary'
-import { BrowserRouter, Link, Route, Routes } from 'react-router-dom'
+import { ConnectionStatus } from '@/components/mcp/ConnectionStatus'
+import {
+  BrowserRouter,
+  Link,
+  Route,
+  Routes,
+  useLocation,
+} from 'react-router-dom'
 import { AgentsPage } from './pages/AgentsPage'
 import { DiffPage } from './pages/DiffPage'
 import { GalleryPage } from './pages/GalleryPage'
@@ -7,29 +14,102 @@ import { GraphPage } from './pages/GraphPage'
 import { PipelinePage } from './pages/PipelinePage'
 import { SettingsPage } from './pages/SettingsPage'
 
-function NavBar() {
-  const linkClass =
-    'text-xs px-2 py-1 rounded text-gray-400 hover:text-gray-200 hover:bg-gray-800'
+const NAV_LINKS = [
+  { to: '/', label: 'Graph' },
+  { to: '/pipeline', label: 'Pipeline' },
+  { to: '/gallery', label: 'Gallery' },
+  { to: '/diff', label: 'Diff' },
+  { to: '/agents', label: 'Agents' },
+  { to: '/settings', label: 'Settings' },
+]
+
+/** Небольшая метка-«граф» слева от вордмарка — единственный декоративный
+ *  элемент во всей шапке (см. frontend-design: тратить выразительность в
+ *  одном месте), три узла + два ребра как отсылка к предмету инструмента. */
+function LogoMark() {
   return (
-    <nav className="flex items-center gap-1 bg-gray-950 border-b border-gray-800 px-3 py-1.5">
-      <Link to="/" className={linkClass}>
-        Graph
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 18 18"
+      fill="none"
+      aria-hidden="true"
+      className="text-accent"
+    >
+      <line
+        x1="4"
+        y1="4"
+        x2="14"
+        y2="7"
+        stroke="currentColor"
+        strokeWidth="1.4"
+        opacity="0.6"
+      />
+      <line
+        x1="4"
+        y1="4"
+        x2="8"
+        y2="14"
+        stroke="currentColor"
+        strokeWidth="1.4"
+        opacity="0.6"
+      />
+      <line
+        x1="8"
+        y1="14"
+        x2="14"
+        y2="7"
+        stroke="currentColor"
+        strokeWidth="1.4"
+        opacity="0.6"
+      />
+      <circle cx="4" cy="4" r="2.5" fill="currentColor" />
+      <circle cx="14" cy="7" r="2.5" fill="currentColor" />
+      <circle cx="8" cy="14" r="2.5" fill="currentColor" />
+    </svg>
+  )
+}
+
+function NavBar() {
+  const { pathname } = useLocation()
+
+  return (
+    <nav className="flex items-center gap-1 bg-surface-1/90 backdrop-blur border-b border-border-subtle px-4 py-2 sticky top-0 z-20">
+      <Link
+        to="/"
+        className="flex items-center gap-2 mr-4 text-text-primary font-semibold text-sm tracking-tight hover:text-accent-strong transition-colors"
+      >
+        <LogoMark />
+        CKS Studio
       </Link>
-      <Link to="/pipeline" className={linkClass}>
-        Pipeline
-      </Link>
-      <Link to="/gallery" className={linkClass}>
-        Gallery
-      </Link>
-      <Link to="/diff" className={linkClass}>
-        Diff
-      </Link>
-      <Link to="/settings" className={linkClass}>
-        Settings
-      </Link>
-      <Link to="/agents" className={linkClass}>
-        Agents
-      </Link>
+
+      <div className="flex items-center gap-0.5">
+        {NAV_LINKS.map(({ to, label }) => {
+          const isActive =
+            to === '/' ? pathname === '/' : pathname.startsWith(to)
+          return (
+            <Link
+              key={to}
+              to={to}
+              aria-current={isActive ? 'page' : undefined}
+              className={`relative text-xs px-2.5 py-1.5 rounded-md transition-colors ${
+                isActive
+                  ? 'text-text-primary bg-surface-2'
+                  : 'text-text-secondary hover:text-text-primary hover:bg-surface-2/60'
+              }`}
+            >
+              {label}
+              {isActive && (
+                <span className="absolute left-2.5 right-2.5 -bottom-[9px] h-0.5 rounded-full bg-accent" />
+              )}
+            </Link>
+          )
+        })}
+      </div>
+
+      <div className="ml-auto">
+        <ConnectionStatus />
+      </div>
     </nav>
   )
 }

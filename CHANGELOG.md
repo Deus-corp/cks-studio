@@ -6,6 +6,23 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 
 ---
 
+## [0.4.0] - 2026-08-09
+
+### Added
+- **Agent Control Panel** – Start/Stop in‑process sweepers and Request Stop for standalone agents directly from the Agent Panel, using `start_agent`, `stop_agent`, and `request_process_stop` MCP tools.
+- **Dark theme** – design tokens (`surface-0`…`surface-3`, `border`, `text`, `accent`), graph-paper background texture, subtle glow, and scrollbar styling applied globally.
+- **Logo mark** – minimal SVG logo in the navigation bar.
+- **Keyboard focus indicators** – `:focus-visible` styles for better accessibility.
+- **Connection status moved to navbar** – now visible on every page.
+
+### Changed
+- Navigation bar redesigned with active state indicators and sticky positioning.
+- `GraphPage` header simplified (ConnectionStatus moved to navbar).
+- `SettingsPage` placeholder updated to reflect current state.
+- `AgentPanel` UI refreshed with consistent design tokens and button interactions.
+
+---
+
 ## [0.3.3] - 2026-08-09
 
 ### Added

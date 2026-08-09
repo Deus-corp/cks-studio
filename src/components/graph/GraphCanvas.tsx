@@ -172,7 +172,7 @@ export function GraphCanvas({
           nodeStrokeWidth={3}
           pannable
           zoomable
-          style={{ backgroundColor: '#1f2937' }}
+          style={{ backgroundColor: 'var(--color-surface-2)' }}
         />
         <ExportControls />
       </ReactFlow>

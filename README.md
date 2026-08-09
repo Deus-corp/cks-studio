@@ -53,8 +53,7 @@ CKS Studio is that human window:
   Researcher → Reviewer → Synthesizer → Arbiter steps.
 - **Graph gallery** — browse public knowledge graphs registered by the
   community or your team.
-- **Agent control panel** — start, stop, and observe the autonomous
-  agents (Critic, Enrichment, Fork Resolution, Pipeline).
+- **Agent Control Panel** — start/stop in‑process sweepers and request graceful shutdown of standalone agents directly from the UI.
 - **Agent observability** — monitor the status of all background sweepers
   (contradiction, staleness, health, etc.) in real time via the Agents page.
 
@@ -159,7 +158,8 @@ gallery.
 | Pipeline monitor | ✅ Complete |
 | Graph gallery | ✅ Complete |
 | Agent observability (list_agents) | ✅ Complete |
-| Agent control panel | 📅 Planned |
+| Agent control panel | ✅ Complete |
+| Dark theme | ✅ Complete |
 
 ---
 

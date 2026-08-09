@@ -1,19 +1,109 @@
 @import "tailwindcss";
 
+/*
+ * Design tokens for the dark theme. These are Tailwind v4 @theme
+ * --color-* entries, so every token below is also a first-class utility
+ * (bg-surface-1, text-accent, border-border, ...) — new/touched
+ * components should reach for these instead of raw gray-800/gray-900
+ * literals. Existing gray-* usage elsewhere in the codebase is untouched
+ * by this — this is additive infrastructure, not a rename. A light
+ * variant isn't wired up yet; these tokens are the seam a future
+ * light-theme pass would branch on (e.g. via a `[data-theme="light"]`
+ * override block), not a promise one is imminent.
+ */
 @theme {
   --color-gray-950: #0a0a0a;
+
+  /* Elevation: 0 = page background, 3 = topmost hover/active surface. */
+  --color-surface-0: #09090b;
+  --color-surface-1: #111318;
+  --color-surface-2: #16181e;
+  --color-surface-3: #1e2129;
+
+  --color-border-subtle: #1f222a;
+  --color-border: #292d37;
+  --color-border-strong: #383d4a;
+
+  --color-text-primary: #e8e9ec;
+  --color-text-secondary: #9aa0ac;
+  --color-text-tertiary: #656b78;
+
+  /* Single accent, used deliberately (see frontend-design guidance on
+     spending boldness in one place) — active nav state, primary actions,
+     focus rings, selection. Distinct from but close enough to the blue-*
+     already used ad hoc for path-highlighting so nothing clashes. */
+  --color-accent: #5b8cff;
+  --color-accent-strong: #82a6ff;
+  --color-accent-muted: #5b8cff26;
+
+  --color-success: #22c55e;
+  --color-danger: #ef4444;
+  --color-warning: #f59e0b;
+
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Inter,
+    Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", "Cascadia Code", "JetBrains Mono", Menlo,
+    Consolas, monospace;
 }
 
 body {
-  @apply bg-gray-950 text-gray-100 antialiased;
+  @apply bg-surface-0 text-text-primary antialiased;
+  font-family: var(--font-sans);
+  font-feature-settings: "cv11", "ss01";
+  /* Faint graph-paper texture + top-left glow — the one deliberate
+     atmospheric touch for a knowledge-graph tool, restrained everywhere
+     else so it stays a signature, not decoration. */
+  background-image: radial-gradient(
+      ellipse 900px 500px at 15% -10%,
+      color-mix(in srgb, var(--color-accent) 7%, transparent),
+      transparent 60%
+    ),
+    linear-gradient(
+      to right,
+      color-mix(in srgb, var(--color-text-primary) 3%, transparent) 1px,
+      transparent 1px
+    ),
+    linear-gradient(
+      to bottom,
+      color-mix(in srgb, var(--color-text-primary) 3%, transparent) 1px,
+      transparent 1px
+    );
+  background-size: 100% 100%, 48px 48px, 48px 48px;
+  background-attachment: fixed;
 }
 
 ::selection {
-  background: #3b82f6;
+  background: var(--color-accent);
   color: #fff;
 }
 
 * {
   scrollbar-width: thin;
-  scrollbar-color: #374151 #111827;
+  scrollbar-color: var(--color-border-strong) var(--color-surface-1);
+}
+
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+*::-webkit-scrollbar-track {
+  background: var(--color-surface-1);
+}
+*::-webkit-scrollbar-thumb {
+  background: var(--color-border-strong);
+  border-radius: 999px;
+  border: 2px solid var(--color-surface-1);
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-tertiary);
+}
+
+/* Visible, on-brand keyboard focus everywhere — the app had no explicit
+   focus-visible styling before, which fails a basic a11y bar for a tool
+   this keyboard-navigation-heavy (graph canvas, forms, chat once it
+   ships). Uses :focus-visible so mouse clicks don't get an unwanted ring. */
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+  border-radius: 4px;
 }

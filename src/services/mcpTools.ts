@@ -266,6 +266,33 @@ export async function getAgentStatus(
 }
 
 /**
+ * Запускает sweeper через start_agent и персистит desired_running=True на
+ * ЭТОЙ ноде (cks-runtime ADR-015). В multi-node деплое НЕ распространяется
+ * на другие ноды (в отличие от stopAgent) — см. описание тула в cks-mcp
+ * (ADR-015 §3: старт/стоп намеренно асимметричны). {found: false} — не
+ * ошибка, а неизвестный/отключённый через конфиг Runtime agent_id.
+ */
+export async function startAgent(
+  agentId: string,
+): Promise<AgentStatus | AgentNotFound> {
+  const result = await callTool('start_agent', { agent_id: agentId })
+  return result as unknown as AgentStatus | AgentNotFound
+}
+
+/**
+ * Останавливает sweeper через stop_agent и персистит desired_running=False
+ * на ЭТОЙ ноде. В multi-node деплое распространяется на другие ноды в
+ * течение одного sweep-интервала (ADR-015 §3). {found: false} — не
+ * ошибка, см. startAgent.
+ */
+export async function stopAgent(
+  agentId: string,
+): Promise<AgentStatus | AgentNotFound> {
+  const result = await callTool('stop_agent', { agent_id: agentId })
+  return result as unknown as AgentStatus | AgentNotFound
+}
+
+/**
  * Один инстанс standalone-агентского процесса (Critic/Enrichment/Fork
  * Resolution/Pipeline Agent) из общей таблицы cks_agent_liveness (см.
  * cks-runtime ADR-014, cks-mcp ADR-008 / list_processes schema.py).
@@ -307,6 +334,39 @@ export async function getProcessStatus(
 ): Promise<ProcessStatus | ProcessNotFound> {
   const result = await callTool('process_status', { process_kind: processKind })
   return result as unknown as ProcessStatus | ProcessNotFound
+}
+
+/** Ответ request_process_stop — запрос принят/не принят, это НЕ означает,
+ *  что процесс уже остановился (см. ProcessStopNotFound и описание тула:
+ *  задержка до фактической остановки ~ один liveness_interval + время
+ *  завершения текущей задачи). Нужно опрашивать getProcessStatus дальше,
+ *  чтобы увидеть status: 'stopped'. */
+export interface ProcessStopAccepted {
+  process_kind: string
+  instance_id: string
+  accepted: boolean
+}
+
+/** Ни один инстанс этого process_kind никогда не писал heartbeat — не
+ *  ошибка, тот же конвенция, что и у process_status. */
+export interface ProcessStopNotFound {
+  process_kind: string
+  found: false
+}
+
+/**
+ * Запрашивает graceful-остановку standalone-процесса (Critic/Enrichment/
+ * Fork Resolution/Pipeline Agent) — единственное write-действие, доступное
+ * для этих процессов: старт-тула не существует, cks-mcp не может спавнить
+ * новый OS-процесс (cks-runtime ADR-016 §4).
+ */
+export async function requestProcessStop(
+  processKind: ProcessStatus['process_kind'],
+): Promise<ProcessStopAccepted | ProcessStopNotFound> {
+  const result = await callTool('request_process_stop', {
+    process_kind: processKind,
+  })
+  return result as unknown as ProcessStopAccepted | ProcessStopNotFound
 }
 
 export async function evolveKnowledge(

@@ -1,7 +1,15 @@
 // Copyright (c) 2025 Deus Corp. Licensed under MIT.
 
-import type { AgentStatus, ProcessStatus } from '@/services/mcpTools'
+import type { ProcessNotFound, ProcessStatus } from '@/services/mcpTools'
+import {
+  type AgentNotFound,
+  type AgentStatus,
+  requestProcessStop,
+  startAgent,
+  stopAgent,
+} from '@/services/mcpTools'
 import { formatRelativeTime } from '@/shared/utils/formatUtils'
+import { useCallback, useEffect, useState } from 'react'
 import { useAgentsPolling } from './useAgentsPolling'
 import { useProcessesPolling } from './useProcessesPolling'
 
@@ -12,7 +20,28 @@ function truncateError(message: string): string {
   return `${message.slice(0, MAX_ERROR_LENGTH)}…`
 }
 
-function AgentCard({ agent }: { agent: AgentStatus }) {
+function isNotFound(
+  result: AgentStatus | AgentNotFound,
+): result is AgentNotFound {
+  return (result as AgentNotFound).found === false
+}
+
+interface AgentCardProps {
+  agent: AgentStatus
+  /** true пока start_agent/stop_agent в полёте для этого agent_id. */
+  isBusy: boolean
+  actionError: string | null
+  onStart: (agentId: string) => void
+  onStop: (agentId: string) => void
+}
+
+function AgentCard({
+  agent,
+  isBusy,
+  actionError,
+  onStart,
+  onStop,
+}: AgentCardProps) {
   return (
     <div className="bg-gray-900 border border-gray-800 rounded p-3 space-y-2">
       <div className="flex items-center gap-2">
@@ -50,17 +79,59 @@ function AgentCard({ agent }: { agent: AgentStatus }) {
           {truncateError(agent.last_error)}
         </div>
       )}
+
+      {actionError && (
+        <div className="text-xs text-red-400 break-words" title={actionError}>
+          {truncateError(actionError)}
+        </div>
+      )}
+
+      <div className="flex gap-2 pt-1">
+        <button
+          type="button"
+          onClick={() => onStart(agent.agent_id)}
+          disabled={isBusy || agent.running}
+          className="text-xs bg-green-900 hover:bg-green-800 text-green-200 px-2 py-1 rounded disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          {isBusy ? '…' : 'Start'}
+        </button>
+        <button
+          type="button"
+          onClick={() => onStop(agent.agent_id)}
+          disabled={isBusy || !agent.running}
+          className="text-xs bg-red-900 hover:bg-red-800 text-red-200 px-2 py-1 rounded disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          {isBusy ? '…' : 'Stop'}
+        </button>
+      </div>
     </div>
   )
 }
 
-function ProcessCard({ process }: { process: ProcessStatus }) {
+interface ProcessCardProps {
+  process: ProcessStatus
+  /** true пока request_process_stop в полёте для этого instance_id. */
+  isBusy: boolean
+  /** true после того, как запрос был accepted, пока status ещё не 'stopped'. */
+  stopRequested: boolean
+  actionError: string | null
+  onRequestStop: (process: ProcessStatus) => void
+}
+
+function ProcessCard({
+  process,
+  isBusy,
+  stopRequested,
+  actionError,
+  onRequestStop,
+}: ProcessCardProps) {
+  const isAlive = process.status === 'alive'
   return (
     <div className="bg-gray-900 border border-gray-800 rounded p-3 space-y-2">
       <div className="flex items-center gap-2">
         <span
           className={`w-2 h-2 rounded-full inline-block flex-shrink-0 ${
-            process.status === 'alive' ? 'bg-green-500' : 'bg-gray-600'
+            isAlive ? 'bg-green-500' : 'bg-gray-600'
           }`}
           title={process.status}
         />
@@ -87,23 +158,50 @@ function ProcessCard({ process }: { process: ProcessStatus }) {
           {process.current_task_type ? ` (${process.current_task_type})` : ''}
         </div>
       )}
+
+      {stopRequested && isAlive && (
+        <div className="text-xs text-yellow-400">
+          stop requested — waiting for process to exit…
+        </div>
+      )}
+
+      {actionError && (
+        <div className="text-xs text-red-400 break-words" title={actionError}>
+          {truncateError(actionError)}
+        </div>
+      )}
+
+      <div className="flex gap-2 pt-1">
+        <button
+          type="button"
+          onClick={() => onRequestStop(process)}
+          disabled={isBusy || !isAlive || stopRequested}
+          title="No start tool exists — cks-mcp cannot spawn a new OS process (ADR-016 §4); restarting is an operational action outside this panel's scope."
+          className="text-xs bg-red-900 hover:bg-red-800 text-red-200 px-2 py-1 rounded disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          {isBusy ? '…' : stopRequested ? 'Stop requested' : 'Request Stop'}
+        </button>
+      </div>
     </div>
   )
 }
 
 /**
- * Пассивная read-only панель in-process sweeper'ов (ContradictionSweeper,
- * InferenceStalenessSweeper и т.д. — см. list_agents schema в cks-mcp).
+ * Панель in-process sweeper'ов (ContradictionSweeper,
+ * InferenceStalenessSweeper и т.д. — см. list_agents schema в cks-mcp) с
+ * возможностью Start/Stop на базе start_agent/stop_agent (v2, см.
+ * AGENT_VISIBILITY.md — управление добавлено поверх read-only v1).
+ * Действие затрагивает только ноду, к которой подключена студия
+ * (см. ADR-015 §3 про намеренную асимметрию start/stop между нодами
+ * в multi-node деплое — start НЕ распространяется, stop распространяется
+ * в течение одного sweep-интервала).
  *
- * Намеренно без кнопок и действий (v1 из AGENT_VISIBILITY.md) — запуск/
- * остановка sweeper'ов требует отдельного дизайна конкурентного доступа
- * и персистентности состояния "остановлен вручную", это Control Panel,
- * не эта панель.
- *
- * Вторая секция (v2) показывает standalone-агентов (Critic/Enrichment/
+ * Вторая секция показывает standalone-агентов (Critic/Enrichment/
  * Fork Resolution/Pipeline Agent) через list_processes — общую таблицу
- * cks_agent_liveness (см. cks-runtime ADR-014). Как и sweeper-секция,
- * это чисто read-only снимок, без действий.
+ * cks_agent_liveness (см. cks-runtime ADR-014), с Request Stop на базе
+ * request_process_stop. Старт-тула для этих процессов не существует
+ * (cks-mcp не может спавнить OS-процесс, ADR-016 §4) — только запрос
+ * на graceful-остановку.
  */
 export function AgentPanel() {
   const { agents, lastFetchedAt, error, isLoading, refresh } =
@@ -115,6 +213,151 @@ export function AgentPanel() {
     isLoading: processesLoading,
     refresh: refreshProcesses,
   } = useProcessesPolling()
+
+  // Отдельно от polling-состояния: какие agent_id/instance_id сейчас в
+  // полёте (busy) и ошибка последнего действия для каждого — polling не
+  // должен эти сбрасывать между тиками.
+  const [busyAgents, setBusyAgents] = useState<Set<string>>(new Set())
+  const [agentActionErrors, setAgentActionErrors] = useState<
+    Record<string, string>
+  >({})
+  const [busyProcesses, setBusyProcesses] = useState<Set<string>>(new Set())
+  const [processActionErrors, setProcessActionErrors] = useState<
+    Record<string, string>
+  >({})
+  // instance_id -> запрос на остановку принят, ждём status: 'stopped'.
+  const [stopRequestedInstances, setStopRequestedInstances] = useState<
+    Set<string>
+  >(new Set())
+
+  // Убираем instance_id из stopRequestedInstances, как только его статус
+  // фактически стал 'stopped' (ADR-016 §3: status флипается сразу же по
+  // выходу процесса, не по медленному TTL) — иначе сет копится вечно.
+  useEffect(() => {
+    setStopRequestedInstances((prev) => {
+      if (prev.size === 0) return prev
+      const stillAlive = new Set(
+        processes.filter((p) => p.status === 'alive').map((p) => p.instance_id),
+      )
+      let changed = false
+      const next = new Set<string>()
+      for (const id of prev) {
+        if (stillAlive.has(id)) {
+          next.add(id)
+        } else {
+          changed = true
+        }
+      }
+      return changed ? next : prev
+    })
+  }, [processes])
+
+  const handleStart = useCallback(
+    async (agentId: string) => {
+      setBusyAgents((prev) => new Set(prev).add(agentId))
+      setAgentActionErrors((prev) => {
+        const next = { ...prev }
+        delete next[agentId]
+        return next
+      })
+      try {
+        const result = await startAgent(agentId)
+        if (isNotFound(result)) {
+          setAgentActionErrors((prev) => ({
+            ...prev,
+            [agentId]: 'Sweeper не найден — отключён через конфиг Runtime?',
+          }))
+        }
+      } catch (e) {
+        setAgentActionErrors((prev) => ({
+          ...prev,
+          [agentId]: e instanceof Error ? e.message : 'Unknown error',
+        }))
+      } finally {
+        setBusyAgents((prev) => {
+          const next = new Set(prev)
+          next.delete(agentId)
+          return next
+        })
+        refresh()
+      }
+    },
+    [refresh],
+  )
+
+  const handleStop = useCallback(
+    async (agentId: string) => {
+      setBusyAgents((prev) => new Set(prev).add(agentId))
+      setAgentActionErrors((prev) => {
+        const next = { ...prev }
+        delete next[agentId]
+        return next
+      })
+      try {
+        const result = await stopAgent(agentId)
+        if (isNotFound(result)) {
+          setAgentActionErrors((prev) => ({
+            ...prev,
+            [agentId]: 'Sweeper не найден — отключён через конфиг Runtime?',
+          }))
+        }
+      } catch (e) {
+        setAgentActionErrors((prev) => ({
+          ...prev,
+          [agentId]: e instanceof Error ? e.message : 'Unknown error',
+        }))
+      } finally {
+        setBusyAgents((prev) => {
+          const next = new Set(prev)
+          next.delete(agentId)
+          return next
+        })
+        refresh()
+      }
+    },
+    [refresh],
+  )
+
+  const handleRequestStop = useCallback(
+    async (process: ProcessStatus) => {
+      const key = process.instance_id
+      setBusyProcesses((prev) => new Set(prev).add(key))
+      setProcessActionErrors((prev) => {
+        const next = { ...prev }
+        delete next[key]
+        return next
+      })
+      try {
+        const result = await requestProcessStop(process.process_kind)
+        if ('found' in result && result.found === false) {
+          setProcessActionErrors((prev) => ({
+            ...prev,
+            [key]: 'Процесс не найден — heartbeat ни разу не приходил?',
+          }))
+        } else if (!('accepted' in result) || !result.accepted) {
+          setProcessActionErrors((prev) => ({
+            ...prev,
+            [key]: 'Запрос на остановку не был принят.',
+          }))
+        } else {
+          setStopRequestedInstances((prev) => new Set(prev).add(key))
+        }
+      } catch (e) {
+        setProcessActionErrors((prev) => ({
+          ...prev,
+          [key]: e instanceof Error ? e.message : 'Unknown error',
+        }))
+      } finally {
+        setBusyProcesses((prev) => {
+          const next = new Set(prev)
+          next.delete(key)
+          return next
+        })
+        refreshProcesses()
+      }
+    },
+    [refreshProcesses],
+  )
 
   return (
     <div className="h-full flex flex-col">
@@ -159,7 +402,14 @@ export function AgentPanel() {
 
           <div className="p-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {agents.map((agent) => (
-              <AgentCard key={agent.agent_id} agent={agent} />
+              <AgentCard
+                key={agent.agent_id}
+                agent={agent}
+                isBusy={busyAgents.has(agent.agent_id)}
+                actionError={agentActionErrors[agent.agent_id] ?? null}
+                onStart={handleStart}
+                onStop={handleStop}
+              />
             ))}
           </div>
         </section>
@@ -196,7 +446,14 @@ export function AgentPanel() {
 
           <div className="p-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {processes.map((process) => (
-              <ProcessCard key={process.instance_id} process={process} />
+              <ProcessCard
+                key={process.instance_id}
+                process={process}
+                isBusy={busyProcesses.has(process.instance_id)}
+                stopRequested={stopRequestedInstances.has(process.instance_id)}
+                actionError={processActionErrors[process.instance_id] ?? null}
+                onRequestStop={handleRequestStop}
+              />
             ))}
           </div>
         </section>
