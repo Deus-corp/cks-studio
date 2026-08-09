@@ -1,10 +1,10 @@
 // Copyright (c) 2025 Deus Corp. Licensed under MIT.
 
+import type { Edge } from '@xyflow/react'
+import { useEffect, useState } from 'react'
 import { useGraphStore } from '@/features/graph-explorer/graphExplorerStore'
 import { useEvolveMutation } from '@/features/graph-explorer/useEvolveMutation'
 import { addRelationOperation } from '@/services/mcpTools'
-import type { Edge } from '@xyflow/react'
-import { useEffect, useState } from 'react'
 
 interface CreateRelationFormProps {
   sessionId: string

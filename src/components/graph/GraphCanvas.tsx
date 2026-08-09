@@ -8,10 +8,10 @@ import {
 import { useCallback, useState } from 'react'
 import '@xyflow/react/dist/style.css'
 import { ExportControls } from '@/components/graph/ExportControls'
-import { TypeLegend } from '@/components/graph/TypeLegend'
 import { nodeTypes } from '@/components/graph/nodes'
-import { useGraphStore } from '@/features/graph-explorer/graphExplorerStore'
+import { TypeLegend } from '@/components/graph/TypeLegend'
 import type { GraphState } from '@/features/graph-explorer/graphExplorerStore'
+import { useGraphStore } from '@/features/graph-explorer/graphExplorerStore'
 import { useGraphLayout } from '@/features/graph-explorer/useGraphLayout'
 import type { SubgraphResult } from '@/shared/types/graph'
 import { cksToReactFlow, findPathBetweenNodes } from '@/shared/utils/graphUtils'
@@ -24,7 +24,9 @@ function looksLikeSubgraphResult(value: unknown): value is SubgraphResult {
 
 export function GraphCanvas({
   onNodeSelect,
-}: { onNodeSelect?: (node: Node) => void }) {
+}: {
+  onNodeSelect?: (node: Node) => void
+}) {
   const nodes = useGraphStore((s: GraphState) => s.nodes)
   const edges = useGraphStore((s: GraphState) => s.edges)
   const highlightedEdgeIds = useGraphStore(
@@ -160,6 +162,7 @@ export function GraphCanvas({
   return (
     <div
       className="w-full h-full relative"
+      role="application"
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}

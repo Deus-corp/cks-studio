@@ -1,7 +1,7 @@
 // Copyright (c) 2025 Deus Corp. Licensed under MIT.
 
-import type { ExecutedToolCall } from '@/services/mcpTools'
 import { useState } from 'react'
+import type { ExecutedToolCall } from '@/services/mcpTools'
 import type { ChatTurn } from './chatStore'
 import { useAiChat } from './useAiChat'
 

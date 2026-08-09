@@ -1,10 +1,10 @@
 // Copyright (c) 2025 Deus Corp. Licensed under MIT.
 
+import type { Node } from '@xyflow/react'
+import { useState } from 'react'
 import { useEvolveMutation } from '@/features/graph-explorer/useEvolveMutation'
 import { addObjectOperation } from '@/services/mcpTools'
 import { NODE_TYPE_COLORS } from '@/shared/constants/nodeTypes'
-import type { Node } from '@xyflow/react'
-import { useState } from 'react'
 
 interface CreateNodeFormProps {
   sessionId: string

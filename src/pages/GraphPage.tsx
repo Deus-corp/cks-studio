@@ -1,3 +1,5 @@
+import type { Node } from '@xyflow/react'
+import { useCallback, useEffect, useState } from 'react'
 import { GraphCanvas } from '@/components/graph/GraphCanvas'
 import { SidePanel } from '@/components/layout/SidePanel'
 import { CreateNodeForm } from '@/features/graph-explorer/CreateNodeForm'
@@ -6,8 +8,6 @@ import { useGraphStore } from '@/features/graph-explorer/graphExplorerStore'
 import { getFullGraph, querySubgraph } from '@/services/mcpTools'
 import { useSessionStore } from '@/services/sessionStore'
 import { cksToReactFlow, traceInferenceChain } from '@/shared/utils/graphUtils'
-import type { Node } from '@xyflow/react'
-import { useCallback, useEffect, useState } from 'react'
 
 type CreateMode = 'none' | 'node' | 'relation'
 

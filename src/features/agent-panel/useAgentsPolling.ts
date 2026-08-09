@@ -1,7 +1,7 @@
 // Copyright (c) 2025 Deus Corp. Licensed under MIT.
 
-import { type AgentStatus, listAgents } from '@/services/mcpTools'
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { type AgentStatus, listAgents } from '@/services/mcpTools'
 
 const DEFAULT_INTERVAL_MS = 10_000
 

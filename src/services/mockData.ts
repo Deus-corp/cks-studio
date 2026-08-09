@@ -1,10 +1,4 @@
-import type { CksObject, SubgraphResult } from '@/shared/types/graph'
-
-type MockEdge = {
-  source: string
-  target: string
-  relation_type: string
-}
+import type { SubgraphResult } from '@/shared/types/graph'
 
 /** Начальный граф (то, что видно сразу) */
 export function getMockGraph(): SubgraphResult {
@@ -178,7 +172,7 @@ export async function mockCallTool(
   throw new Error(`Unknown tool: ${toolName}`)
 }
 
-function mockQuerySubgraph(seedIds: string[], depth: number): SubgraphResult {
+function mockQuerySubgraph(seedIds: string[], _depth: number): SubgraphResult {
   if (seedIds.length === 0) return { nodes: [], edges: [] }
 
   const fullGraph = getFullGraph()

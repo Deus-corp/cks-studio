@@ -1,7 +1,7 @@
 // Copyright (c) 2025 Deus Corp. Licensed under MIT.
 
-import { getNodesBounds, getViewportForBounds } from '@xyflow/react'
 import type { Node } from '@xyflow/react'
+import { getNodesBounds, getViewportForBounds } from '@xyflow/react'
 import { toPng, toSvg } from 'html-to-image'
 
 /**

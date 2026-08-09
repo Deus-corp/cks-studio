@@ -1,5 +1,6 @@
 // Copyright (c) 2026 Deus Corp. Licensed under MIT.
 
+import { useEffect, useState } from 'react'
 import { getFullGraph } from '@/services/mcpTools'
 import { useSessionStore } from '@/services/sessionStore'
 import { STATUS_COLORS, STATUS_LABELS } from '@/shared/constants/colors'
@@ -7,7 +8,6 @@ import {
   ACTIVE_PIPELINE_STATUSES,
   type PipelineObject,
 } from '@/shared/types/pipeline'
-import { useEffect, useState } from 'react'
 import {
   extractPipelineObjectsFromSubgraph,
   groupByStatus,
@@ -104,7 +104,9 @@ export function PipelineMonitor() {
 
       {!error && objects.length === 0 && !isLoading && (
         <p className="text-xs text-gray-500 px-4 py-2">
-          There are no objects with current_status in this session — Researcher/Reviewer have not run on it yet, or this is not a pipeline session.
+          There are no objects with current_status in this session —
+          Researcher/Reviewer have not run on it yet, or this is not a pipeline
+          session.
         </p>
       )}
 

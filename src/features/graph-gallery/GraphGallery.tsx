@@ -1,11 +1,11 @@
 // Copyright (c) 2025 Deus Corp. Licensed under MIT.
 
+import { useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { HealthIndicator } from '@/components/common/HealthIndicator'
 import { useSessionStore } from '@/services/sessionStore'
 import type { GraphRegistryEntry } from '@/shared/types/graph'
 import { formatDateTime } from '@/shared/utils/formatUtils'
-import { useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { useGalleryStore } from './galleryStore'
 import { formatTags } from './galleryUtils'
 

@@ -42,15 +42,17 @@
   --color-danger: #ef4444;
   --color-warning: #f59e0b;
 
-  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Inter,
-    Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-sans:
+    ui-sans-serif, system-ui, -apple-system, "Segoe UI", Inter, Roboto,
+    "Helvetica Neue", Arial, sans-serif;
   /* Display/label face — node type badges, wordmark, section headings.
      Self-hosted variable font (see main.tsx), restrained to weights
      600-800 so it reads as structure, not decoration (frontend-design:
      spend boldness in one place). */
   --font-display: "Manrope Variable", "Manrope", var(--font-sans);
-  --font-mono: "JetBrains Mono Variable", "JetBrains Mono", ui-monospace,
-    "SF Mono", "Cascadia Code", Menlo, Consolas, monospace;
+  --font-mono:
+    "JetBrains Mono Variable", "JetBrains Mono", ui-monospace, "SF Mono",
+    "Cascadia Code", Menlo, Consolas, monospace;
 }
 
 body {
@@ -60,7 +62,8 @@ body {
   /* Faint graph-paper texture + top-left glow — the one deliberate
      atmospheric touch for a knowledge-graph tool, restrained everywhere
      else so it stays a signature, not decoration. */
-  background-image: radial-gradient(
+  background-image:
+    radial-gradient(
       ellipse 900px 500px at 15% -10%,
       color-mix(in srgb, var(--color-accent) 7%, transparent),
       transparent 60%
@@ -75,7 +78,10 @@ body {
       color-mix(in srgb, var(--color-text-primary) 3%, transparent) 1px,
       transparent 1px
     );
-  background-size: 100% 100%, 48px 48px, 48px 48px;
+  background-size:
+    100% 100%,
+    48px 48px,
+    48px 48px;
   background-attachment: fixed;
 }
 

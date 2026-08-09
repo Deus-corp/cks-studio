@@ -1,11 +1,11 @@
 // Copyright (c) 2025 Deus Corp. Licensed under MIT.
 
+import type { Edge, Node } from '@xyflow/react'
+import { useCallback, useState } from 'react'
 import { useGraphStore } from '@/features/graph-explorer/graphExplorerStore'
 import { evolveKnowledge } from '@/services/mcpTools'
 import type { EvolveDiagnostic, EvolveOperation } from '@/shared/types/graph'
 import { isEvolveError } from '@/shared/types/graph'
-import type { Edge, Node } from '@xyflow/react'
-import { useCallback, useState } from 'react'
 
 export type EvolveMutationStatus = 'idle' | 'pending' | 'error'
 

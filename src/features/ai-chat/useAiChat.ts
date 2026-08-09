@@ -1,5 +1,6 @@
 // Copyright (c) 2025 Deus Corp. Licensed under MIT.
 
+import { useCallback } from 'react'
 import { useGraphStore } from '@/features/graph-explorer/graphExplorerStore'
 import {
   aiChat,
@@ -8,7 +9,6 @@ import {
 } from '@/services/mcpTools'
 import { useSessionStore } from '@/services/sessionStore'
 import { cksToReactFlow } from '@/shared/utils/graphUtils'
-import { useCallback } from 'react'
 import { useChatStore } from './chatStore'
 
 /**

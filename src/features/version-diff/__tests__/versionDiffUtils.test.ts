@@ -1,5 +1,5 @@
-import type { ExplainDiffResult, VersionEntry } from '@/shared/types/graph'
 import { describe, expect, it } from 'vitest'
+import type { ExplainDiffResult, VersionEntry } from '@/shared/types/graph'
 import {
   countDiffChanges,
   formatDiffValue,

@@ -1,11 +1,11 @@
+import { Handle, type NodeProps, Position } from '@xyflow/react'
+import { memo } from 'react'
 import {
   nodeTypeColor,
   nodeTypeIcon,
   pipelineStatusColor,
 } from '@/shared/constants/nodeTypes'
 import { formatStatusLabel } from '@/shared/utils/formatUtils'
-import { Handle, type NodeProps, Position } from '@xyflow/react'
-import { memo } from 'react'
 
 /**
  * Graph node card. Design intent: a colored border on all four sides

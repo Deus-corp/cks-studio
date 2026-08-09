@@ -1,5 +1,6 @@
 // Copyright (c) 2025 Deus Corp. Licensed under MIT.
 
+import { useEffect, useState } from 'react'
 import { explainDiff, listVersions } from '@/services/mcpTools'
 import { useSessionStore } from '@/services/sessionStore'
 import type {
@@ -7,7 +8,6 @@ import type {
   ExplainDiffResult,
   VersionEntry,
 } from '@/shared/types/graph'
-import { useEffect, useState } from 'react'
 import {
   countDiffChanges,
   formatDiffValue,

@@ -1,8 +1,8 @@
 // Copyright (c) 2025 Deus Corp. Licensed under MIT.
 
-import { exportGraphAsPng, exportGraphAsSvg } from '@/shared/utils/graphExport'
 import { Panel, useReactFlow } from '@xyflow/react'
 import { useState } from 'react'
+import { exportGraphAsPng, exportGraphAsSvg } from '@/shared/utils/graphExport'
 
 /**
  * Кнопки экспорта графа в PNG/SVG.

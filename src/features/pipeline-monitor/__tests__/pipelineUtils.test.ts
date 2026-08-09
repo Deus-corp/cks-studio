@@ -1,7 +1,7 @@
 // Copyright (c) 2025 Deus Corp. Licensed under MIT.
 
-import type { CksObject } from '@/shared/types/graph'
 import { describe, expect, it } from 'vitest'
+import type { CksObject } from '@/shared/types/graph'
 import {
   extractPipelineObjects,
   groupByStatus,

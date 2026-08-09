@@ -1,12 +1,12 @@
 // Copyright (c) 2025 Deus Corp. Licensed under MIT.
 
+import { create } from 'zustand'
 import { checkGraphHealth, listGraphs, searchGraphs } from '@/services/mcpTools'
 import type {
   GraphHealthResult,
   GraphHealthUnavailable,
   GraphRegistryEntry,
 } from '@/shared/types/graph'
-import { create } from 'zustand'
 
 export interface GalleryState {
   graphs: GraphRegistryEntry[]

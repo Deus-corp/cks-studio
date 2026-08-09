@@ -1,5 +1,3 @@
-import { ErrorBoundary } from '@/components/common/ErrorBoundary'
-import { ConnectionStatus } from '@/components/mcp/ConnectionStatus'
 import {
   BrowserRouter,
   Link,
@@ -7,6 +5,8 @@ import {
   Routes,
   useLocation,
 } from 'react-router-dom'
+import { ErrorBoundary } from '@/components/common/ErrorBoundary'
+import { ConnectionStatus } from '@/components/mcp/ConnectionStatus'
 import { AgentsPage } from './pages/AgentsPage'
 import { ChatsPage } from './pages/ChatsPage'
 import { DiffPage } from './pages/DiffPage'

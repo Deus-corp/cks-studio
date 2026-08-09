@@ -1,8 +1,8 @@
+import type { Node } from '@xyflow/react'
 import { StatusBadge } from '@/components/common/StatusBadge'
 import { ForkDiffPanel } from '@/features/fork-diff/ForkDiffPanel'
 import { pipelineStatusColor } from '@/shared/constants/nodeTypes'
 import type { ForkVersionData } from '@/shared/types/graph'
-import type { Node } from '@xyflow/react'
 
 export function SidePanel({ node }: { node: Node | null }) {
   if (!node) {

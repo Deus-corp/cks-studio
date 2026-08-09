@@ -1,8 +1,8 @@
 // Copyright (c) 2025 Deus Corp. Licensed under MIT.
 
-import type { ProcessStatus } from '@/services/mcpTools'
 import { act, renderHook } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import type { ProcessStatus } from '@/services/mcpTools'
 import { useProcessesPolling } from '../useProcessesPolling'
 
 const { listProcessesMock } = vi.hoisted(() => ({

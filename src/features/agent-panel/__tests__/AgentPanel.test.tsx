@@ -1,8 +1,8 @@
 // Copyright (c) 2025 Deus Corp. Licensed under MIT.
 
-import type { AgentStatus, ProcessStatus } from '@/services/mcpTools'
 import { cleanup, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import type { AgentStatus, ProcessStatus } from '@/services/mcpTools'
 import { AgentPanel } from '../AgentPanel'
 
 const { useAgentsPollingMock, useProcessesPollingMock } = vi.hoisted(() => ({

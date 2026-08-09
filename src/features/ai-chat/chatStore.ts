@@ -1,7 +1,7 @@
 // Copyright (c) 2025 Deus Corp. Licensed under MIT.
 
-import type { ChatMessage, ExecutedToolCall } from '@/services/mcpTools'
 import { create } from 'zustand'
+import type { ChatMessage, ExecutedToolCall } from '@/services/mcpTools'
 
 /**
  * Module-level (not component-local) chat state, same shape as

@@ -1,6 +1,6 @@
-import type { CksObject, SubgraphResult } from '@/shared/types/graph'
-import { MarkerType } from '@xyflow/react'
 import type { Edge, Node } from '@xyflow/react'
+import { MarkerType } from '@xyflow/react'
+import type { CksObject, SubgraphResult } from '@/shared/types/graph'
 
 /** Тип ребра в ответе subgraph */
 type EdgeData = { source: string; target: string; relation_type: string }

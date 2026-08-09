@@ -1,6 +1,7 @@
 // Copyright (c) 2026 Deus Corp. Licensed under MIT.
 
-import type { ProcessNotFound, ProcessStatus } from '@/services/mcpTools'
+import { useCallback, useEffect, useState } from 'react'
+import type { ProcessStatus } from '@/services/mcpTools'
 import {
   type AgentNotFound,
   type AgentStatus,
@@ -9,7 +10,6 @@ import {
   stopAgent,
 } from '@/services/mcpTools'
 import { formatRelativeTime } from '@/shared/utils/formatUtils'
-import { useCallback, useEffect, useState } from 'react'
 import { useAgentsPolling } from './useAgentsPolling'
 import { useProcessesPolling } from './useProcessesPolling'
 
@@ -427,7 +427,9 @@ export function AgentPanel() {
           </div>
 
           <p className="text-xs text-gray-500 px-4 pb-2">
-            Critic / Enrichment / Fork Resolution / Pipeline Agent — from the shared cks_agent_liveness table (see cks-runtime ADR-014). In a multi‑node deployment these may originate from other nodes.
+            Critic / Enrichment / Fork Resolution / Pipeline Agent — from the
+            shared cks_agent_liveness table (see cks-runtime ADR-014). In a
+            multi‑node deployment these may originate from other nodes.
           </p>
 
           {processesError && (
