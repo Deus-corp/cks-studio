@@ -12,11 +12,9 @@
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"]
-    },
-    "types": ["vitest/globals"]
+      "@/*": ["./src/*"]
+    }
   },
   "include": ["src", "tests"]
 }
