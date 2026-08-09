@@ -1,4 +1,4 @@
-// Copyright (c) 2025 Deus Corp. Licensed under MIT.
+// Copyright (c) 2026 Deus Corp. Licensed under MIT.
 
 import { AgentPanel } from '@/features/agent-panel/AgentPanel'
 

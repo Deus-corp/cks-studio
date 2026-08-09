@@ -1,4 +1,4 @@
-// Copyright (c) 2025 Deus Corp. Licensed under MIT.
+// Copyright (c) 2026 Deus Corp. Licensed under MIT.
 
 import { getFullGraph } from '@/services/mcpTools'
 import { useSessionStore } from '@/services/sessionStore'
@@ -15,17 +15,17 @@ import {
 } from './pipelineUtils'
 
 /**
- * Kanban-доска Researcher -> Reviewer (ADR-007, Milestone 1).
+ * Kanban board Researcher -> Reviewer (ADR-007, Milestone 1).
  *
- * Данные читаются из уже существующего getFullGraph (serialize_knowledge) —
- * current_status/transition_log лежат прямо в structure каждого объекта,
- * отдельный MCP-инструмент для этого не нужен (см. cks_mcp/pipeline/schema.py).
+ * Data is read from the existing getFullGraph (serialize_knowledge) —
+ * current_status/transition_log are stored directly in the structure of each object,
+ * a separate MCP tool is not needed for this (see cks_mcp/pipeline/schema.py).
  *
- * Важное ограничение: это snapshot, не live-стрим. Pipeline Agent (Researcher/
- * Reviewer) работает в отдельном OS-процессе и пишет прямо в общее хранилище,
- * поэтому единственный способ узнать "что изменилось" — переспросить граф.
- * Поллинг тут сознательно сделан примитивным (setInterval + ручная кнопка
- * Refresh), пока в cks-mcp нет push/subscribe API для этого.
+ * Important limitation: this is a snapshot, not a live stream. The Pipeline Agent (Researcher/
+ * Reviewer) runs in a separate OS process and writes directly to shared storage,
+ * so the only way to know what changed is to re-query the graph.
+ * Polling here is intentionally primitive (setInterval + manual Refresh button)
+ * until cks-mcp has a push/subscribe API for this.
  */
 export function PipelineMonitor() {
   const { sessionId } = useSessionStore()
@@ -53,12 +53,12 @@ export function PipelineMonitor() {
     }
   }
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: load закрывает sessionId по значению, пересоздание при её смене — ожидаемо
+  // biome-ignore lint/correctness/useExhaustiveDependencies: load captures sessionId by value, recreating when it changes is expected
   useEffect(() => {
     load()
   }, [sessionId])
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: load закрывает sessionId по значению
+  // biome-ignore lint/correctness/useExhaustiveDependencies: load captures sessionId by value
   useEffect(() => {
     if (!autoRefresh || !sessionId.trim()) return
     const interval = setInterval(load, 5000)
@@ -68,7 +68,7 @@ export function PipelineMonitor() {
   if (!sessionId.trim()) {
     return (
       <div className="p-6 text-sm text-gray-400">
-        Укажите session_id на странице Graph, чтобы увидеть pipeline-объекты.
+        Specify the session_id on the Graph page to view pipeline objects.
       </div>
     )
   }
@@ -104,8 +104,7 @@ export function PipelineMonitor() {
 
       {!error && objects.length === 0 && !isLoading && (
         <p className="text-xs text-gray-500 px-4 py-2">
-          В этой сессии нет объектов с current_status — Researcher/Reviewer ещё
-          не запускались над ней, либо это не pipeline-сессия.
+          There are no objects with current_status in this session — Researcher/Reviewer have not run on it yet, or this is not a pipeline session.
         </p>
       )}
 
@@ -158,12 +157,12 @@ export function PipelineMonitor() {
             Transition log — {selected.name}
           </h3>
           {selected.transition_log.length === 0 ? (
-            <p className="text-xs text-gray-500">Пусто.</p>
+            <p className="text-xs text-gray-500">Empty.</p>
           ) : (
             <ol className="space-y-1">
               {sortTransitionLog(selected.transition_log).map((entry, idx) => (
                 <li
-                  // biome-ignore lint/suspicious/noArrayIndexKey: transition_log — append-only лог без своего id
+                  // biome-ignore lint/suspicious/noArrayIndexKey: transition_log — append-only log without its own id
                   key={idx}
                   className="text-xs text-gray-400 flex gap-2"
                 >

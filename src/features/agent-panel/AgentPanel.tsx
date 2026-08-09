@@ -1,4 +1,4 @@
-// Copyright (c) 2025 Deus Corp. Licensed under MIT.
+// Copyright (c) 2026 Deus Corp. Licensed under MIT.
 
 import type { ProcessNotFound, ProcessStatus } from '@/services/mcpTools'
 import {
@@ -384,19 +384,19 @@ export function AgentPanel() {
       <div className="flex-1 overflow-y-auto">
         <section>
           <p className="text-xs text-gray-500 px-4 py-2">
-            In-process sweeper'ы этого MCP-сервера.
+            In-process sweepers for this MCP server.
           </p>
 
           {error && (
             <p className="text-red-400 text-xs px-4 py-2">
-              Не удалось получить статус агентов: {error}
+              Failed to fetch agents status: {error}
             </p>
           )}
 
           {!error && agents.length === 0 && !isLoading && (
             <p className="text-xs text-gray-500 px-4 py-2">
-              Нет включённых sweeper'ов — либо все отключены через конфиг
-              Runtime, либо MCP-сервер только что запустился.
+              No enabled sweepers — either all are disabled via the Runtime
+              config, or the MCP server has just started.
             </p>
           )}
 
@@ -417,7 +417,7 @@ export function AgentPanel() {
         <section className="border-t border-gray-800">
           <div className="flex items-center gap-3 px-4 py-2">
             <h3 className="text-xs font-semibold text-gray-300">
-              Standalone-процессы
+              Standalone Processes
             </h3>
             <span className="text-xs text-gray-500">
               {processesLastFetchedAt
@@ -427,20 +427,18 @@ export function AgentPanel() {
           </div>
 
           <p className="text-xs text-gray-500 px-4 pb-2">
-            Critic / Enrichment / Fork Resolution / Pipeline Agent — из общей
-            таблицы cks_agent_liveness (см. cks-runtime ADR-014). В multi-node
-            деплое могут быть с других узлов.
+            Critic / Enrichment / Fork Resolution / Pipeline Agent — from the shared cks_agent_liveness table (see cks-runtime ADR-014). In a multi‑node deployment these may originate from other nodes.
           </p>
 
           {processesError && (
             <p className="text-red-400 text-xs px-4 py-2">
-              Не удалось получить статус процессов: {processesError}
+              Unable to fetch process status: {processesError}
             </p>
           )}
 
           {!processesError && processes.length === 0 && !processesLoading && (
             <p className="text-xs text-gray-500 px-4 py-2">
-              Ни один standalone-процесс ещё не писал heartbeat.
+              No standalone processes have sent a heartbeat yet.
             </p>
           )}
 
