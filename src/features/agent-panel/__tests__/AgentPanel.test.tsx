@@ -92,7 +92,7 @@ describe('AgentPanel', () => {
   it('shows the sweeper empty-state message when there are no agents', () => {
     render(<AgentPanel />)
 
-    expect(screen.getByText(/Нет включённых sweeper'ов/)).toBeInTheDocument()
+    expect(screen.getByText(/No enabled sweepers/)).toBeInTheDocument()
   })
 
   it('renders a sweeper card for each agent', () => {
@@ -115,7 +115,7 @@ describe('AgentPanel', () => {
 
     expect(
       screen.getByText(
-        /Не удалось получить статус агентов: connection refused/,
+        /Failed to fetch agents status: connection refused/,
       ),
     ).toBeInTheDocument()
   })
@@ -124,7 +124,7 @@ describe('AgentPanel', () => {
     render(<AgentPanel />)
 
     expect(
-      screen.getByText(/Ни один standalone-процесс ещё не писал heartbeat/),
+      screen.getByText(/No standalone processes have sent a heartbeat yet/),
     ).toBeInTheDocument()
   })
 
@@ -172,10 +172,10 @@ describe('AgentPanel', () => {
     render(<AgentPanel />)
 
     expect(
-      screen.getByText(/Не удалось получить статус процессов: network down/),
+      screen.getByText(/Unable to fetch process status: network down/),
     ).toBeInTheDocument()
     // Sweeper section is unaffected -- still shows its own empty state.
-    expect(screen.getByText(/Нет включённых sweeper'ов/)).toBeInTheDocument()
+    expect(screen.getByText(/No enabled sweepers/)).toBeInTheDocument()
   })
 
   it('refresh button triggers both polling refreshers', () => {
