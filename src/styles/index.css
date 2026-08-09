@@ -42,8 +42,13 @@
 
   --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Inter,
     Roboto, "Helvetica Neue", Arial, sans-serif;
-  --font-mono: ui-monospace, "SF Mono", "Cascadia Code", "JetBrains Mono", Menlo,
-    Consolas, monospace;
+  /* Display/label face — node type badges, wordmark, section headings.
+     Self-hosted variable font (see main.tsx), restrained to weights
+     600-800 so it reads as structure, not decoration (frontend-design:
+     spend boldness in one place). */
+  --font-display: "Manrope Variable", "Manrope", var(--font-sans);
+  --font-mono: "JetBrains Mono Variable", "JetBrains Mono", ui-monospace,
+    "SF Mono", "Cascadia Code", Menlo, Consolas, monospace;
 }
 
 body {

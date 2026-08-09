@@ -62,13 +62,19 @@ export function GraphCanvas({
       })
     : layoutedNodes
 
-  const styledEdges = layoutedEdges.map((edge) => ({
-    ...edge,
-    style: highlightedEdgeIds.has(edge.id)
-      ? { stroke: '#f59e0b', strokeWidth: 2.5 }
-      : { stroke: '#6b7280', strokeWidth: 1 },
-    animated: highlightedEdgeIds.has(edge.id),
-  }))
+  const styledEdges = layoutedEdges.map((edge) => {
+    const isHighlighted = highlightedEdgeIds.has(edge.id)
+    const stroke = isHighlighted ? '#f59e0b' : '#6b7280'
+    return {
+      ...edge,
+      style: { stroke, strokeWidth: isHighlighted ? 2.5 : 1 },
+      markerEnd:
+        typeof edge.markerEnd === 'object'
+          ? { ...edge.markerEnd, color: stroke }
+          : edge.markerEnd,
+      animated: isHighlighted,
+    }
+  })
 
   const handleNodeClick = useCallback(
     (event: React.MouseEvent, node: Node) => {

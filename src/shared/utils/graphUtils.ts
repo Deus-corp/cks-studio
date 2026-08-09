@@ -1,4 +1,5 @@
 import type { CksObject, SubgraphResult } from '@/shared/types/graph'
+import { MarkerType } from '@xyflow/react'
 import type { Edge, Node } from '@xyflow/react'
 
 /** Тип ребра в ответе subgraph */
@@ -28,6 +29,24 @@ export function cksToReactFlow(data: SubgraphResult): {
     type: 'smoothstep',
     animated: false,
     style: { stroke: '#6b7280' },
+    // Filled arrowhead so relation direction reads at a glance instead
+    // of requiring a click-through to the side panel to tell source
+    // from target.
+    markerEnd: {
+      type: MarkerType.ArrowClosed,
+      width: 16,
+      height: 16,
+      color: '#6b7280',
+    },
+    labelStyle: {
+      fill: 'var(--color-text-secondary)',
+      fontFamily: 'var(--font-mono)',
+      fontSize: 10,
+      fontWeight: 500,
+    },
+    labelBgStyle: { fill: 'var(--color-surface-1)', fillOpacity: 0.92 },
+    labelBgPadding: [5, 3] as [number, number],
+    labelBgBorderRadius: 4,
   }))
 
   return { nodes, edges }

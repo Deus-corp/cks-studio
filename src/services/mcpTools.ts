@@ -407,3 +407,57 @@ export function addRelationOperation(
     structure,
   }
 }
+
+// ---------------------------------------------------------------------------
+// ai_chat (cks-mcp ADR-011 / cks-studio ADR-001)
+// ---------------------------------------------------------------------------
+
+export interface ChatMessage {
+  role: 'user' | 'assistant'
+  /** String for plain turns; block array when it carries tool_use/tool_result
+   *  content (mirrors the Anthropic Messages API content shape 1:1, since
+   *  it's round-tripped through ai_chat's 'messages' as-is — see ADR-001 §2). */
+  content: string | Record<string, unknown>[]
+}
+
+export interface ExecutedToolCall {
+  name: string
+  arguments: Record<string, unknown>
+  result: Record<string, unknown>
+  is_error: boolean
+}
+
+export interface AiChatResult {
+  reply: string
+  tool_calls: ExecutedToolCall[]
+  messages: ChatMessage[]
+}
+
+/** Names of tools whose successful execution means the graph may have
+ *  changed and the canvas should be refetched (see ADR-001 §5). Kept in
+ *  sync manually with cks-mcp's graph-mutating tool set -- there's no
+ *  tool-metadata flag for this yet, so this is the same kind of small,
+ *  explicit constant AgentPanel's PROCESS_KINDS-style lists already are
+ *  elsewhere in this codebase. */
+const GRAPH_MUTATING_TOOLS = new Set([
+  'evolve_knowledge',
+  'revert_version',
+  'merge_branch',
+  'merge_knowledge',
+  'resolve_contradiction',
+  'resolve_temporal_conflict',
+  'resolve_gossip_conflict',
+  'refresh_verification',
+])
+
+export function toolCallsMutatedGraph(calls: ExecutedToolCall[]): boolean {
+  return calls.some((c) => !c.is_error && GRAPH_MUTATING_TOOLS.has(c.name))
+}
+
+export async function aiChat(
+  sessionId: string,
+  messages: ChatMessage[],
+): Promise<AiChatResult> {
+  const result = await callTool('ai_chat', { session_id: sessionId, messages })
+  return result as unknown as AiChatResult
+}

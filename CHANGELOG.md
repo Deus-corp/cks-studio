@@ -6,6 +6,24 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 
 ---
 
+## [0.5.0] - 2026-08-09
+
+### Added
+- **AI Chat panel** – talk to an LLM directly from the studio; the LLM can call `ai_chat`-scoped tools to read and mutate the graph. Includes collapsible tool-call disclosure and live graph refresh after mutating calls.
+- **`useAiChat` hook** and **`chatStore`** – manage conversation state and sync graph after tool calls.
+- **New fonts** – self-hosted Manrope (display) and JetBrains Mono (mono) for improved visual hierarchy.
+- **Graph node redesign** – subtler top-accent bar instead of full border, refined spacing and typography.
+- **Directional arrowheads** on graph edges – filled arrow markers so relation direction reads at a glance.
+- **Type legend** visual refresh with icons and semi-transparent glow.
+- New unit tests for `toolCallsMutatedGraph`.
+
+### Changed
+- Graph canvas hover effect softened (brightness lift instead of box-shadow).
+- Edge labels use mono font and background padding for readability.
+- Marker color updates dynamically with highlight state.
+
+---
+
 ## [0.4.0] - 2026-08-09
 
 ### Added

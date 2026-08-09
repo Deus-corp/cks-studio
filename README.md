@@ -3,14 +3,15 @@
 > Interactive visual workspace for the Canonical Knowledge Structure ecosystem.
 
 ![TypeScript](https://img.shields.io/badge/typescript-5.7%2B-blue)
-![React](https://img.shields.io/badge/react-55-61DAFB)
+![React](https://img.shields.io/badge/react-60-61DAFB)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Status](https://img.shields.io/badge/status-alpha-orange)
 
 **CKS Studio** is the graphical interface of the CKS ecosystem — a
 single-page application where you can **explore knowledge graphs**,
 **inspect inference chains**, **review CRDT forks**, **monitor agent
-pipelines**, and **browse the public graph gallery**, all connected to
+pipelines**, **browse the public graph gallery**, **chat with an LLM**
+that can call tools and modify the graph, all connected to
 one or more `cks-mcp` servers over the Model Context Protocol (MCP).
 
 It complements the three backend repositories by providing a visual
@@ -56,6 +57,9 @@ CKS Studio is that human window:
 - **Agent Control Panel** — start/stop in‑process sweepers and request graceful shutdown of standalone agents directly from the UI.
 - **Agent observability** — monitor the status of all background sweepers
   (contradiction, staleness, health, etc.) in real time via the Agents page.
+- **AI Chat** — built‑in assistant that can answer questions,
+  create objects, evolve the graph, and explain its reasoning,
+  all scoped to the current session.
 
 ---
 
@@ -160,6 +164,7 @@ gallery.
 | Agent observability (list_agents) | ✅ Complete |
 | Agent control panel | ✅ Complete |
 | Dark theme | ✅ Complete |
+| AI Chat panel | ✅ Complete |
 
 ---
 
@@ -169,7 +174,7 @@ gallery.
 - **v0.2** – Inference chain inspector.
 - **v0.3** – Fork diff view (LCA comparison).
 - **v0.4** – Pipeline monitor (transition_log visualisation).
-- **v0.5** – Graph gallery + agent control panel.
+- **v0.5** — AI Chat panel, node redesign, directional edges.
 
 ---
 

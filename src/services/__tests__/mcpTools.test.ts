@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { normalizeCompactSubgraphResponse } from '../mcpTools'
+import type { ExecutedToolCall } from '../mcpTools'
+import {
+  normalizeCompactSubgraphResponse,
+  toolCallsMutatedGraph,
+} from '../mcpTools'
 
 describe('normalizeCompactSubgraphResponse', () => {
   it('unwraps nodes/edges from the real query_subgraph_tool compact_mode shape', () => {
@@ -63,5 +67,49 @@ describe('normalizeCompactSubgraphResponse', () => {
       nodes: [],
       edges: [],
     })
+  })
+})
+
+describe('toolCallsMutatedGraph', () => {
+  const call = (name: string, is_error = false): ExecutedToolCall => ({
+    name,
+    arguments: {},
+    result: {},
+    is_error,
+  })
+
+  it('is false when there are no tool calls', () => {
+    expect(toolCallsMutatedGraph([])).toBe(false)
+  })
+
+  it('is false when only non-mutating tools were called', () => {
+    expect(
+      toolCallsMutatedGraph([call('query_subgraph'), call('list_agents')]),
+    ).toBe(false)
+  })
+
+  it('is true when a successful evolve_knowledge call is present', () => {
+    expect(
+      toolCallsMutatedGraph([call('query_subgraph'), call('evolve_knowledge')]),
+    ).toBe(true)
+  })
+
+  it('ignores a mutating tool call that failed', () => {
+    expect(toolCallsMutatedGraph([call('evolve_knowledge', true)])).toBe(false)
+  })
+
+  it('is true for every mutating tool name in the set', () => {
+    for (const name of [
+      'evolve_knowledge',
+      'revert_version',
+      'merge_branch',
+      'merge_knowledge',
+      'resolve_contradiction',
+      'resolve_temporal_conflict',
+      'resolve_gossip_conflict',
+      'refresh_verification',
+    ]) {
+      expect(toolCallsMutatedGraph([call(name)])).toBe(true)
+    }
   })
 })

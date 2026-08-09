@@ -8,6 +8,7 @@ import {
   useLocation,
 } from 'react-router-dom'
 import { AgentsPage } from './pages/AgentsPage'
+import { ChatsPage } from './pages/ChatsPage'
 import { DiffPage } from './pages/DiffPage'
 import { GalleryPage } from './pages/GalleryPage'
 import { GraphPage } from './pages/GraphPage'
@@ -20,6 +21,7 @@ const NAV_LINKS = [
   { to: '/gallery', label: 'Gallery' },
   { to: '/diff', label: 'Diff' },
   { to: '/agents', label: 'Agents' },
+  { to: '/chat', label: 'Chat' },
   { to: '/settings', label: 'Settings' },
 ]
 
@@ -77,7 +79,7 @@ function NavBar() {
     <nav className="flex items-center gap-1 bg-surface-1/90 backdrop-blur border-b border-border-subtle px-4 py-2 sticky top-0 z-20">
       <Link
         to="/"
-        className="flex items-center gap-2 mr-4 text-text-primary font-semibold text-sm tracking-tight hover:text-accent-strong transition-colors"
+        className="flex items-center gap-2 mr-4 text-text-primary font-display font-bold text-sm tracking-tight hover:text-accent-strong transition-colors"
       >
         <LogoMark />
         CKS Studio
@@ -128,6 +130,7 @@ export function App() {
               <Route path="/diff" element={<DiffPage />} />
               <Route path="/settings" element={<SettingsPage />} />
               <Route path="/agents" element={<AgentsPage />} />
+              <Route path="/chat" element={<ChatsPage />} />
             </Routes>
           </ErrorBoundary>
         </div>
