@@ -1,5 +1,6 @@
 import { ErrorBoundary } from '@/components/common/ErrorBoundary'
 import { BrowserRouter, Link, Route, Routes } from 'react-router-dom'
+import { AgentsPage } from './pages/AgentsPage'
 import { DiffPage } from './pages/DiffPage'
 import { GalleryPage } from './pages/GalleryPage'
 import { GraphPage } from './pages/GraphPage'
@@ -26,7 +27,9 @@ function NavBar() {
       <Link to="/settings" className={linkClass}>
         Settings
       </Link>
-      {/* Agents — раздел не спроектирован, страницу удалили как пустую заготовку без спеки */}
+      <Link to="/agents" className={linkClass}>
+        Agents
+      </Link>
     </nav>
   )
 }
@@ -44,7 +47,7 @@ export function App() {
               <Route path="/gallery" element={<GalleryPage />} />
               <Route path="/diff" element={<DiffPage />} />
               <Route path="/settings" element={<SettingsPage />} />
-              {/* остальные страницы — позже */}
+              <Route path="/agents" element={<AgentsPage />} />
             </Routes>
           </ErrorBoundary>
         </div>

@@ -3,7 +3,7 @@
 > Interactive visual workspace for the Canonical Knowledge Structure ecosystem.
 
 ![TypeScript](https://img.shields.io/badge/typescript-5.7%2B-blue)
-![React](https://img.shields.io/badge/react-34-61DAFB)
+![React](https://img.shields.io/badge/react-40-61DAFB)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Status](https://img.shields.io/badge/status-alpha-orange)
 
@@ -26,10 +26,10 @@ CKS Studio completes the CKS toolchain:
 
 | Project | Description | Repository |
 |---------|-------------|------------|
-| **cks-core** | Canonical semantic engine | [Deus-corp/cks-core](https://github.com/Deus-corp/cks-core) |
-| **cks-runtime** | Operational environment – sessions, transactions, persistence | [Deus-corp/cks-runtime](https://github.com/Deus-corp/cks-runtime) |
-| **cks-mcp** | MCP server – exposes CKS to LLMs and agents | [Deus-corp/cks-mcp](https://github.com/Deus-corp/cks-mcp) |
-| **cks-studio** | Visual workspace – explore, monitor, and manage graphs (this repository) | [Deus-corp/cks-studio](https://github.com/Deus-corp/cks-studio) |
+| **cks-core** | Canonical semantic engine. | [Deus-corp/cks-core](https://github.com/Deus-corp/cks-core) |
+| **cks-runtime** | Operational environment – sessions, transactions, persistence. | [Deus-corp/cks-runtime](https://github.com/Deus-corp/cks-runtime) |
+| **cks-mcp** | MCP server – exposes CKS to LLMs and agents. | [Deus-corp/cks-mcp](https://github.com/Deus-corp/cks-mcp) |
+| **cks-studio** | Visual workspace – explore, monitor, and manage graphs. | [Deus-corp/cks-studio](https://github.com/Deus-corp/cks-studio) |
 
 ---
 

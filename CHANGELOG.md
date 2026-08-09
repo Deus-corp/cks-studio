@@ -6,6 +6,17 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 
 ---
 
+## [0.3.2] - 2026-08-09
+
+### Added
+- **Agents page** – displays the status of all in‑process sweepers (contradiction, inference staleness, provenance staleness, temporal staleness, graph freshness, graph auto‑update, graph health) using `list_agents` and `agent_status` MCP tools.
+- **AgentPanel component** – shows agent id, running status, interval, last run time (relative), duration, result count, and last error for each sweeper.
+- **`useAgentsPolling` hook** – polls agent status at a configurable interval, pauses when the browser tab is hidden.
+- **`listAgents` and `getAgentStatus` functions** in `mcpTools.ts` – typed wrappers around the new MCP tools.
+- **`formatRelativeTime` utility** – displays timestamps as "3m ago", "2h ago", etc., for agent last run times.
+
+---
+
 ## [0.3.1] - 2026-08-09
 
 ### Added

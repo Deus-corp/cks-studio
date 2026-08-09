@@ -223,6 +223,48 @@ export async function explainDiff(
  * бизнес-уровне ошибки, а возвращаем discriminated union (EvolveResult) и
  * оставляем try/catch вызывающему коду только для сетевых сбоев.
  */
+/**
+ * Статус одного in-process sweeper'а рантайма (см. cks-mcp
+ * src/cks_mcp/tools/list_agents/schema.py и agent_status/schema.py).
+ *
+ * ВАЖНО: покрывает только in-process sweeper'ы (ContradictionSweeper,
+ * InferenceStalenessSweeper и т.д.), НЕ standalone-процессы (Critic Agent,
+ * Enrichment Agent, Fork Resolution Agent, Pipeline Agent) — те пока не
+ * наблюдаемы ни через один MCP-тул (см. AGENT_VISIBILITY.md, v2).
+ */
+export interface AgentStatus {
+  agent_id: string
+  kind: 'sweeper'
+  running: boolean
+  interval_seconds: number
+  last_run_at: string | null
+  last_run_duration_ms: number | null
+  last_result_count: number | null
+  last_error: string | null
+}
+
+/** Ответ agent_status, когда agent_id не совпал ни с одним включённым
+ *  sweeper'ом — не ошибка (см. схему тула: неизвестный id и отключённый
+ *  через Runtime-конфиг sweeper неотличимы друг от друга). */
+export interface AgentNotFound {
+  agent_id: string
+  found: false
+}
+
+/** list_agents не принимает session_id (в отличие от большинства тулов
+ *  студии) — данные не привязаны к конкретной сессии/графу. */
+export async function listAgents(): Promise<{ agents: AgentStatus[] }> {
+  const result = await callTool('list_agents', {})
+  return { agents: (result.agents as AgentStatus[]) ?? [] }
+}
+
+export async function getAgentStatus(
+  agentId: string,
+): Promise<AgentStatus | AgentNotFound> {
+  const result = await callTool('agent_status', { agent_id: agentId })
+  return result as unknown as AgentStatus | AgentNotFound
+}
+
 export async function evolveKnowledge(
   sessionId: string,
   operations: EvolveOperation[],
