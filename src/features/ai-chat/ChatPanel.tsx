@@ -3,8 +3,9 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useLLMStatus } from '@/features/llm-status/useLLMStatus'
-import type { ExecutedToolCall } from '@/services/mcpTools'
+import type { ExecutedToolCall, LLMStatus } from '@/services/mcpTools'
 import type { ChatTurn } from './chatStore'
+import type { ChatError } from './useAiChat'
 import { useAiChat } from './useAiChat'
 
 /**
@@ -75,15 +76,13 @@ function ToolCallsDisclosure({ calls }: { calls: ExecutedToolCall[] }) {
  * настроен/недоступен на сервере (ai_chat в этом случае вернёт
  * {'error': 'llm_provider_unavailable', ...} на первую же отправку — но
  * баннер опрашивает get_llm_status сам, чтобы предупредить ДО того, как
- * пользователь напишет сообщение и получит отказ). Пока статус ещё не
- * известен, или провайдер настроен, баннер не рендерится вовсе — он не
- * замена error-строки под формой ниже, а именно предупреждение
- * "это не заработает" до первой попытки.
+ * пользователь напишет сообщение и получит отказ). Статус приходит сверху
+ * (из ChatPanel), а не из отдельного useLLMStatus() здесь — ChatPanel
+ * нужен тот же статус, чтобы решить, не дублировать ли это же
+ * предупреждение в error-баннере под формой (см. ChatErrorBanner ниже).
  */
-function LLMStatusBanner() {
-  const { status, error } = useLLMStatus()
-
-  if (error || !status || status.provider !== 'none') return null
+function LLMStatusBanner({ status }: { status: LLMStatus | null }) {
+  if (status?.provider !== 'none') return null
 
   return (
     <div className="px-4 py-2 border-b border-gray-800 bg-yellow-950/40 text-yellow-400 text-xs">
@@ -95,6 +94,65 @@ function LLMStatusBanner() {
       </Link>
       .
     </div>
+  )
+}
+
+/**
+ * Error/warning banner under the input, distinct from LLMStatusBanner
+ * above the message list: that one is a proactive "this won't work yet"
+ * warning polled independently of any send attempt, this one reports what
+ * actually happened to the *last* send attempt (ADR-001 §6 wants both --
+ * a heads-up before typing, and a clear reason after a failure).
+ *
+ * Tone follows the kind: yellow for "you need to do something" (no
+ * session, no provider), red for an actual failure (network, a
+ * misconfigured/erroring provider, tool failures). 'llm_provider_
+ * unavailable' is intentionally suppressed by the caller when
+ * llmBannerAlreadyShown is true, so the same warning never appears twice
+ * on screen at once.
+ */
+function ChatErrorBanner({ error }: { error: ChatError }) {
+  if (error.kind === 'no_session') {
+    return (
+      <div className="px-4 py-2 border-t border-gray-800 bg-yellow-950/40 text-yellow-400 text-xs">
+        No active session. Connect to a session on the{' '}
+        <Link to="/" className="underline hover:text-yellow-300">
+          Graph tab
+        </Link>{' '}
+        first.
+      </div>
+    )
+  }
+
+  if (error.kind === 'llm_provider_unavailable') {
+    return (
+      <div className="px-4 py-2 border-t border-gray-800 bg-yellow-950/40 text-yellow-400 text-xs">
+        <p>No LLM provider available. To fix this:</p>
+        <ol className="mt-1 ml-4 list-decimal space-y-0.5">
+          <li>
+            Run <code className="font-mono">ollama run llama3.2</code>
+          </li>
+          <li>
+            Or set <code className="font-mono">ANTHROPIC_API_KEY</code> in{' '}
+            <code className="font-mono">~/.cks-mcp/.env</code>
+          </li>
+          <li>
+            <Link to="/settings" className="underline hover:text-yellow-300">
+              Open Settings
+            </Link>{' '}
+            to check current status
+          </li>
+        </ol>
+      </div>
+    )
+  }
+
+  // 'llm_call_failed', 'network', and 'other' are all genuine failures
+  // (not "you need to configure something") -- red, not yellow.
+  return (
+    <p className="text-red-400 text-xs px-4 py-2 border-t border-gray-800">
+      {error.message}
+    </p>
   )
 }
 
@@ -126,6 +184,7 @@ function TurnBubble({ turn }: { turn: ChatTurn }) {
  */
 export function ChatPanel() {
   const { turns, isSending, error, send } = useAiChat()
+  const { status: llmStatus } = useLLMStatus()
   const [input, setInput] = useState('')
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -136,6 +195,15 @@ export function ChatPanel() {
     send(text)
   }
 
+  // The top banner already tells the user "no provider configured, go to
+  // Settings" whenever get_llm_status confirms provider === 'none'. If
+  // send() then fails for that exact reason, showing the identical
+  // message a second time under the form would just be noise.
+  const llmBannerAlreadyShown = llmStatus?.provider === 'none'
+  const showErrorBanner =
+    error &&
+    !(error.kind === 'llm_provider_unavailable' && llmBannerAlreadyShown)
+
   return (
     <div className="h-full flex flex-col">
       <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-800">
@@ -145,7 +213,7 @@ export function ChatPanel() {
         </span>
       </div>
 
-      <LLMStatusBanner />
+      <LLMStatusBanner status={llmStatus} />
 
       <div className="flex-1 overflow-y-auto p-4 space-y-3">
         {turns.length === 0 && !isSending && (
@@ -167,11 +235,7 @@ export function ChatPanel() {
         )}
       </div>
 
-      {error && (
-        <p className="text-red-400 text-xs px-4 py-2 border-t border-gray-800">
-          {error}
-        </p>
-      )}
+      {showErrorBanner && <ChatErrorBanner error={error} />}
 
       <form
         onSubmit={handleSubmit}

@@ -6,6 +6,15 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 
 ---
 
+## [0.5.4] - 2026-08-10
+
+### Added
+- **AI Chat onboarding** – differentiated error banners for missing session, unavailable LLM provider, network errors, and tool failures. Clear instructions with links to Settings and Graph page.
+- **`ChatError` discriminated type** – `no_session` | `llm_provider_unavailable` | `llm_call_failed` | `network` | `other`.
+- **Unit tests** for all ChatPanel error states.
+
+---
+
 ## [0.5.3] - 2026-08-10
 
 ### Added
