@@ -101,4 +101,21 @@ export function clearRecentSessions(): void {
   window.localStorage.removeItem(STORAGE_KEYS.recentSessions)
 }
 
+/** Убирает одну запись (по паре serverUrl+sessionId) из истории
+ *  подключений — используется, когда подключение к этой сессии
+ *  завершилось ошибкой, чтобы недоступные ID не копились в списке
+ *  "Recent sessions". */
+export function removeRecentSession(entry: {
+  serverUrl: string
+  sessionId: string
+}): RecentSession[] {
+  if (!storageAvailable) return readRecentSessions()
+  const next = readRecentSessions().filter(
+    (s) =>
+      !(s.serverUrl === entry.serverUrl && s.sessionId === entry.sessionId),
+  )
+  window.localStorage.setItem(STORAGE_KEYS.recentSessions, JSON.stringify(next))
+  return next
+}
+
 export const CONNECTION_STORAGE_KEYS = STORAGE_KEYS

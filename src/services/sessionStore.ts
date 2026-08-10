@@ -7,6 +7,7 @@ import {
   readRecentSessions,
   readStoredServerUrl,
   readStoredSessionId,
+  removeRecentSession,
   writeRecentSession,
   writeStoredServerUrl,
   writeStoredSessionId,
@@ -61,7 +62,25 @@ export const useSessionStore = create<SessionState>((set) => ({
     set({ sessionId })
   },
   setStatus: (status) => set({ status }),
-  setError: (error) => set({ error, status: error ? 'error' : 'idle' }),
+  setError: (error) =>
+    set((state) => {
+      if (!error || !state.sessionId.trim()) {
+        return { error, status: error ? 'error' : 'idle' }
+      }
+      // A failed connection means this (serverUrl, sessionId) pair is
+      // currently unreachable -- drop it from "Recent sessions" so
+      // dead IDs don't sit there tempting a re-click. If the same
+      // session becomes reachable again later, recordConnection() on a
+      // successful connect adds it right back.
+      return {
+        error,
+        status: 'error',
+        recentSessions: removeRecentSession({
+          serverUrl: state.serverUrl,
+          sessionId: state.sessionId,
+        }),
+      }
+    }),
   recordConnection: () =>
     set((state) => ({
       recentSessions: writeRecentSession({

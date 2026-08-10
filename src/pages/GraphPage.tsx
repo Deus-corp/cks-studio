@@ -15,6 +15,11 @@ export function GraphPage() {
   const [selectedNode, setSelectedNode] = useState<Node | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [createMode, setCreateMode] = useState<CreateMode>('none')
+  // Separate from useSessionStore's `error` on purpose: that field also
+  // drives `status` (connection health, feeds recentSessions pruning —
+  // see sessionStore.ts). A "trying depth 2..." progress message is not
+  // a connection failure and must never flip the session to 'error'.
+  const [exploreNotice, setExploreNotice] = useState<string | null>(null)
 
   const {
     serverUrl,
@@ -75,17 +80,32 @@ export function GraphPage() {
   const handleExplore = async () => {
     if (!selectedNodeId || isLoading) return
     setIsLoading(true)
+    setExploreNotice(null)
     try {
       const subgraph = await querySubgraph(sessionId, [selectedNodeId], 1)
-      if (!subgraph.nodes || subgraph.nodes.length === 0) {
-        setError('No neighbours found for this node.')
-        setIsLoading(false)
+      if (subgraph.nodes && subgraph.nodes.length > 0) {
+        const { nodes: newNodes, edges: newEdges } = cksToReactFlow(subgraph)
+        addNodes(newNodes)
+        addEdges(newEdges)
         return
       }
-      const { nodes: newNodes, edges: newEdges } = cksToReactFlow(subgraph)
+
+      // depth=1 can legitimately come back empty on the ecosystem graph
+      // (isolated ADR/component nodes with no direct edges but reachable
+      // neighbours two hops out), so before telling the user there's
+      // nothing here, retry once at depth=2.
+      setExploreNotice('No neighbours found at depth 1, trying depth 2...')
+      const wider = await querySubgraph(sessionId, [selectedNodeId], 2)
+      if (!wider.nodes || wider.nodes.length === 0) {
+        setExploreNotice('No neighbours found.')
+        return
+      }
+      setExploreNotice(null)
+      const { nodes: newNodes, edges: newEdges } = cksToReactFlow(wider)
       addNodes(newNodes)
       addEdges(newEdges)
     } catch (e) {
+      setExploreNotice(null)
       setError(e instanceof Error ? e.message : 'Unknown error')
     } finally {
       setIsLoading(false)
@@ -217,6 +237,9 @@ export function GraphPage() {
                 'Explore Neighbourhood'
               )}
             </button>
+            {exploreNotice && (
+              <p className="text-xs text-gray-400">{exploreNotice}</p>
+            )}
             <button
               type="button"
               onClick={handleTrace}

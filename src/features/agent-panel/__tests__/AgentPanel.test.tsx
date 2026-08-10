@@ -159,7 +159,7 @@ describe('AgentPanel', () => {
     render(<AgentPanel />)
 
     const dot = screen.getByTitle('stopped')
-    expect(dot).toHaveClass('bg-gray-600')
+    expect(dot).toHaveClass('bg-text-tertiary')
   })
 
   it('shows the process-section error independently of the sweeper section', () => {

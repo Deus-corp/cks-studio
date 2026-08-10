@@ -129,7 +129,11 @@ body {
  * shared/stores/themeStore.ts) and the toggle in SettingsPage.
  */
 [data-theme="light"] {
-  --color-surface-0: #f7f7f9;
+  /* Was #f7f7f9 (near-white) — bumped to a cream tone so the page
+     background reads as a deliberate warm surface rather than plain
+     white, especially next to surface-1 (#fff) panels which need real
+     contrast against the body to look "elevated". */
+  --color-surface-0: #f5f4f0;
   --color-surface-1: #ffffff;
   --color-surface-2: #f0f1f4;
   --color-surface-3: #e5e7ec;

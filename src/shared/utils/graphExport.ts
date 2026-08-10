@@ -23,6 +23,19 @@ import { toPng, toSvg } from 'html-to-image'
 const EXPORT_PADDING = 0.1
 const MIN_ZOOM = 0.1
 const MAX_ZOOM = 2
+const PIXEL_RATIO = 3
+
+// Floor for the export canvas so small graphs (a handful of nodes)
+// don't produce a tiny, blurry-when-upscaled image.
+const MIN_EXPORT_WIDTH = 1600
+const MIN_EXPORT_HEIGHT = 1200
+// Bounding-box padding in graph units, added on each side before we
+// convert the bounds into a pixel canvas size below. This is separate
+// from EXPORT_PADDING (which pads the *viewport transform*, i.e. the
+// zoom-to-fit math) -- this one pads the raw canvas dimensions so large
+// graphs (>200 nodes) get proportionally more room instead of being
+// squeezed into a fixed 1600x1200 frame.
+const BOUNDS_PADDING = 100
 
 interface ExportOptions {
   nodes: Node[]
@@ -30,6 +43,30 @@ interface ExportOptions {
   height?: number
   backgroundColor?: string
   fileName?: string
+}
+
+/**
+ * Canvas size for the export: an explicit width/height always wins: caller-set,
+ * otherwise derived from the node bounding box (plus BOUNDS_PADDING) so
+ * large graphs get a canvas big enough to stay legible, with a floor at
+ * MIN_EXPORT_WIDTH/HEIGHT so small graphs don't export a tiny image.
+ */
+function computeExportSize(
+  nodes: Node[],
+  explicitWidth?: number,
+  explicitHeight?: number,
+): { width: number; height: number } {
+  if (explicitWidth !== undefined && explicitHeight !== undefined) {
+    return { width: explicitWidth, height: explicitHeight }
+  }
+  const bounds = getNodesBounds(nodes)
+  const boundsWidth = bounds.width + BOUNDS_PADDING * 2
+  const boundsHeight = bounds.height + BOUNDS_PADDING * 2
+  return {
+    width: explicitWidth ?? Math.max(MIN_EXPORT_WIDTH, Math.round(boundsWidth)),
+    height:
+      explicitHeight ?? Math.max(MIN_EXPORT_HEIGHT, Math.round(boundsHeight)),
+  }
 }
 
 function getViewportElement(): HTMLElement {
@@ -43,8 +80,12 @@ function getViewportElement(): HTMLElement {
 }
 
 async function withFramedViewport<T>(
-  { nodes, width = 1600, height = 1200 }: ExportOptions,
-  render: (viewportEl: HTMLElement) => Promise<T>,
+  { nodes, width, height }: ExportOptions,
+  render: (
+    viewportEl: HTMLElement,
+    width: number,
+    height: number,
+  ) => Promise<T>,
 ): Promise<T> {
   if (nodes.length === 0) {
     throw new Error('Граф пуст — нечего экспортировать.')
@@ -52,10 +93,15 @@ async function withFramedViewport<T>(
 
   const viewportEl = getViewportElement()
   const bounds = getNodesBounds(nodes)
-  const transform = getViewportForBounds(
-    bounds,
+  const { width: exportWidth, height: exportHeight } = computeExportSize(
+    nodes,
     width,
     height,
+  )
+  const transform = getViewportForBounds(
+    bounds,
+    exportWidth,
+    exportHeight,
     MIN_ZOOM,
     MAX_ZOOM,
     EXPORT_PADDING,
@@ -65,12 +111,12 @@ async function withFramedViewport<T>(
   const previousWidth = viewportEl.style.width
   const previousHeight = viewportEl.style.height
 
-  viewportEl.style.width = `${width}px`
-  viewportEl.style.height = `${height}px`
+  viewportEl.style.width = `${exportWidth}px`
+  viewportEl.style.height = `${exportHeight}px`
   viewportEl.style.transform = `translate(${transform.x}px, ${transform.y}px) scale(${transform.zoom})`
 
   try {
-    return await render(viewportEl)
+    return await render(viewportEl, exportWidth, exportHeight)
   } finally {
     // Возвращаем реальный viewport в исходное состояние — иначе canvas
     // "залипнет" на кадре экспорта после того, как скачивание завершится.
@@ -88,26 +134,34 @@ function downloadDataUrl(dataUrl: string, fileName: string): void {
 }
 
 export async function exportGraphAsPng(options: ExportOptions): Promise<void> {
-  const { width = 1600, height = 1200, backgroundColor = '#111827' } = options
-  const dataUrl = await withFramedViewport(options, (viewportEl) =>
-    toPng(viewportEl, {
-      backgroundColor,
-      width,
-      height,
-      pixelRatio: 2,
-    }),
+  const { backgroundColor = '#111827' } = options
+  const dataUrl = await withFramedViewport(
+    options,
+    (viewportEl, width, height) =>
+      toPng(viewportEl, {
+        backgroundColor,
+        width,
+        height,
+        // Fixed at 3x regardless of canvas size: this is what makes large,
+        // >200-node graphs stay legible on retina displays instead of
+        // going soft once the bigger bounding-box canvas above gets scaled
+        // down to fit the screen when viewed.
+        pixelRatio: PIXEL_RATIO,
+      }),
   )
   downloadDataUrl(dataUrl, options.fileName ?? 'cks-graph.png')
 }
 
 export async function exportGraphAsSvg(options: ExportOptions): Promise<void> {
-  const { width = 1600, height = 1200, backgroundColor = '#111827' } = options
-  const dataUrl = await withFramedViewport(options, (viewportEl) =>
-    toSvg(viewportEl, {
-      backgroundColor,
-      width,
-      height,
-    }),
+  const { backgroundColor = '#111827' } = options
+  const dataUrl = await withFramedViewport(
+    options,
+    (viewportEl, width, height) =>
+      toSvg(viewportEl, {
+        backgroundColor,
+        width,
+        height,
+      }),
   )
   downloadDataUrl(dataUrl, options.fileName ?? 'cks-graph.svg')
 }

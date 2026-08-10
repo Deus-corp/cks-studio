@@ -28,7 +28,7 @@ function ToolCallsDisclosure({ calls }: { calls: ExecutedToolCall[] }) {
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="text-gray-500 hover:text-gray-300 transition-colors"
+        className="text-text-tertiary hover:text-text-secondary transition-colors"
       >
         {open ? '▾' : '▸'} {calls.length} tool call
         {calls.length === 1 ? '' : 's'}
@@ -46,7 +46,7 @@ function ToolCallsDisclosure({ calls }: { calls: ExecutedToolCall[] }) {
               className={`rounded px-2 py-1 border ${
                 call.is_error
                   ? 'border-red-900 bg-red-950/40'
-                  : 'border-gray-800 bg-gray-900'
+                  : 'border-border-subtle bg-surface-1'
               }`}
             >
               <div className="flex items-center gap-1.5">
@@ -55,9 +55,11 @@ function ToolCallsDisclosure({ calls }: { calls: ExecutedToolCall[] }) {
                     call.is_error ? 'bg-red-500' : 'bg-green-500'
                   }`}
                 />
-                <span className="font-mono text-gray-300">{call.name}</span>
+                <span className="font-mono text-text-secondary">
+                  {call.name}
+                </span>
               </div>
-              <div className="text-gray-500 font-mono truncate">
+              <div className="text-text-tertiary font-mono truncate">
                 {JSON.stringify(call.arguments)}
               </div>
               {call.is_error && (
@@ -87,7 +89,7 @@ function LLMStatusBanner({ status }: { status: LLMStatus | null }) {
   if (status?.provider !== 'none') return null
 
   return (
-    <div className="px-4 py-2 border-b border-gray-800 bg-yellow-950/40 text-yellow-400 text-xs">
+    <div className="px-4 py-2 border-b border-border-subtle bg-yellow-950/40 text-yellow-400 text-xs">
       No LLM provider configured — chat won't work until one is. Start Ollama (
       <code className="font-mono">ollama run llama3.2</code>) or set
       ANTHROPIC_API_KEY, then check{' '}
@@ -116,7 +118,7 @@ function LLMStatusBanner({ status }: { status: LLMStatus | null }) {
 function ChatErrorBanner({ error }: { error: ChatError }) {
   if (error.kind === 'no_session') {
     return (
-      <div className="px-4 py-2 border-t border-gray-800 bg-yellow-950/40 text-yellow-400 text-xs">
+      <div className="px-4 py-2 border-t border-border-subtle bg-yellow-950/40 text-yellow-400 text-xs">
         No active session. Connect to a session on the{' '}
         <Link to="/" className="underline hover:text-yellow-300">
           Graph tab
@@ -128,7 +130,7 @@ function ChatErrorBanner({ error }: { error: ChatError }) {
 
   if (error.kind === 'llm_provider_unavailable') {
     return (
-      <div className="px-4 py-2 border-t border-gray-800 bg-yellow-950/40 text-yellow-400 text-xs">
+      <div className="px-4 py-2 border-t border-border-subtle bg-yellow-950/40 text-yellow-400 text-xs">
         <p>No LLM provider available. To fix this:</p>
         <ol className="mt-1 ml-4 list-decimal space-y-0.5">
           <li>
@@ -152,7 +154,7 @@ function ChatErrorBanner({ error }: { error: ChatError }) {
   // 'llm_call_failed', 'network', and 'other' are all genuine failures
   // (not "you need to configure something") -- red, not yellow.
   return (
-    <p className="text-red-400 text-xs px-4 py-2 border-t border-gray-800">
+    <p className="text-red-400 text-xs px-4 py-2 border-t border-border-subtle">
       {error.message}
     </p>
   )
@@ -166,7 +168,7 @@ function TurnBubble({ turn }: { turn: ChatTurn }) {
         className={`max-w-[80%] rounded-lg px-3 py-2 text-sm whitespace-pre-wrap break-words ${
           isUser
             ? 'bg-accent text-white'
-            : 'bg-gray-900 border border-gray-800 text-gray-200'
+            : 'bg-surface-1 border border-border-subtle text-text-primary'
         }`}
       >
         {turn.text}
@@ -204,7 +206,7 @@ function ModelSelect({
     return (
       <select
         disabled
-        className="text-xs bg-gray-900 border border-gray-800 rounded px-1.5 py-1 text-gray-500"
+        className="text-xs bg-surface-1 border border-border-subtle rounded px-1.5 py-1 text-text-tertiary"
       >
         <option>{isLoading ? 'Loading models…' : (defaultModel ?? '—')}</option>
       </select>
@@ -215,7 +217,7 @@ function ModelSelect({
     <select
       value={selectedModel ?? ''}
       onChange={(e) => onChange(e.target.value || null)}
-      className="text-xs bg-gray-900 border border-gray-800 rounded px-1.5 py-1 text-gray-300 focus:outline-none focus:border-accent"
+      className="text-xs bg-surface-1 border border-border-subtle rounded px-1.5 py-1 text-text-secondary focus:outline-none focus:border-accent"
     >
       {/* Пустое значение = "использовать дефолт провайдера" — тот же
        *  смысл, что и не передавать 'model' в ai_chat вовсе. */}
@@ -280,8 +282,8 @@ export function ChatPanel() {
 
   return (
     <div className="h-full flex flex-col">
-      <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-800">
-        <h2 className="text-sm font-semibold text-gray-200">Chat</h2>
+      <div className="flex items-center gap-3 px-4 py-3 border-b border-border-subtle">
+        <h2 className="text-sm font-semibold text-text-primary">Chat</h2>
         <ModelSelect
           models={llmModels}
           isLoading={llmModelsLoading}
@@ -289,7 +291,7 @@ export function ChatPanel() {
           selectedModel={selectedModel}
           onChange={setSelectedModel}
         />
-        <span className="text-xs text-gray-500">
+        <span className="text-xs text-text-tertiary">
           Talks to cks-mcp's ai_chat tool, scoped to the connected session.
         </span>
       </div>
@@ -298,7 +300,7 @@ export function ChatPanel() {
 
       <div className="flex-1 overflow-y-auto p-4 space-y-3">
         {turns.length === 0 && !isSending && (
-          <p className="text-xs text-gray-500">
+          <p className="text-xs text-text-tertiary">
             Ask for something — e.g. "add a Person node named Ada Lovelace and
             connect her to the Analytical Engine with a designed relation".
           </p>
@@ -309,7 +311,7 @@ export function ChatPanel() {
         ))}
         {isSending && (
           <div className="flex justify-start">
-            <div className="rounded-lg px-3 py-2 text-sm bg-gray-900 border border-gray-800 text-gray-500">
+            <div className="rounded-lg px-3 py-2 text-sm bg-surface-1 border border-border-subtle text-text-tertiary">
               thinking…
             </div>
           </div>
@@ -320,7 +322,7 @@ export function ChatPanel() {
 
       <form
         onSubmit={handleSubmit}
-        className="flex items-center gap-2 border-t border-gray-800 p-3"
+        className="flex items-center gap-2 border-t border-border-subtle p-3"
       >
         <input
           type="text"
@@ -328,7 +330,7 @@ export function ChatPanel() {
           onChange={(e) => setInput(e.target.value)}
           placeholder="Type a message…"
           disabled={isSending}
-          className="flex-1 bg-gray-900 border border-gray-800 rounded px-3 py-2 text-sm text-gray-200 placeholder-gray-600 focus:outline-none focus:border-accent disabled:opacity-50"
+          className="flex-1 bg-surface-1 border border-border-subtle rounded px-3 py-2 text-sm text-text-primary placeholder-text-tertiary focus:outline-none focus:border-accent disabled:opacity-50"
         />
         <button
           type="submit"

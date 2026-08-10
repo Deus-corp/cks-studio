@@ -6,6 +6,19 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 
 ---
 
+## [0.5.6] - 2026-08-10
+
+### Fixed
+- **Search palette centering** – deferred `setCenter` to next frame so React Flow can measure the target node, fixing off‑screen jumps to freshly‑added or off‑screen nodes.
+- **Node overlap on large graphs** – layout now computes per‑node widths based on label length, preventing long ADR titles from overlapping adjacent nodes.
+- **Explore Neighbourhood fallback** – automatically retries at depth=2 when depth=1 returns empty, instead of showing “No neighbours found” for indirectly connected nodes.
+- **PNG export quality** – canvas is now sized proportionally to the graph’s bounding box (with a 1600×1200 floor) and uses 3× pixel ratio, keeping text legible on large graphs.
+- **Session error recovery** – unreachable sessions are pruned from “Recent sessions” on connection failure, so dead IDs don’t accumulate in the dropdown.
+- **Light‑theme cream background** – changed `surface-0` from near‑white to a warm cream tone, improving contrast with white panel surfaces.
+- **Agent / Chat / Pipeline / VersionDiff panels** – replaced remaining hardcoded `gray‑*` classes with theme‑aware design tokens.
+
+---
+
 ## [0.5.5] - 2026-08-10
 
 ### Added

@@ -67,7 +67,7 @@ export function PipelineMonitor() {
 
   if (!sessionId.trim()) {
     return (
-      <div className="p-6 text-sm text-gray-400">
+      <div className="p-6 text-sm text-text-secondary">
         Specify the session_id on the Graph page to view pipeline objects.
       </div>
     )
@@ -77,20 +77,20 @@ export function PipelineMonitor() {
 
   return (
     <div className="h-full flex flex-col">
-      <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-800">
-        <h2 className="text-sm font-semibold text-gray-200">
+      <div className="flex items-center gap-3 px-4 py-3 border-b border-border-subtle">
+        <h2 className="text-sm font-semibold text-text-primary">
           Pipeline Monitor
         </h2>
-        <span className="text-xs text-gray-500">session: {sessionId}</span>
+        <span className="text-xs text-text-tertiary">session: {sessionId}</span>
         <button
           type="button"
           onClick={load}
           disabled={isLoading}
-          className="ml-auto text-xs bg-gray-800 hover:bg-gray-700 text-gray-200 px-2 py-1 rounded disabled:opacity-50"
+          className="ml-auto text-xs bg-surface-2 hover:bg-surface-3 text-text-primary px-2 py-1 rounded disabled:opacity-50"
         >
           {isLoading ? 'Refreshing…' : 'Refresh'}
         </button>
-        <label className="flex items-center gap-1 text-xs text-gray-400">
+        <label className="flex items-center gap-1 text-xs text-text-secondary">
           <input
             type="checkbox"
             checked={autoRefresh}
@@ -103,7 +103,7 @@ export function PipelineMonitor() {
       {error && <p className="text-red-400 text-xs px-4 py-2">{error}</p>}
 
       {!error && objects.length === 0 && !isLoading && (
-        <p className="text-xs text-gray-500 px-4 py-2">
+        <p className="text-xs text-text-tertiary px-4 py-2">
           There are no objects with current_status in this session —
           Researcher/Reviewer have not run on it yet, or this is not a pipeline
           session.
@@ -116,10 +116,10 @@ export function PipelineMonitor() {
           return (
             <div
               key={status}
-              className="flex-shrink-0 w-56 bg-gray-900 border border-gray-800 rounded flex flex-col"
+              className="flex-shrink-0 w-56 bg-surface-1 border border-border-subtle rounded flex flex-col"
             >
               <div
-                className="px-3 py-2 text-xs font-medium border-b border-gray-800 flex items-center gap-2"
+                className="px-3 py-2 text-xs font-medium border-b border-border-subtle flex items-center gap-2"
                 style={{ color: STATUS_COLORS[status] }}
               >
                 <span
@@ -127,7 +127,9 @@ export function PipelineMonitor() {
                   style={{ backgroundColor: STATUS_COLORS[status] }}
                 />
                 {STATUS_LABELS[status]}
-                <span className="ml-auto text-gray-500">{items.length}</span>
+                <span className="ml-auto text-text-tertiary">
+                  {items.length}
+                </span>
               </div>
               <div className="flex-1 overflow-y-auto p-2 space-y-2">
                 {items.map((obj) => (
@@ -135,16 +137,16 @@ export function PipelineMonitor() {
                     key={obj.id}
                     type="button"
                     onClick={() => setSelected(obj)}
-                    className={`w-full text-left text-xs bg-gray-800 hover:bg-gray-700 rounded px-2 py-1.5 border ${
+                    className={`w-full text-left text-xs bg-surface-2 hover:bg-surface-3 rounded px-2 py-1.5 border ${
                       selected?.id === obj.id
                         ? 'border-blue-500'
                         : 'border-transparent'
                     }`}
                   >
-                    <div className="font-medium text-gray-200 truncate">
+                    <div className="font-medium text-text-primary truncate">
                       {obj.name}
                     </div>
-                    <div className="text-gray-500">{obj.type}</div>
+                    <div className="text-text-tertiary">{obj.type}</div>
                   </button>
                 ))}
               </div>
@@ -154,22 +156,22 @@ export function PipelineMonitor() {
       </div>
 
       {selected && (
-        <div className="border-t border-gray-800 p-4 max-h-56 overflow-y-auto">
-          <h3 className="text-xs font-semibold text-gray-200 mb-2">
+        <div className="border-t border-border-subtle p-4 max-h-56 overflow-y-auto">
+          <h3 className="text-xs font-semibold text-text-primary mb-2">
             Transition log — {selected.name}
           </h3>
           {selected.transition_log.length === 0 ? (
-            <p className="text-xs text-gray-500">Empty.</p>
+            <p className="text-xs text-text-tertiary">Empty.</p>
           ) : (
             <ol className="space-y-1">
               {sortTransitionLog(selected.transition_log).map((entry, idx) => (
                 <li
                   // biome-ignore lint/suspicious/noArrayIndexKey: transition_log — append-only log without its own id
                   key={idx}
-                  className="text-xs text-gray-400 flex gap-2"
+                  className="text-xs text-text-secondary flex gap-2"
                 >
-                  <span className="text-gray-600">{entry.timestamp}</span>
-                  <span className="text-gray-300">{entry.agent}</span>
+                  <span className="text-text-tertiary">{entry.timestamp}</span>
+                  <span className="text-text-secondary">{entry.agent}</span>
                   <span>{entry.action}</span>
                   <span
                     style={{

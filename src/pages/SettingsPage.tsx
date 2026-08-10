@@ -125,7 +125,7 @@ function LLMProviderStatus() {
           <div className="flex items-center gap-2">
             <span
               className={`w-2 h-2 rounded-full inline-block flex-shrink-0 ${
-                providerIsUp(status) ? 'bg-green-500' : 'bg-gray-500'
+                providerIsUp(status) ? 'bg-green-500' : 'bg-text-tertiary'
               }`}
               title={providerIsUp(status) ? 'available' : 'unavailable'}
             />

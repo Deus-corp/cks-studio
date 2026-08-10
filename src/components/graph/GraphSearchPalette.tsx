@@ -90,13 +90,28 @@ export function GraphSearchPalette({
     if (!node) return
     selectNode(nodeId)
     onSelect?.(nodeId)
-    const width = (node.measured?.width as number | undefined) ?? 220
-    const height = (node.measured?.height as number | undefined) ?? 60
-    setCenter(node.position.x + width / 2, node.position.y + height / 2, {
-      zoom: Math.max(getZoom(), 1),
-      duration: 400,
-    })
     setIsOpen(false)
+    // The palette closing can itself trigger a re-render/re-measure of
+    // the canvas, and a just-navigated-to node may not have been
+    // measured by React Flow yet (node.measured is only populated after
+    // its first render pass). Deferring to the next frame gives React
+    // Flow a chance to measure before we read node.measured below --
+    // without this, freshly-added or off-screen nodes center using the
+    // fallback width/height instead of their real size.
+    requestAnimationFrame(() => {
+      const current = nodes.find((n) => n.id === nodeId)
+      if (!current) return
+      const width = current.measured?.width ?? 220
+      const height = current.measured?.height ?? 60
+      setCenter(
+        current.position.x + width / 2,
+        current.position.y + height / 2,
+        {
+          zoom: Math.max(getZoom(), 1),
+          duration: 400,
+        },
+      )
+    })
   }
 
   function handleKeyDown(event: React.KeyboardEvent) {

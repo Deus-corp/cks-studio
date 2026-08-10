@@ -52,10 +52,10 @@ function AddedRow({ entry }: { entry: DiffEntry }) {
     <div className="border border-green-800 bg-green-900/20 rounded px-3 py-2">
       <div className="text-sm text-green-300">
         + {entry.name}{' '}
-        <span className="text-xs text-gray-500">({entry.type})</span>
+        <span className="text-xs text-text-tertiary">({entry.type})</span>
       </div>
       {entry.structure && Object.keys(entry.structure).length > 0 && (
-        <div className="mt-1 text-xs text-gray-400 font-mono space-y-0.5">
+        <div className="mt-1 text-xs text-text-secondary font-mono space-y-0.5">
           {Object.entries(entry.structure).map(([key, value]) => (
             <div key={key}>
               {key}: {formatDiffValue(value)}
@@ -72,7 +72,7 @@ function RemovedRow({ entry }: { entry: DiffEntry }) {
     <div className="border border-red-800 bg-red-900/20 rounded px-3 py-2">
       <div className="text-sm text-red-300 line-through decoration-red-500/60">
         − {entry.name}{' '}
-        <span className="text-xs text-gray-500 no-underline">
+        <span className="text-xs text-text-tertiary no-underline">
           ({entry.type})
         </span>
       </div>
@@ -86,12 +86,12 @@ function ModifiedRow({ entry }: { entry: DiffEntry }) {
     <div className="border border-amber-800 bg-amber-900/20 rounded px-3 py-2">
       <div className="text-sm text-amber-300">
         ~ {entry.name}{' '}
-        <span className="text-xs text-gray-500">({entry.type})</span>
+        <span className="text-xs text-text-tertiary">({entry.type})</span>
       </div>
       <div className="mt-1.5 space-y-1.5">
         {Object.entries(changes).map(([field, { from, to }]) => (
           <div key={field} className="text-xs">
-            <div className="text-gray-500">{field}</div>
+            <div className="text-text-tertiary">{field}</div>
             <div className="flex gap-2 mt-0.5">
               <div className="flex-1 rounded px-1.5 py-1 bg-red-900/30 border border-red-800 text-red-300 font-mono break-all">
                 {formatDiffValue(from)}
@@ -127,7 +127,7 @@ function DiffSection({
   }
   return (
     <div className="space-y-2">
-      <h3 className="text-xs uppercase tracking-wide text-gray-500 font-semibold">
+      <h3 className="text-xs uppercase tracking-wide text-text-tertiary font-semibold">
         {title}
       </h3>
       <div className="space-y-1.5">
@@ -198,7 +198,7 @@ export function VersionDiff() {
 
   if (!sessionId.trim()) {
     return (
-      <div className="p-8 text-gray-500 text-sm">
+      <div className="p-8 text-text-tertiary text-sm">
         Connect to a session on the Graph page to view the version diff.
       </div>
     )
@@ -208,13 +208,13 @@ export function VersionDiff() {
 
   return (
     <div className="h-full flex flex-col">
-      <header className="bg-gray-900 border-b border-gray-800 px-4 py-3 flex items-center gap-3 flex-wrap">
+      <header className="bg-surface-1 border-b border-border-subtle px-4 py-3 flex items-center gap-3 flex-wrap">
         <h1 className="text-lg font-semibold">Version Diff</h1>
         <select
           value={targetVersionId}
           onChange={(e) => setTargetVersionId(e.target.value)}
           disabled={isLoadingVersions || versions.length === 0}
-          className="bg-gray-800 border border-gray-700 rounded px-2 py-1 text-gray-200 text-sm max-w-xs"
+          className="bg-surface-2 border border-border rounded px-2 py-1 text-text-primary text-sm max-w-xs"
         >
           {versions.length === 0 && <option value="">No versions</option>}
           {versions.map((v, idx) => (
@@ -226,7 +226,7 @@ export function VersionDiff() {
             </option>
           ))}
         </select>
-        <span className="text-xs text-gray-500">vs current</span>
+        <span className="text-xs text-text-tertiary">vs current</span>
         {counts && (
           <div className="flex gap-1.5 ml-auto">
             <DiffBadge label="+obj" count={counts.addedObjects} tone="add" />
@@ -263,12 +263,12 @@ export function VersionDiff() {
         )}
 
         {isLoadingDiff && (
-          <div className="text-gray-500 text-sm">Loading diff…</div>
+          <div className="text-text-tertiary text-sm">Loading diff…</div>
         )}
 
         {!isLoadingDiff && diff && (
           <div className="max-w-3xl space-y-5">
-            <p className="text-sm text-gray-300">{diff.summary}</p>
+            <p className="text-sm text-text-secondary">{diff.summary}</p>
 
             <DiffSection
               title="Objects"
@@ -285,7 +285,7 @@ export function VersionDiff() {
 
             {diff.details.renamed_objects.length > 0 && (
               <div className="space-y-2">
-                <h3 className="text-xs uppercase tracking-wide text-gray-500 font-semibold">
+                <h3 className="text-xs uppercase tracking-wide text-text-tertiary font-semibold">
                   Renamed
                 </h3>
                 <div className="space-y-1.5">
@@ -302,7 +302,9 @@ export function VersionDiff() {
             )}
 
             {counts?.totalChanges === 0 && (
-              <div className="text-gray-500 text-sm">No changes detected.</div>
+              <div className="text-text-tertiary text-sm">
+                No changes detected.
+              </div>
             )}
           </div>
         )}

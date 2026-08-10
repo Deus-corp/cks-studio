@@ -43,23 +43,23 @@ function AgentCard({
   onStop,
 }: AgentCardProps) {
   return (
-    <div className="bg-gray-900 border border-gray-800 rounded p-3 space-y-2">
+    <div className="bg-surface-1 border border-border-subtle rounded p-3 space-y-2">
       <div className="flex items-center gap-2">
         <span
           className={`w-2 h-2 rounded-full inline-block flex-shrink-0 ${
-            agent.running ? 'bg-green-500' : 'bg-gray-600'
+            agent.running ? 'bg-green-500' : 'bg-text-tertiary'
           }`}
           title={agent.running ? 'running' : 'not running'}
         />
-        <span className="text-sm font-medium text-gray-200 truncate">
+        <span className="text-sm font-medium text-text-primary truncate">
           {agent.agent_id}
         </span>
-        <span className="ml-auto text-xs text-gray-500">
+        <span className="ml-auto text-xs text-text-tertiary">
           every {agent.interval_seconds}s
         </span>
       </div>
 
-      <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-400">
+      <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-text-secondary">
         <span title={agent.last_run_at ?? undefined}>
           last run: {formatRelativeTime(agent.last_run_at)}
         </span>
@@ -127,23 +127,23 @@ function ProcessCard({
 }: ProcessCardProps) {
   const isAlive = process.status === 'alive'
   return (
-    <div className="bg-gray-900 border border-gray-800 rounded p-3 space-y-2">
+    <div className="bg-surface-1 border border-border-subtle rounded p-3 space-y-2">
       <div className="flex items-center gap-2">
         <span
           className={`w-2 h-2 rounded-full inline-block flex-shrink-0 ${
-            isAlive ? 'bg-green-500' : 'bg-gray-600'
+            isAlive ? 'bg-green-500' : 'bg-text-tertiary'
           }`}
           title={process.status}
         />
-        <span className="text-sm font-medium text-gray-200 truncate">
+        <span className="text-sm font-medium text-text-primary truncate">
           {process.process_kind}
         </span>
-        <span className="ml-auto text-xs text-gray-500">
+        <span className="ml-auto text-xs text-text-tertiary">
           pid {process.pid} @ {process.hostname}
         </span>
       </div>
 
-      <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-400">
+      <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-text-secondary">
         <span title={process.last_heartbeat_at}>
           heartbeat: {formatRelativeTime(process.last_heartbeat_at)}
         </span>
@@ -153,7 +153,7 @@ function ProcessCard({
       </div>
 
       {process.current_task_id !== null && (
-        <div className="text-xs text-gray-400">
+        <div className="text-xs text-text-secondary">
           working on task #{process.current_task_id}
           {process.current_task_type ? ` (${process.current_task_type})` : ''}
         </div>
@@ -361,9 +361,9 @@ export function AgentPanel() {
 
   return (
     <div className="h-full flex flex-col">
-      <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-800">
-        <h2 className="text-sm font-semibold text-gray-200">Agents</h2>
-        <span className="text-xs text-gray-500">
+      <div className="flex items-center gap-3 px-4 py-3 border-b border-border-subtle">
+        <h2 className="text-sm font-semibold text-text-primary">Agents</h2>
+        <span className="text-xs text-text-tertiary">
           {lastFetchedAt
             ? `updated ${formatRelativeTime(lastFetchedAt.toISOString())}`
             : 'loading…'}
@@ -375,7 +375,7 @@ export function AgentPanel() {
             refreshProcesses()
           }}
           disabled={isLoading || processesLoading}
-          className="ml-auto text-xs bg-gray-800 hover:bg-gray-700 text-gray-200 px-2 py-1 rounded disabled:opacity-50"
+          className="ml-auto text-xs bg-surface-2 hover:bg-surface-3 text-text-primary px-2 py-1 rounded disabled:opacity-50"
         >
           {isLoading || processesLoading ? 'Refreshing…' : 'Refresh'}
         </button>
@@ -383,7 +383,7 @@ export function AgentPanel() {
 
       <div className="flex-1 overflow-y-auto">
         <section>
-          <p className="text-xs text-gray-500 px-4 py-2">
+          <p className="text-xs text-text-tertiary px-4 py-2">
             In-process sweepers for this MCP server.
           </p>
 
@@ -394,7 +394,7 @@ export function AgentPanel() {
           )}
 
           {!error && agents.length === 0 && !isLoading && (
-            <p className="text-xs text-gray-500 px-4 py-2">
+            <p className="text-xs text-text-tertiary px-4 py-2">
               No enabled sweepers — either all are disabled via the Runtime
               config, or the MCP server has just started.
             </p>
@@ -414,19 +414,19 @@ export function AgentPanel() {
           </div>
         </section>
 
-        <section className="border-t border-gray-800">
+        <section className="border-t border-border-subtle">
           <div className="flex items-center gap-3 px-4 py-2">
-            <h3 className="text-xs font-semibold text-gray-300">
+            <h3 className="text-xs font-semibold text-text-secondary">
               Standalone Processes
             </h3>
-            <span className="text-xs text-gray-500">
+            <span className="text-xs text-text-tertiary">
               {processesLastFetchedAt
                 ? `updated ${formatRelativeTime(processesLastFetchedAt.toISOString())}`
                 : 'loading…'}
             </span>
           </div>
 
-          <p className="text-xs text-gray-500 px-4 pb-2">
+          <p className="text-xs text-text-tertiary px-4 pb-2">
             Critic / Enrichment / Fork Resolution / Pipeline Agent — from the
             shared cks_agent_liveness table (see cks-runtime ADR-014). In a
             multi‑node deployment these may originate from other nodes.
@@ -439,7 +439,7 @@ export function AgentPanel() {
           )}
 
           {!processesError && processes.length === 0 && !processesLoading && (
-            <p className="text-xs text-gray-500 px-4 py-2">
+            <p className="text-xs text-text-tertiary px-4 py-2">
               No standalone processes have sent a heartbeat yet.
             </p>
           )}

@@ -44,4 +44,38 @@ describe('useSessionStore', () => {
     useSessionStore.getState().setStatus('connecting')
     expect(useSessionStore.getState().status).toBe('connecting')
   })
+
+  it('setError prunes the current session from recentSessions', () => {
+    useSessionStore.getState().setServerUrl('http://example.com:9000')
+    useSessionStore.getState().setSessionId('session-dead')
+    useSessionStore.getState().recordConnection()
+    expect(
+      useSessionStore
+        .getState()
+        .recentSessions.some((r) => r.sessionId === 'session-dead'),
+    ).toBe(true)
+
+    useSessionStore.getState().setError('connection refused')
+
+    expect(
+      useSessionStore
+        .getState()
+        .recentSessions.some((r) => r.sessionId === 'session-dead'),
+    ).toBe(false)
+  })
+
+  it('setError with no active sessionId leaves recentSessions untouched', () => {
+    useSessionStore.getState().setServerUrl('http://example.com:9000')
+    useSessionStore.getState().setSessionId('session-ok')
+    useSessionStore.getState().recordConnection()
+    useSessionStore.getState().setSessionId('')
+
+    useSessionStore.getState().setError('boom')
+
+    expect(
+      useSessionStore
+        .getState()
+        .recentSessions.some((r) => r.sessionId === 'session-ok'),
+    ).toBe(true)
+  })
 })
