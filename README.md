@@ -4,7 +4,7 @@
 
 ![TypeScript](https://img.shields.io/badge/typescript-5.7%2B-blue)
 ![React](https://img.shields.io/badge/react-19-61DAFB)
-![Tests](https://img.shields.io/badge/tests-62%20passed-brightgreen)
+![Tests](https://img.shields.io/badge/tests-66%20passed-brightgreen)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Status](https://img.shields.io/badge/status-v0.5.2-orange)
 
@@ -70,6 +70,12 @@ npm run dev
 Open `http://localhost:5173`, go to the **Gallery** tab, and click
 **Open in Graph** on the `cks-ecosystem` card. The full project
 architecture appears instantly — no configuration needed.
+
+### Install as Desktop App (PWA)
+
+Open the studio in Chrome/Edge and click the install icon in the address bar,
+or use "Install CKS Studio" from the browser menu. The app will open in its
+own window and work offline for previously loaded assets.
 
 ---
 

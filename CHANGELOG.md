@@ -6,6 +6,13 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 
 ---
 
+## [0.5.3] - 2026-08-10
+
+### Added
+- **PWA support** – the studio can now be installed as a standalone desktop app from Chrome/Edge/Safari. Includes a web manifest, static asset caching via `vite-plugin-pwa`, and theme-color meta tag.
+
+---
+
 ## [0.5.2] - 2026-08-10
 
 ### Added
