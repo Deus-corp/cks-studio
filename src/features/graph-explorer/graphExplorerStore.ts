@@ -32,6 +32,13 @@ export interface GraphState {
   hiddenTypes: Set<string>
   toggleTypeVisibility: (type: string) => void
   showAllTypes: () => void
+  /** '2d' (default, dagre + xyflow) or '3d' (force-directed sphere,
+   *  see GraphCanvas3D) — dense graphs with many same-rank nodes
+   *  (e.g. many Tools implementing one ADR) stretch very wide in 2D
+   *  since dagre lays same-rank nodes out in a single row; 3D spreads
+   *  them over a volume instead. */
+  viewMode: '2d' | '3d'
+  setViewMode: (mode: '2d' | '3d') => void
 }
 
 export const useGraphStore = create<GraphState>((set) => ({
@@ -143,4 +150,7 @@ export const useGraphStore = create<GraphState>((set) => ({
       return { hiddenTypes: next }
     }),
   showAllTypes: () => set({ hiddenTypes: new Set() }),
+
+  viewMode: '2d',
+  setViewMode: (mode) => set({ viewMode: mode }),
 }))

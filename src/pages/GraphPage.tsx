@@ -1,6 +1,7 @@
 import type { Node } from '@xyflow/react'
 import { useCallback, useEffect, useState } from 'react'
 import { GraphCanvas } from '@/components/graph/GraphCanvas'
+import { GraphCanvas3D } from '@/components/graph/GraphCanvas3D'
 import { SidePanel } from '@/components/layout/SidePanel'
 import { CreateNodeForm } from '@/features/graph-explorer/CreateNodeForm'
 import { CreateRelationForm } from '@/features/graph-explorer/CreateRelationForm'
@@ -43,6 +44,8 @@ export function GraphPage() {
     edges,
     setHighlightedEdges,
     clearHighlight,
+    viewMode,
+    setViewMode,
   } = useGraphStore()
 
   const handleConnect = useCallback(async () => {
@@ -212,16 +215,52 @@ export function GraphPage() {
               ))}
             </select>
           )}
+          <fieldset
+            aria-label="Graph view mode"
+            className="flex items-center rounded border border-border overflow-hidden text-xs m-0 p-0"
+          >
+            <button
+              type="button"
+              onClick={() => setViewMode('2d')}
+              aria-pressed={viewMode === '2d'}
+              className={`px-2.5 py-1 transition-colors ${
+                viewMode === '2d'
+                  ? 'bg-accent text-white'
+                  : 'bg-surface-2 text-text-secondary hover:text-text-primary'
+              }`}
+            >
+              2D
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode('3d')}
+              aria-pressed={viewMode === '3d'}
+              className={`px-2.5 py-1 transition-colors border-l border-border ${
+                viewMode === '3d'
+                  ? 'bg-accent text-white'
+                  : 'bg-surface-2 text-text-secondary hover:text-text-primary'
+              }`}
+            >
+              3D
+            </button>
+          </fieldset>
         </div>
         {error && <p className="text-danger text-xs w-full">{error}</p>}
       </header>
       <div className="flex-1 flex">
         <main className="flex-1">
-          <GraphCanvas
-            onNodeSelect={setSelectedNode}
-            isLoading={isLoading}
-            onRefresh={handleRefresh}
-          />
+          {viewMode === '3d' ? (
+            <GraphCanvas3D
+              onNodeSelect={setSelectedNode}
+              isLoading={isLoading}
+            />
+          ) : (
+            <GraphCanvas
+              onNodeSelect={setSelectedNode}
+              isLoading={isLoading}
+              onRefresh={handleRefresh}
+            />
+          )}
         </main>
         <aside className="w-72 border-l border-border-subtle bg-surface-1 overflow-y-auto flex flex-col">
           <SidePanel node={selectedNode} />

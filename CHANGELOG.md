@@ -6,6 +6,15 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 
 ---
 
+## [0.6.0] - 2026-08-11
+
+### Added
+- **3D force‑directed graph** – toggle between 2D (dagre) and 3D (force‑graph) views using the new 2D/3D switch in the Graph page header. 3D mode spreads nodes over a volume, making wide graphs with many same‑rank nodes (e.g. many Tools implementing one ADR) much more compact.
+- **GraphCanvas3D component** – uses `3d-force-graph` (Three.js) with node colouring by CKS type, click‑to‑focus camera, and hover labels.
+- **viewMode** in `graphExplorerStore` – persists 2D/3D preference across page switches.
+
+---
+
 ## [0.5.9] - 2026-08-11
 
 ### Fixed
