@@ -1,3 +1,5 @@
+import { useLLMStatus } from '@/features/llm-status/useLLMStatus'
+import type { LLMStatus } from '@/services/mcpTools'
 import { useThemeStore } from '@/shared/stores/themeStore'
 
 function ThemeToggle() {
@@ -64,6 +66,93 @@ function ThemeToggle() {
   )
 }
 
+function providerLabel(provider: LLMStatus['provider']): string {
+  switch (provider) {
+    case 'ollama':
+      return 'Local Ollama'
+    case 'anthropic':
+      return 'Anthropic'
+    default:
+      return 'Not configured'
+  }
+}
+
+/** "Доступен" здесь значит "именно этот, уже выбранный провайдер сейчас
+ *  реально отвечает/настроен" — а не "хоть какой-то провайдер доступен".
+ *  Explicit CKS_LLM_PROVIDER на сервере может указывать на провайдер,
+ *  который сейчас не поднят (см. get_llm_status/handler.py) — тогда точка
+ *  должна быть серой, даже если провайдер "выбран". */
+function providerIsUp(status: LLMStatus): boolean {
+  if (status.provider === 'ollama') return status.ollama_available
+  if (status.provider === 'anthropic') return status.anthropic_configured
+  return false
+}
+
+/** Блок статуса LLM-провайдера в Settings. Studio — тонкий клиент: сама
+ *  никогда не ходит в Ollama/Anthropic и не хранит ANTHROPIC_API_KEY —
+ *  только показывает то, что уже решил cks-mcp (get_llm_status). */
+function LLMProviderStatus() {
+  const { status, isLoading, error, refresh } = useLLMStatus()
+
+  return (
+    <div className="mt-6 bg-surface-1 border border-border-subtle rounded-lg p-5">
+      <div className="flex items-center justify-between gap-4">
+        <p className="text-text-tertiary text-xs uppercase tracking-wide">
+          LLM Provider
+        </p>
+        <button
+          type="button"
+          onClick={() => refresh()}
+          disabled={isLoading}
+          className="text-xs text-text-secondary hover:text-text-primary transition-colors disabled:opacity-50"
+        >
+          {isLoading ? 'Refreshing…' : 'Refresh'}
+        </button>
+      </div>
+
+      {error && (
+        <p className="text-red-400 text-xs mt-3">
+          Could not reach cks-mcp: {error}
+        </p>
+      )}
+
+      {!error && !status && (
+        <p className="text-text-secondary text-sm mt-3">Checking…</p>
+      )}
+
+      {!error && status && (
+        <div className="mt-3">
+          <div className="flex items-center gap-2">
+            <span
+              className={`w-2 h-2 rounded-full inline-block flex-shrink-0 ${
+                providerIsUp(status) ? 'bg-green-500' : 'bg-gray-500'
+              }`}
+              title={providerIsUp(status) ? 'available' : 'unavailable'}
+            />
+            <span className="text-text-primary text-sm font-medium">
+              {providerLabel(status.provider)}
+            </span>
+            {status.model && (
+              <span className="text-text-tertiary text-xs font-mono">
+                {status.model}
+              </span>
+            )}
+          </div>
+
+          {status.provider === 'none' && (
+            <p className="text-text-secondary text-xs mt-2">
+              Start Ollama (
+              <code className="font-mono">ollama run llama3.2</code>) or set
+              ANTHROPIC_API_KEY in{' '}
+              <code className="font-mono">~/.cks-mcp/.env</code>.
+            </p>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export function SettingsPage() {
   return (
     <div className="p-8 max-w-2xl">
@@ -84,6 +173,8 @@ export function SettingsPage() {
           <ThemeToggle />
         </div>
       </div>
+
+      <LLMProviderStatus />
 
       <div className="mt-6 bg-surface-1 border border-border-subtle rounded-lg p-5">
         <p className="text-text-tertiary text-xs uppercase tracking-wide">

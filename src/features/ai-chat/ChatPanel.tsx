@@ -1,6 +1,8 @@
 // Copyright (c) 2025 Deus Corp. Licensed under MIT.
 
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
+import { useLLMStatus } from '@/features/llm-status/useLLMStatus'
 import type { ExecutedToolCall } from '@/services/mcpTools'
 import type { ChatTurn } from './chatStore'
 import { useAiChat } from './useAiChat'
@@ -68,6 +70,34 @@ function ToolCallsDisclosure({ calls }: { calls: ExecutedToolCall[] }) {
   )
 }
 
+/**
+ * Предупреждение над историей сообщений, когда ни один LLM-провайдер не
+ * настроен/недоступен на сервере (ai_chat в этом случае вернёт
+ * {'error': 'llm_provider_unavailable', ...} на первую же отправку — но
+ * баннер опрашивает get_llm_status сам, чтобы предупредить ДО того, как
+ * пользователь напишет сообщение и получит отказ). Пока статус ещё не
+ * известен, или провайдер настроен, баннер не рендерится вовсе — он не
+ * замена error-строки под формой ниже, а именно предупреждение
+ * "это не заработает" до первой попытки.
+ */
+function LLMStatusBanner() {
+  const { status, error } = useLLMStatus()
+
+  if (error || !status || status.provider !== 'none') return null
+
+  return (
+    <div className="px-4 py-2 border-b border-gray-800 bg-yellow-950/40 text-yellow-400 text-xs">
+      No LLM provider configured — chat won't work until one is. Start Ollama (
+      <code className="font-mono">ollama run llama3.2</code>) or set
+      ANTHROPIC_API_KEY, then check{' '}
+      <Link to="/settings" className="underline hover:text-yellow-300">
+        Settings
+      </Link>
+      .
+    </div>
+  )
+}
+
 function TurnBubble({ turn }: { turn: ChatTurn }) {
   const isUser = turn.role === 'user'
   return (
@@ -114,6 +144,8 @@ export function ChatPanel() {
           Talks to cks-mcp's ai_chat tool, scoped to the connected session.
         </span>
       </div>
+
+      <LLMStatusBanner />
 
       <div className="flex-1 overflow-y-auto p-4 space-y-3">
         {turns.length === 0 && !isSending && (

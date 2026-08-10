@@ -6,6 +6,16 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 
 ---
 
+## [0.5.2] - 2026-08-10
+
+### Added
+- **LLM Provider status in Settings** – shows the current LLM provider (Ollama / Anthropic / Not configured), its model, and availability. Includes a Refresh button and setup instructions.
+- **ChatPanel LLM status banner** – warns before sending a message if no LLM provider is configured, with a link to Settings.
+- **`getLLMStatus`** function in `mcpTools.ts` and **`useLLMStatus` hook** – typed wrappers around the new `get_llm_status` MCP tool.
+- **Unit tests** for SettingsPage LLM status display.
+
+---
+
 ## [0.5.1] - 2026-08-09
 
 ### Added

@@ -461,3 +461,31 @@ export async function aiChat(
   const result = await callTool('ai_chat', { session_id: sessionId, messages })
   return result as unknown as AiChatResult
 }
+
+// ---------------------------------------------------------------------------
+// LLM provider status (get_llm_status, cks-mcp ADR-011 §6)
+// ---------------------------------------------------------------------------
+
+/**
+ * Ответ get_llm_status (см. cks-mcp src/cks_mcp/tools/get_llm_status/
+ * handler.py). Studio никогда не видит ANTHROPIC_API_KEY/CKS_OLLAMA_HOST
+ * и т.п. напрямую — только этот уже разрешённый статус.
+ *
+ * 'provider' — что реально будет использовано ai_chat/construct_knowledge
+ * прямо сейчас, после разрешения CKS_LLM_PROVIDER=auto|ollama|anthropic
+ * на сервере; 'none' значит ни один провайдер не настроен/недоступен.
+ * 'model' — null только когда provider === 'none'.
+ */
+export interface LLMStatus {
+  provider: 'ollama' | 'anthropic' | 'none'
+  ollama_available: boolean
+  anthropic_configured: boolean
+  model: string | null
+}
+
+/** Не принимает session_id — конфигурация провайдера общая для сервера,
+ *  не привязана к конкретной сессии/графу (как list_agents/list_processes). */
+export async function getLLMStatus(): Promise<LLMStatus> {
+  const result = await callTool('get_llm_status', {})
+  return result as unknown as LLMStatus
+}
