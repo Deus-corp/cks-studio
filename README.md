@@ -31,7 +31,7 @@ CKS Studio completes the CKS toolchain:
 | **cks-core** | Canonical semantic engine. | [Deus-corp/cks-core](https://github.com/Deus-corp/cks-core) |
 | **cks-runtime** | Operational environment – sessions, transactions, persistence. | [Deus-corp/cks-runtime](https://github.com/Deus-corp/cks-runtime) |
 | **cks-mcp** | MCP server – exposes CKS to LLMs and agents. | [Deus-corp/cks-mcp](https://github.com/Deus-corp/cks-mcp) |
-| **cks-studio** | Visual workspace – explore, monitor, and manage graphs (this repository). | [Deus-corp/cks-studio](https://github.com/Deus-corp/cks-studio) |
+| **cks-studio** | Visual workspace – explore, monitor, and manage graphs. | [Deus-corp/cks-studio](https://github.com/Deus-corp/cks-studio) |
 
 ---
 
@@ -79,6 +79,34 @@ own window and work offline for previously loaded assets.
 
 ---
 
+### AI Chat: talk to your graph with a free LLM
+
+You can use the AI Chat panel with **any OpenAI‑compatible provider**.  
+Here's how to start **for free**, using OpenRouter:
+
+1. **Get a free API key** at [openrouter.ai](https://openrouter.ai) (no
+   credit card required).
+
+2. **Start the server** with the free Laguna XS 2.1 model:
+   ```bash
+   CKS_LLM_PROVIDER=openai_compatible \
+   CKS_OPENAI_BASE_URL=https://openrouter.ai/api/v1 \
+   CKS_OPENAI_API_KEY=sk-or-v1-... \
+   CKS_OPENAI_MODEL=poolside/laguna-xs-2.1:free \
+   npm run mcp
+   ```
+
+3. **Open the studio**, connect to a session, switch to the **Chat** tab,
+   and ask «What objects are in this session?» — the LLM will call
+   `query_subgraph` and describe your graph.
+
+The same setup works with **any** model on OpenRouter, Together AI, Groq,
+or a local Ollama server. Only the `CKS_OPENAI_*` variables change — the
+studio itself never talks to the LLM directly, so there's zero
+configuration on the frontend side.
+
+---
+
 # Why CKS Studio?
 
 `cks-mcp` already gives LLMs 61+ tools to create, validate, evolve, and
@@ -116,6 +144,10 @@ CKS Studio is that human window:
   both; respects your OS preference on first visit, remembered after.
 - **Import subgraphs by drag-and-drop** — drop a `query_subgraph`
   `.json` export straight onto the canvas.
+- **AI Chat with any LLM** — a built‑in assistant that can read, query, and
+  evolve the knowledge graph. Works with **any** OpenAI‑compatible provider
+  (OpenAI, Anthropic, Groq, Together AI, OpenRouter) and even with
+  **free models** like `poolside/laguna-xs-2.1` via OpenRouter.
 
 ---
 
