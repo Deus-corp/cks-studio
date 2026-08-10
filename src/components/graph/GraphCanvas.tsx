@@ -96,7 +96,13 @@ export function GraphCanvas({
 
   const styledEdges = layoutedEdges.map((edge) => {
     const isHighlighted = highlightedEdgeIds.has(edge.id)
-    const stroke = isHighlighted ? '#f59e0b' : '#6b7280'
+    // var(...) resolves fine inside an inline SVG style/attribute, and
+    // picks up whichever theme's --color-trace-highlight is active
+    // (dark: amber-500, light: amber-700 — see styles/index.css) without
+    // this component needing to know which theme is active.
+    const stroke = isHighlighted
+      ? 'var(--color-trace-highlight)'
+      : 'var(--color-border-strong)'
     return {
       ...edge,
       style: { stroke, strokeWidth: isHighlighted ? 2.5 : 1 },
@@ -281,7 +287,7 @@ export function GraphCanvas({
 
       {isDragOver && (
         <div className="absolute inset-0 z-10 bg-blue-500/10 border-2 border-dashed border-blue-500 flex items-center justify-center pointer-events-none">
-          <span className="text-blue-300 text-sm bg-gray-900/90 px-3 py-1.5 rounded">
+          <span className="text-blue-300 text-sm bg-surface-1/90 px-3 py-1.5 rounded">
             Drop to load subgraph (.json)
           </span>
         </div>

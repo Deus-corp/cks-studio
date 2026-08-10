@@ -42,6 +42,14 @@
   --color-danger: #ef4444;
   --color-warning: #f59e0b;
 
+  /* Edge highlight for "trace inference"/path-highlighting (see
+     GraphCanvas.tsx styledEdges). Kept separate from --color-warning
+     even though they start at the same hex, because the light-theme
+     override below needs a materially different (darker/more saturated)
+     value for contrast on a light background — tying it to warning
+     would drag that semantic color along unintentionally. */
+  --color-trace-highlight: #f59e0b;
+
   --font-sans:
     ui-sans-serif, system-ui, -apple-system, "Segoe UI", Inter, Roboto,
     "Helvetica Neue", Arial, sans-serif;
@@ -149,6 +157,12 @@ body {
   --color-accent: #3b64e0;
   --color-accent-strong: #2a4fc4;
   --color-accent-muted: #3b64e01a;
+
+  /* The dark theme's #f59e0b (amber-500) reads clearly against
+     surface-0 #09090b, but the same hex nearly disappears against a
+     light/cream background — bumped to amber-700 for contrast while
+     staying visually "the same" highlight color across themes. */
+  --color-trace-highlight: #b45309;
 }
 
 [data-theme="light"] body {

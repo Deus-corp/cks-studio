@@ -322,20 +322,44 @@ export function ChatPanel() {
 
       <form
         onSubmit={handleSubmit}
-        className="flex items-center gap-2 border-t border-border-subtle p-3"
+        // A plain border-t on a transparent form let the input area
+        // visually merge into the page background (surface-0) — same
+        // tone above and below the line, nothing to distinguish "this is
+        // where you type". A surface-1 backing plus more padding gives
+        // the whole form a floor to sit on, distinct from both the
+        // scrollback above and the page behind it.
+        className="flex items-center gap-2 border-t border-border bg-surface-1 px-4 py-4"
       >
-        <input
-          type="text"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder="Type a message…"
-          disabled={isSending}
-          className="flex-1 bg-surface-1 border border-border-subtle rounded px-3 py-2 text-sm text-text-primary placeholder-text-tertiary focus:outline-none focus:border-accent disabled:opacity-50"
-        />
+        <div className="relative flex-1">
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            aria-hidden="true"
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-text-tertiary pointer-events-none"
+          >
+            <path
+              d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"
+              stroke="currentColor"
+              strokeWidth="1.6"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+          <input
+            type="text"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder="Ask cks-mcp to look up, add, or connect something…"
+            disabled={isSending}
+            className="w-full bg-surface-2 border border-border rounded pl-8 pr-3 py-2.5 text-sm text-text-primary placeholder-text-tertiary focus:outline-none focus:border-accent disabled:opacity-50"
+          />
+        </div>
         <button
           type="submit"
           disabled={isSending || !input.trim()}
-          className="text-xs bg-accent hover:bg-accent-strong text-white px-3 py-2 rounded disabled:opacity-40 disabled:cursor-not-allowed"
+          className="text-xs bg-accent hover:bg-accent-strong text-white px-3 py-2.5 rounded disabled:opacity-40 disabled:cursor-not-allowed"
         >
           Send
         </button>

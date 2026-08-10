@@ -235,7 +235,7 @@ npm run test   # vitest
 npm run ci     # biome + tsc --noEmit + vitest, same as CI
 ```
 
-62+ tests, all passing.
+72+ tests, all passing.
 
 ---
 

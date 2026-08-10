@@ -98,19 +98,31 @@ export function GraphSearchPalette({
     // Flow a chance to measure before we read node.measured below --
     // without this, freshly-added or off-screen nodes center using the
     // fallback width/height instead of their real size.
+    // A single requestAnimationFrame only guarantees "before the next
+    // paint" — it can still fire before the browser has committed the
+    // layout change from closing the palette overlay (which resizes the
+    // visible canvas pane), so React Flow's ResizeObserver-driven
+    // node.measured may still be stale from the smaller, overlay-open
+    // pane. Nesting a second rAF defers the read until after that paint
+    // has actually happened, so `current.measured` reflects the pane
+    // size setCenter will actually render into. Without this, jumping to
+    // a node can center against outdated dimensions and land the node
+    // outside the visible canvas.
     requestAnimationFrame(() => {
-      const current = nodes.find((n) => n.id === nodeId)
-      if (!current) return
-      const width = current.measured?.width ?? 220
-      const height = current.measured?.height ?? 60
-      setCenter(
-        current.position.x + width / 2,
-        current.position.y + height / 2,
-        {
-          zoom: Math.max(getZoom(), 1),
-          duration: 400,
-        },
-      )
+      requestAnimationFrame(() => {
+        const current = nodes.find((n) => n.id === nodeId)
+        if (!current) return
+        const width = current.measured?.width ?? 220
+        const height = current.measured?.height ?? 60
+        setCenter(
+          current.position.x + width / 2,
+          current.position.y + height / 2,
+          {
+            zoom: Math.max(getZoom(), 1),
+            duration: 400,
+          },
+        )
+      })
     })
   }
 

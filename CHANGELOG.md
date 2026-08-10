@@ -6,6 +6,16 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 
 ---
 
+## [0.5.7] - 2026-08-11
+
+### Fixed
+- **Search palette centering** – use a double `requestAnimationFrame` so React Flow finishes measuring the target node after the palette closes, preventing the viewport from jumping off‑screen.
+- **Trace inference highlight** – replaced hardcoded `#f59e0b` with a CSS custom property `--trace-highlight`, which now adapts to the current theme (a darker, more saturated tone on light theme).
+- **Light‑theme dark artifacts** – replaced the remaining hardcoded `gray‑*` classes in GraphPage, GraphGallery, SidePanel, CreateNodeForm, CreateRelationForm, ForkDiffPanel, ConnectionStatus, and HealthIndicator with design‑token equivalents (`bg-surface‑*`, `text‑text‑*`, `border‑border‑*`).
+- **Chat input visual prominence** – the message form now has a distinct background, increased padding, and a leading icon so it no longer blends into the page.
+
+---
+
 ## [0.5.6] - 2026-08-10
 
 ### Fixed
