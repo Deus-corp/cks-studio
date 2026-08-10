@@ -116,7 +116,12 @@ export function GraphCanvas({
       : 'var(--color-graph-edge)'
     return {
       ...edge,
-      style: { stroke, strokeWidth: isHighlighted ? 2.5 : 1 },
+      // trace-highlight-edge drives a drop-shadow glow + pulse in
+      // index.css -- on the light theme a plain color/width bump gets
+      // lost in a dense tangle of crossing edges, so it needs its own
+      // visual layer to stand out rather than just being "more green".
+      className: isHighlighted ? 'trace-highlight-edge' : undefined,
+      style: { stroke, strokeWidth: isHighlighted ? 3 : 1 },
       markerEnd:
         typeof edge.markerEnd === 'object'
           ? { ...edge.markerEnd, color: stroke }

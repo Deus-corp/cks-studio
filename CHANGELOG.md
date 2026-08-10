@@ -6,6 +6,15 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 
 ---
 
+## [0.5.9] - 2026-08-11
+
+### Fixed
+- **SidePanel readability on light theme** – property values now use `text-text-primary` instead of light gray.
+- **Search palette centering** – replaced manual `setCenter` with `fitView` for reliable node centering after palette close.
+- **Trace Inference visibility** – added drop‑shadow glow and opacity pulse animation so highlighted edges stand out even when crossing other edges.
+
+---
+
 ## [0.5.8] - 2026-08-11
 
 ### Fixed

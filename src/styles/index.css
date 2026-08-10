@@ -201,3 +201,36 @@ body {
 [data-theme="light"] ::selection {
   color: #fff;
 }
+
+/* Trace Inference glow (see GraphCanvas.tsx `trace-highlight-edge` class).
+   A color/width bump alone still gets lost once a highlighted edge
+   crosses several others, so this adds a soft drop-shadow halo in the
+   edge's own stroke color (currentColor tracks the inline `stroke` set
+   per-edge, which already resolves to --color-trace-highlight) plus a
+   slow opacity pulse to draw the eye along the path. Applied on both
+   themes, but it matters most on light where the cream canvas gives
+   dark edges less natural contrast to lose the highlight against. */
+.react-flow__edge.trace-highlight-edge .react-flow__edge-path {
+  filter: drop-shadow(0 0 3px var(--color-trace-highlight))
+    drop-shadow(0 0 6px var(--color-trace-highlight));
+  animation: trace-highlight-pulse 1.6s ease-in-out infinite;
+}
+
+[data-theme="light"]
+  .react-flow__edge.trace-highlight-edge
+  .react-flow__edge-path {
+  /* Slightly stronger halo on light theme, where the highlight has to
+     compete with a brighter background than the dark theme's canvas. */
+  filter: drop-shadow(0 0 4px var(--color-trace-highlight))
+    drop-shadow(0 0 8px var(--color-trace-highlight));
+}
+
+@keyframes trace-highlight-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}

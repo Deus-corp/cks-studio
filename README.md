@@ -6,7 +6,7 @@
 ![React](https://img.shields.io/badge/react-19-61DAFB)
 ![Tests](https://img.shields.io/badge/tests-81%20passed-brightgreen)
 ![License](https://img.shields.io/badge/license-MIT-green)
-![Status](https://img.shields.io/badge/status-v0.5.8-orange)
+![Status](https://img.shields.io/badge/status-v0.5.9-orange)
 
 **CKS Studio** is the graphical interface of the CKS ecosystem — a
 single-page application where you can **explore knowledge graphs**,

@@ -26,7 +26,7 @@ export function GraphSearchPalette({
 }) {
   const nodes = useGraphStore((s) => s.nodes)
   const selectNode = useGraphStore((s) => s.selectNode)
-  const { setCenter, getZoom } = useReactFlow()
+  const { setCenter, getZoom, fitView } = useReactFlow()
 
   const [internalOpen, setInternalOpen] = useState(false)
   const isOpen = controlledOpen ?? internalOpen
@@ -112,16 +112,37 @@ export function GraphSearchPalette({
       requestAnimationFrame(() => {
         const current = nodes.find((n) => n.id === nodeId)
         if (!current) return
-        const width = current.measured?.width ?? 220
-        const height = current.measured?.height ?? 60
-        setCenter(
-          current.position.x + width / 2,
-          current.position.y + height / 2,
-          {
-            zoom: Math.max(getZoom(), 1),
-            duration: 400,
-          },
-        )
+
+        // fitView on just this node computes its bounds straight from
+        // React Flow's own internal node map (not our possibly-stale
+        // `nodes` snapshot), and applies padding itself -- so it doesn't
+        // depend on `measured` having landed in our local state yet the
+        // way a manual setCenter(width/height) calculation does. This is
+        // what actually fixes nodes centering into empty space.
+        fitView({
+          nodes: [{ id: nodeId }],
+          duration: 400,
+          padding: 0.5,
+          maxZoom: 1.5,
+          minZoom: 0.5,
+        }).then((didFit) => {
+          // Fallback in case fitView couldn't resolve the node (e.g. it
+          // truly isn't measured yet anywhere) -- keep the old behavior,
+          // but with a larger minimum zoom than before so a big graph
+          // doesn't land the node too small/off-center to notice.
+          if (!didFit) {
+            const width = current.measured?.width ?? 220
+            const height = current.measured?.height ?? 60
+            setCenter(
+              current.position.x + width / 2,
+              current.position.y + height / 2,
+              {
+                zoom: Math.max(getZoom(), 1.5),
+                duration: 400,
+              },
+            )
+          }
+        })
       })
     })
   }
