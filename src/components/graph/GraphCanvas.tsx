@@ -30,10 +30,17 @@ function looksLikeSubgraphResult(value: unknown): value is SubgraphResult {
 export function GraphCanvas({
   onNodeSelect,
   isLoading,
+  onRefresh,
 }: {
   onNodeSelect?: (node: Node) => void
   /** True while the initial session graph fetch is in flight (shows a skeleton instead of an empty canvas). */
   isLoading?: boolean
+  /** Reloads the current session's graph from the server. Switching
+   *  sessions doesn't always leave the canvas in sync with the new
+   *  session_id (see GraphPage's session-change effect), so this gives
+   *  the user a manual way to force a refetch. Button is omitted if not
+   *  provided. */
+  onRefresh?: () => void
 }) {
   const nodes = useGraphStore((s: GraphState) => s.nodes)
   const edges = useGraphStore((s: GraphState) => s.edges)
@@ -97,12 +104,16 @@ export function GraphCanvas({
   const styledEdges = layoutedEdges.map((edge) => {
     const isHighlighted = highlightedEdgeIds.has(edge.id)
     // var(...) resolves fine inside an inline SVG style/attribute, and
-    // picks up whichever theme's --color-trace-highlight is active
-    // (dark: amber-500, light: amber-700 — see styles/index.css) without
-    // this component needing to know which theme is active.
+    // picks up whichever theme's --color-trace-highlight/--color-graph-edge
+    // is active (see styles/index.css) without this component needing to
+    // know which theme is active. --color-graph-edge (not border-strong)
+    // because edges need their own contrast target independent of the
+    // border-token's neutral-panel styling — the light theme value is
+    // deliberately darker than a plain border would be, so edges don't
+    // wash out against the cream canvas.
     const stroke = isHighlighted
       ? 'var(--color-trace-highlight)'
-      : 'var(--color-border-strong)'
+      : 'var(--color-graph-edge)'
     return {
       ...edge,
       style: { stroke, strokeWidth: isHighlighted ? 2.5 : 1 },
@@ -215,12 +226,24 @@ export function GraphCanvas({
         <Controls />
         <MiniMap
           nodeStrokeWidth={3}
+          nodeStrokeColor="var(--color-border-strong)"
           nodeColor={(node) => nodeTypeColor(node.data?.cksType as string)}
+          // Explicit mask color/stroke: the xyflow default mask fill is a
+          // light gray tuned for a dark canvas — on the light theme it's
+          // nearly identical to the minimap background, so the "already
+          // visible" viewport rectangle became indistinguishable from the
+          // dimmed surrounding area. color-mix over --color-surface-0
+          // (not -1/-2, so it tracks the *canvas* background specifically)
+          // keeps the dimmed region readable in both themes, and the
+          // stroke gives the viewport rect a visible outline either way.
+          maskColor="color-mix(in srgb, var(--color-surface-0) 65%, transparent)"
+          maskStrokeColor="var(--color-border-strong)"
+          maskStrokeWidth={1}
           pannable
           zoomable
-          style={{ backgroundColor: 'var(--color-surface-2)' }}
+          style={{ backgroundColor: 'var(--color-surface-1)' }}
         />
-        <ExportControls />
+        <ExportControls onRefresh={onRefresh} isRefreshing={isLoading} />
         {nodes.length > 0 && (
           <Panel position="top-left">
             <button

@@ -6,6 +6,20 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 
 ---
 
+## [0.5.8] - 2026-08-11
+
+### Fixed
+- **Search palette centering** – double `requestAnimationFrame` ensures the target node is measured before centering, preventing off‑screen jumps.
+- **Trace inference highlight** – replaced hardcoded `#f59e0b` with a CSS custom property `--trace-highlight`, now green on light theme for better contrast.
+- **Light‑theme dark artifacts** – GraphPage header, sidebar, and Gallery search/cards now use theme tokens instead of hardcoded `gray‑*` classes.
+- **Light‑theme text contrast** – `--color-text-secondary` and `--color-text-tertiary` darkened for readability.
+- **Graph edges and nodes on light theme** – edge stroke and node background are now theme‑aware, improving contrast against the cream background.
+- **MiniMap on light theme** – mask color and node colors now adapt to the active theme.
+- **Refresh button** – added a ↻ button next to Export controls, reloading the current session graph.
+- **Explore Neighbourhood** – fixed logic so it correctly detects newly added nodes instead of silently doing nothing.
+
+---
+
 ## [0.5.7] - 2026-08-11
 
 ### Fixed

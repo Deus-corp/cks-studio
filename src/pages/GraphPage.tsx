@@ -82,22 +82,38 @@ export function GraphPage() {
     setIsLoading(true)
     setExploreNotice(null)
     try {
+      // query_subgraph returns the seed node plus its neighbours — on a
+      // graph where those neighbours are already on the canvas (the
+      // common case: you're exploring from a node you reached via
+      // another neighbour), subgraph.nodes is non-empty but every id in
+      // it is already present. Checking .length alone treated that as
+      // "found neighbours" and returned after a no-op addNodes/addEdges
+      // (both dedupe against the existing graph — see
+      // graphExplorerStore.ts), so the button did nothing with no
+      // feedback. Compare against the *current* canvas node ids instead,
+      // so "nothing new" is handled the same way as "nothing at all".
+      const currentIds = new Set(nodes.map((n) => n.id))
+      const hasNewNodes = (result: {
+        nodes?: { identity: { id: string } }[]
+      }) => (result.nodes ?? []).some((n) => !currentIds.has(n.identity.id))
+
       const subgraph = await querySubgraph(sessionId, [selectedNodeId], 1)
-      if (subgraph.nodes && subgraph.nodes.length > 0) {
+      if (hasNewNodes(subgraph)) {
         const { nodes: newNodes, edges: newEdges } = cksToReactFlow(subgraph)
         addNodes(newNodes)
         addEdges(newEdges)
         return
       }
 
-      // depth=1 can legitimately come back empty on the ecosystem graph
-      // (isolated ADR/component nodes with no direct edges but reachable
-      // neighbours two hops out), so before telling the user there's
-      // nothing here, retry once at depth=2.
-      setExploreNotice('No neighbours found at depth 1, trying depth 2...')
+      // depth=1 can legitimately come back with nothing new (isolated
+      // ADR/component nodes with no direct edges but reachable
+      // neighbours two hops out, or all direct neighbours already on
+      // the canvas), so before telling the user there's nothing here,
+      // retry once at depth=2.
+      setExploreNotice('No new neighbours at depth 1, trying depth 2...')
       const wider = await querySubgraph(sessionId, [selectedNodeId], 2)
-      if (!wider.nodes || wider.nodes.length === 0) {
-        setExploreNotice('No neighbours found.')
+      if (!hasNewNodes(wider)) {
+        setExploreNotice('No new neighbours found.')
         return
       }
       setExploreNotice(null)
@@ -110,6 +126,15 @@ export function GraphPage() {
     } finally {
       setIsLoading(false)
     }
+  }
+
+  // Reloads the current session's graph. Reuses handleConnect rather than
+  // duplicating its fetch/normalize logic — a manual refresh is
+  // functionally the same request as (re)connecting to the same
+  // session_id, it just doesn't require the input to have changed.
+  const handleRefresh = () => {
+    if (!sessionId.trim() || isLoading) return
+    handleConnect()
   }
 
   const handleTrace = () => {
@@ -136,28 +161,28 @@ export function GraphPage() {
 
   return (
     <div className="h-full flex flex-col">
-      <header className="bg-gray-900 border-b border-gray-800 px-4 py-3 flex items-center gap-4 flex-wrap">
-        <h1 className="text-lg font-semibold">CKS Studio</h1>
+      <header className="bg-surface-1 border-b border-border-subtle px-4 py-3 flex items-center gap-4 flex-wrap">
+        <h1 className="text-lg font-semibold text-text-primary">CKS Studio</h1>
         <div className="flex items-center gap-2 text-sm">
           <input
             type="text"
             placeholder="http://127.0.0.1:8765"
             value={serverUrl}
             onChange={(e) => setServerUrl(e.target.value)}
-            className="bg-gray-800 border border-gray-700 rounded px-2 py-1 w-48 text-gray-200"
+            className="bg-surface-2 border border-border rounded px-2 py-1 w-48 text-text-primary placeholder:text-text-tertiary"
           />
           <input
             type="text"
             placeholder="session_id"
             value={sessionId}
             onChange={(e) => setSessionId(e.target.value)}
-            className="bg-gray-800 border border-gray-700 rounded px-2 py-1 w-64 text-gray-200"
+            className="bg-surface-2 border border-border rounded px-2 py-1 w-64 text-text-primary placeholder:text-text-tertiary"
           />
           <button
             type="button"
             onClick={handleConnect}
             disabled={isLoading || !sessionId.trim()}
-            className="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 rounded disabled:opacity-50"
+            className="bg-accent hover:bg-accent-strong text-white px-3 py-1 rounded disabled:opacity-50"
           >
             {isLoading ? 'Loading...' : 'Connect'}
           </button>
@@ -171,7 +196,7 @@ export function GraphPage() {
                 )
                 if (recent) handleSelectRecent(recent)
               }}
-              className="bg-gray-800 border border-gray-700 rounded px-2 py-1 text-gray-200 text-xs max-w-[10rem]"
+              className="bg-surface-2 border border-border rounded px-2 py-1 text-text-primary text-xs max-w-[10rem]"
             >
               <option value="" disabled>
                 Recent sessions
@@ -188,15 +213,19 @@ export function GraphPage() {
             </select>
           )}
         </div>
-        {error && <p className="text-red-400 text-xs w-full">{error}</p>}
+        {error && <p className="text-danger text-xs w-full">{error}</p>}
       </header>
       <div className="flex-1 flex">
         <main className="flex-1">
-          <GraphCanvas onNodeSelect={setSelectedNode} isLoading={isLoading} />
+          <GraphCanvas
+            onNodeSelect={setSelectedNode}
+            isLoading={isLoading}
+            onRefresh={handleRefresh}
+          />
         </main>
-        <aside className="w-72 border-l border-gray-800 bg-gray-900 overflow-y-auto flex flex-col">
+        <aside className="w-72 border-l border-border-subtle bg-surface-1 overflow-y-auto flex flex-col">
           <SidePanel node={selectedNode} />
-          <div className="p-4 border-t border-gray-800 space-y-2 mt-auto">
+          <div className="p-4 border-t border-border-subtle space-y-2 mt-auto">
             <button
               type="button"
               onClick={() =>
@@ -238,7 +267,7 @@ export function GraphPage() {
               )}
             </button>
             {exploreNotice && (
-              <p className="text-xs text-gray-400">{exploreNotice}</p>
+              <p className="text-xs text-text-secondary">{exploreNotice}</p>
             )}
             <button
               type="button"
@@ -251,7 +280,7 @@ export function GraphPage() {
             <button
               type="button"
               onClick={clearHighlight}
-              className="w-full rounded bg-gray-700 px-4 py-2 text-xs text-gray-300 hover:bg-gray-600"
+              className="w-full rounded bg-surface-3 px-4 py-2 text-xs text-text-secondary hover:text-text-primary hover:bg-border"
             >
               Clear Highlight
             </button>
@@ -259,7 +288,7 @@ export function GraphPage() {
               type="button"
               onClick={handleResetGraph}
               disabled={nodes.length === 0}
-              className="w-full rounded bg-red-900/60 border border-red-800 px-4 py-2 text-xs text-red-200 hover:bg-red-800/60 disabled:opacity-40 disabled:cursor-not-allowed"
+              className="w-full rounded bg-danger/15 border border-danger/40 px-4 py-2 text-xs text-danger hover:bg-danger/25 disabled:opacity-40 disabled:cursor-not-allowed"
             >
               Reset graph
             </button>

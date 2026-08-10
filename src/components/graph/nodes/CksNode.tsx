@@ -34,9 +34,12 @@ function CksNode({ data }: NodeProps) {
       className="relative rounded-md text-text-primary transition-shadow"
       style={{
         minWidth: 172,
-        backgroundColor: 'var(--color-surface-2)',
+        // surface-3 (not surface-2) — on the light theme surface-2 sits
+        // too close to the page background (#f0f1f4 vs #f5f4f0) for the
+        // card to read as a distinct shape against the canvas.
+        backgroundColor: 'var(--color-surface-3)',
         border: `1px solid ${
-          isRelationSelected ? '#f59e0b' : 'var(--color-border)'
+          isRelationSelected ? '#f59e0b' : 'var(--color-border-strong)'
         }`,
         borderTop: `3px solid ${isRelationSelected ? '#f59e0b' : color}`,
         borderRadius: '8px',

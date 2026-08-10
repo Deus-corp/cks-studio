@@ -31,21 +31,23 @@ function GraphCard({ graph }: { graph: GraphRegistryEntry }) {
   }
 
   return (
-    <div className="bg-gray-900 border border-gray-800 rounded p-3 flex flex-col gap-2">
+    <div className="bg-surface-1 border border-border-subtle rounded p-3 flex flex-col gap-2">
       <div className="flex items-start justify-between gap-2">
         <div>
-          <h3 className="text-sm font-semibold text-gray-200">{graph.name}</h3>
-          <p className="text-xs text-gray-500">{graph.session_id}</p>
+          <h3 className="text-sm font-semibold text-text-primary">
+            {graph.name}
+          </h3>
+          <p className="text-xs text-text-tertiary">{graph.session_id}</p>
         </div>
         {graph.public && (
-          <span className="text-[10px] uppercase tracking-wide text-blue-400 bg-blue-950 px-1.5 py-0.5 rounded">
+          <span className="text-[10px] uppercase tracking-wide text-accent bg-accent-muted px-1.5 py-0.5 rounded">
             Public
           </span>
         )}
       </div>
 
       {graph.description && (
-        <p className="text-xs text-gray-400 line-clamp-3">
+        <p className="text-xs text-text-secondary line-clamp-3">
           {graph.description}
         </p>
       )}
@@ -55,7 +57,7 @@ function GraphCard({ graph }: { graph: GraphRegistryEntry }) {
           {formatTags(graph.tags).map((tag) => (
             <span
               key={tag}
-              className="text-[10px] text-gray-400 bg-gray-800 px-1.5 py-0.5 rounded"
+              className="text-[10px] text-text-secondary bg-surface-2 px-1.5 py-0.5 rounded"
             >
               {tag}
             </span>
@@ -63,7 +65,7 @@ function GraphCard({ graph }: { graph: GraphRegistryEntry }) {
         </div>
       )}
 
-      <p className="text-[10px] text-gray-600">
+      <p className="text-[10px] text-text-tertiary">
         Updated {formatDateTime(graph.updated_at)}
       </p>
 
@@ -72,7 +74,7 @@ function GraphCard({ graph }: { graph: GraphRegistryEntry }) {
         <button
           type="button"
           onClick={handleOpen}
-          className="text-xs bg-blue-600 hover:bg-blue-500 text-white px-2 py-1 rounded"
+          className="text-xs bg-accent hover:bg-accent-strong text-white px-2 py-1 rounded"
         >
           Open in Graph
         </button>
@@ -115,9 +117,9 @@ export function GraphGallery() {
     <div className="h-full flex flex-col">
       <form
         onSubmit={handleSearchSubmit}
-        className="flex items-center gap-2 px-4 py-3 border-b border-gray-800 flex-wrap"
+        className="flex items-center gap-2 px-4 py-3 border-b border-border-subtle flex-wrap"
       >
-        <h2 className="text-sm font-semibold text-gray-200 mr-2">
+        <h2 className="text-sm font-semibold text-text-primary mr-2">
           Graph Gallery
         </h2>
         <input
@@ -125,16 +127,16 @@ export function GraphGallery() {
           placeholder="Search by name / description / tags…"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          className="bg-gray-800 border border-gray-700 rounded px-2 py-1 w-64 text-xs text-gray-200"
+          className="bg-surface-2 border border-border rounded px-2 py-1 w-64 text-xs text-text-primary placeholder:text-text-tertiary"
         />
         <input
           type="text"
           placeholder="tag filter"
           value={tag}
           onChange={(e) => setTag(e.target.value)}
-          className="bg-gray-800 border border-gray-700 rounded px-2 py-1 w-32 text-xs text-gray-200"
+          className="bg-surface-2 border border-border rounded px-2 py-1 w-32 text-xs text-text-primary placeholder:text-text-tertiary"
         />
-        <label className="flex items-center gap-1 text-xs text-gray-400">
+        <label className="flex items-center gap-1 text-xs text-text-secondary">
           <input
             type="checkbox"
             checked={publicOnly}
@@ -145,16 +147,16 @@ export function GraphGallery() {
         <button
           type="submit"
           disabled={isLoading}
-          className="text-xs bg-gray-800 hover:bg-gray-700 text-gray-200 px-2 py-1 rounded disabled:opacity-50"
+          className="text-xs bg-surface-2 hover:bg-surface-3 text-text-primary px-2 py-1 rounded disabled:opacity-50"
         >
           {isLoading ? 'Loading…' : 'Search'}
         </button>
       </form>
 
-      {error && <p className="text-red-400 text-xs px-4 py-2">{error}</p>}
+      {error && <p className="text-danger text-xs px-4 py-2">{error}</p>}
 
       {!error && !isLoading && graphs.length === 0 && (
-        <p className="text-xs text-gray-500 px-4 py-3">
+        <p className="text-xs text-text-tertiary px-4 py-3">
           No graphs found. Graphs appear here when registered via register_graph
           with public=true. If you expected to see a graph here, verify it was
           registered as public.

@@ -50,6 +50,12 @@
      would drag that semantic color along unintentionally. */
   --color-trace-highlight: #f59e0b;
 
+  /* Graph canvas colors (see GraphCanvas.tsx styledEdges / MiniMap).
+     Overridden with darker values in the light theme below for contrast
+     against a light canvas background. */
+  --color-graph-edge: #6b7280;
+  --color-graph-node: #8b93a3;
+
   --font-sans:
     ui-sans-serif, system-ui, -apple-system, "Segoe UI", Inter, Roboto,
     "Helvetica Neue", Arial, sans-serif;
@@ -151,18 +157,26 @@ body {
   --color-border-strong: #c2c5cc;
 
   --color-text-primary: #16181d;
-  --color-text-secondary: #565c68;
-  --color-text-tertiary: #8a8f9a;
+  /* Was #565c68 — too light against the cream surfaces, failed contrast
+     for secondary copy (field labels, metadata). Darkened for legibility. */
+  --color-text-secondary: #404550;
+  /* Was #8a8f9a — same issue, one step further down the scale. */
+  --color-text-tertiary: #6b7078;
 
   --color-accent: #3b64e0;
   --color-accent-strong: #2a4fc4;
   --color-accent-muted: #3b64e01a;
 
-  /* The dark theme's #f59e0b (amber-500) reads clearly against
-     surface-0 #09090b, but the same hex nearly disappears against a
-     light/cream background — bumped to amber-700 for contrast while
-     staying visually "the same" highlight color across themes. */
-  --color-trace-highlight: #b45309;
+  /* Trace Inference on light theme: switched from amber/orange (which
+     blended into the cream background) to a light green so it reads
+     clearly as a distinct highlight color. */
+  --color-trace-highlight: #22c55e;
+
+  /* Graph canvas colors (see GraphCanvas.tsx) — edges and nodes need to
+     be darker than their dark-theme counterparts for contrast against
+     the light/cream canvas background. */
+  --color-graph-edge: #6b7280;
+  --color-graph-node: #94a3b8;
 }
 
 [data-theme="light"] body {

@@ -12,7 +12,15 @@ import { exportGraphAsPng, exportGraphAsSvg } from '@/shared/utils/graphExport'
  * getNodes() из него возвращает узлы с уже измеренными width/height,
  * которые нужны для корректного расчёта границ экспорта (см. graphExport.ts).
  */
-export function ExportControls() {
+export function ExportControls({
+  onRefresh,
+  isRefreshing,
+}: {
+  /** Reloads the current session's graph. Refresh button is omitted
+   *  entirely if not provided (see GraphCanvas). */
+  onRefresh?: () => void
+  isRefreshing?: boolean
+} = {}) {
   const { getNodes } = useReactFlow()
   const [isExporting, setIsExporting] = useState<'png' | 'svg' | null>(null)
   const [exportError, setExportError] = useState<string | null>(null)
@@ -37,11 +45,28 @@ export function ExportControls() {
   return (
     <Panel position="top-right" className="flex flex-col items-end gap-1.5">
       <div className="flex gap-1.5">
+        {onRefresh && (
+          <button
+            type="button"
+            onClick={onRefresh}
+            disabled={isRefreshing}
+            title="Refresh graph"
+            aria-label="Refresh graph"
+            className="bg-surface-1/90 border border-border hover:bg-surface-2 text-text-secondary hover:text-text-primary w-7 h-7 flex items-center justify-center rounded disabled:opacity-50"
+          >
+            <span
+              className={isRefreshing ? 'inline-block animate-spin' : undefined}
+              aria-hidden="true"
+            >
+              ↻
+            </span>
+          </button>
+        )}
         <button
           type="button"
           onClick={() => handleExport('png')}
           disabled={isExporting !== null}
-          className="bg-gray-900/90 border border-gray-700 hover:bg-gray-800 text-gray-200 text-xs px-2.5 py-1.5 rounded disabled:opacity-50"
+          className="bg-surface-1/90 border border-border hover:bg-surface-2 text-text-secondary hover:text-text-primary text-xs px-2.5 py-1.5 rounded disabled:opacity-50"
         >
           {isExporting === 'png' ? 'Exporting…' : 'Export PNG'}
         </button>
@@ -49,13 +74,13 @@ export function ExportControls() {
           type="button"
           onClick={() => handleExport('svg')}
           disabled={isExporting !== null}
-          className="bg-gray-900/90 border border-gray-700 hover:bg-gray-800 text-gray-200 text-xs px-2.5 py-1.5 rounded disabled:opacity-50"
+          className="bg-surface-1/90 border border-border hover:bg-surface-2 text-text-secondary hover:text-text-primary text-xs px-2.5 py-1.5 rounded disabled:opacity-50"
         >
           {isExporting === 'svg' ? 'Exporting…' : 'Export SVG'}
         </button>
       </div>
       {exportError && (
-        <div className="max-w-xs bg-red-900/90 border border-red-700 text-red-100 text-xs rounded px-2.5 py-1.5">
+        <div className="max-w-xs bg-danger/15 border border-danger/40 text-danger text-xs rounded px-2.5 py-1.5">
           {exportError}
         </div>
       )}
