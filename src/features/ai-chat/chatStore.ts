@@ -19,6 +19,10 @@ interface ChatState {
   rawMessages: ChatMessage[] // passed back to ai_chat verbatim each call
   isSending: boolean
   error: string | null
+  /** Модель, выбранная в селекторе ChatPanel (см. list_llm_models,
+   *  cks-mcp). null означает "использовать дефолт провайдера" — ровно тот
+   *  же смысл, что и не передавать 'model' в ai_chat вовсе. */
+  selectedModel: string | null
   appendUserTurn: (text: string) => void
   appendAssistantTurn: (
     text: string,
@@ -27,6 +31,7 @@ interface ChatState {
   ) => void
   setSending: (v: boolean) => void
   setError: (e: string | null) => void
+  setSelectedModel: (m: string | null) => void
   reset: () => void
 }
 
@@ -35,6 +40,7 @@ export const useChatStore = create<ChatState>((set) => ({
   rawMessages: [],
   isSending: false,
   error: null,
+  selectedModel: null,
   appendUserTurn: (text) =>
     set((s) => ({
       turns: [...s.turns, { role: 'user', text }],
@@ -47,5 +53,6 @@ export const useChatStore = create<ChatState>((set) => ({
     })),
   setSending: (v) => set({ isSending: v }),
   setError: (e) => set({ error: e }),
+  setSelectedModel: (m) => set({ selectedModel: m }),
   reset: () => set({ turns: [], rawMessages: [], error: null }),
 }))

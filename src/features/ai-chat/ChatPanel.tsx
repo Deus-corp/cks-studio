@@ -1,10 +1,12 @@
 // Copyright (c) 2025 Deus Corp. Licensed under MIT.
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { useLLMModels } from '@/features/llm-status/useLLMModels'
 import { useLLMStatus } from '@/features/llm-status/useLLMStatus'
 import type { ExecutedToolCall, LLMStatus } from '@/services/mcpTools'
 import type { ChatTurn } from './chatStore'
+import { useChatStore } from './chatStore'
 import type { ChatError } from './useAiChat'
 import { useAiChat } from './useAiChat'
 
@@ -177,15 +179,87 @@ function TurnBubble({ turn }: { turn: ChatTurn }) {
 }
 
 /**
+ * Селектор модели рядом с заголовком «Chat» (см. list_llm_models,
+ * cks-mcp). Пока список моделей ещё не загрузился, показываем только
+ * текущий дефолт из get_llm_status как единственный disabled-пункт —
+ * без этого <select> на секунду мигал бы пустым списком до первого
+ * ответа list_llm_models.
+ */
+function ModelSelect({
+  models,
+  isLoading,
+  defaultModel,
+  selectedModel,
+  onChange,
+}: {
+  models: { name: string }[]
+  isLoading: boolean
+  defaultModel: string | null
+  selectedModel: string | null
+  onChange: (model: string | null) => void
+}) {
+  const notYetLoaded = models.length === 0
+
+  if (notYetLoaded) {
+    return (
+      <select
+        disabled
+        className="text-xs bg-gray-900 border border-gray-800 rounded px-1.5 py-1 text-gray-500"
+      >
+        <option>{isLoading ? 'Loading models…' : (defaultModel ?? '—')}</option>
+      </select>
+    )
+  }
+
+  return (
+    <select
+      value={selectedModel ?? ''}
+      onChange={(e) => onChange(e.target.value || null)}
+      className="text-xs bg-gray-900 border border-gray-800 rounded px-1.5 py-1 text-gray-300 focus:outline-none focus:border-accent"
+    >
+      {/* Пустое значение = "использовать дефолт провайдера" — тот же
+       *  смысл, что и не передавать 'model' в ai_chat вовсе. */}
+      <option value="">
+        {defaultModel ? `Default (${defaultModel})` : 'Default'}
+      </option>
+      {models.map((m) => (
+        <option key={m.name} value={m.name}>
+          {m.name}
+        </option>
+      ))}
+    </select>
+  )
+}
+
+/**
  * Interactive chat panel: a human types a prompt, cks-mcp's ai_chat tool
  * decides which of its ~60 tools to call, and the graph tab updates live
  * (ADR-001). Dumb presentational panel + thin page wrapper, same split as
  * AgentPanel.tsx/AgentsPage.tsx.
  */
 export function ChatPanel() {
-  const { turns, isSending, error, send } = useAiChat()
+  const { turns, isSending, error, selectedModel, send } = useAiChat()
+  const setSelectedModel = useChatStore((s) => s.setSelectedModel)
   const { status: llmStatus } = useLLMStatus()
+  const {
+    models: llmModels,
+    isLoading: llmModelsLoading,
+    refresh: refreshLLMModels,
+  } = useLLMModels()
   const [input, setInput] = useState('')
+
+  // Список моделей относится к текущему провайдеру (list_llm_models
+  // резолвит провайдера так же, как get_llm_status) — если провайдер
+  // сменился (кто-то поправил env и перезапустил cks-mcp), старый список
+  // моделей уже не годится, перезагружаем.
+  const llmProvider = llmStatus?.provider
+  useEffect(() => {
+    if (llmProvider) {
+      refreshLLMModels()
+    }
+    // refreshLLMModels is stable (useCallback with an empty dep array in
+    // useLLMModels), so this only re-runs when llmProvider actually changes.
+  }, [llmProvider, refreshLLMModels])
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -208,6 +282,13 @@ export function ChatPanel() {
     <div className="h-full flex flex-col">
       <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-800">
         <h2 className="text-sm font-semibold text-gray-200">Chat</h2>
+        <ModelSelect
+          models={llmModels}
+          isLoading={llmModelsLoading}
+          defaultModel={llmStatus?.model ?? null}
+          selectedModel={selectedModel}
+          onChange={setSelectedModel}
+        />
         <span className="text-xs text-gray-500">
           Talks to cks-mcp's ai_chat tool, scoped to the connected session.
         </span>

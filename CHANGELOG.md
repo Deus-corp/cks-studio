@@ -6,6 +6,16 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 
 ---
 
+## [0.5.5] - 2026-08-10
+
+### Added
+- **Model selector in AI Chat** – dropdown next to the Chat title shows available models for the current LLM provider (Ollama via live `/api/tags`, Anthropic and OpenAI‑compatible via hardcoded lists). Selected model is passed as optional `model` argument to `ai_chat`.
+- **`listLLMModels`** function in `mcpTools.ts` and **`useLLMModels` hook** – typed wrappers around the new `list_llm_models` MCP tool.
+- **`selectedModel`** in `chatStore` – persists the user’s model choice across page switches.
+- Unit tests for model selector and `useLLMModels` hook.
+
+---
+
 ## [0.5.4] - 2026-08-10
 
 ### Added

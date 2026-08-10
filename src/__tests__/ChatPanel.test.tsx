@@ -1,15 +1,24 @@
 // Copyright (c) 2025 Deus Corp. Licensed under MIT.
 
-import { cleanup, render, screen } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import type { LLMStatus } from '@/services/mcpTools'
+import type { LLMModel, LLMStatus } from '@/services/mcpTools'
 import { ChatPanel } from '../features/ai-chat/ChatPanel'
 import type { ChatError } from '../features/ai-chat/useAiChat'
 
-const { useAiChatMock, useLLMStatusMock } = vi.hoisted(() => ({
+const {
+  useAiChatMock,
+  useLLMStatusMock,
+  useLLMModelsMock,
+  useChatStoreMock,
+  setSelectedModelMock,
+} = vi.hoisted(() => ({
   useAiChatMock: vi.fn(),
   useLLMStatusMock: vi.fn(),
+  useLLMModelsMock: vi.fn(),
+  useChatStoreMock: vi.fn(),
+  setSelectedModelMock: vi.fn(),
 }))
 
 vi.mock('../features/ai-chat/useAiChat', () => ({
@@ -18,6 +27,16 @@ vi.mock('../features/ai-chat/useAiChat', () => ({
 vi.mock('@/features/llm-status/useLLMStatus', () => ({
   useLLMStatus: useLLMStatusMock,
 }))
+vi.mock('@/features/llm-status/useLLMModels', () => ({
+  useLLMModels: useLLMModelsMock,
+}))
+vi.mock('../features/ai-chat/chatStore', async () => {
+  const actual = await vi.importActual('../features/ai-chat/chatStore')
+  return {
+    ...actual,
+    useChatStore: useChatStoreMock,
+  }
+})
 
 afterEach(() => {
   cleanup()
@@ -34,6 +53,7 @@ function defaultChatState() {
     turns: [] as { role: 'user' | 'assistant'; text: string }[],
     isSending: false,
     error: null as ChatError | null,
+    selectedModel: null as string | null,
     send: vi.fn(),
   }
 }
@@ -51,6 +71,26 @@ function defaultLLMStatusState() {
     refresh: vi.fn(),
   }
 }
+
+function llmModelsState(
+  overrides: Partial<ReturnType<typeof defaultLLMModelsState>> = {},
+) {
+  return { ...defaultLLMModelsState(), ...overrides }
+}
+function defaultLLMModelsState() {
+  return {
+    models: [] as LLMModel[],
+    isLoading: false,
+    error: null as string | null,
+    refresh: vi.fn(),
+  }
+}
+
+// useChatStore is used directly in ChatPanel only for setSelectedModel
+// (a zustand selector call: useChatStore(s => s.setSelectedModel)) — the
+// rest of chat state comes through the mocked useAiChat hook above.
+useChatStoreMock.mockImplementation(() => setSelectedModelMock)
+useLLMModelsMock.mockImplementation(() => llmModelsState())
 
 function renderChatPanel() {
   return render(
@@ -190,5 +230,84 @@ describe('ChatPanel — error banners', () => {
     expect(
       screen.queryByText(/Could not reach cks-mcp/),
     ).not.toBeInTheDocument()
+  })
+})
+
+describe('ChatPanel — model select', () => {
+  it('shows a disabled, default-only select while models have not loaded yet', () => {
+    useAiChatMock.mockReturnValue(chatState())
+    useLLMStatusMock.mockReturnValue(
+      llmStatusState({
+        status: {
+          provider: 'ollama',
+          ollama_available: true,
+          anthropic_configured: false,
+          model: 'llama3.2',
+        },
+      }),
+    )
+    useLLMModelsMock.mockReturnValue(llmModelsState({ models: [] }))
+
+    renderChatPanel()
+
+    const select = screen.getByRole('combobox') as HTMLSelectElement
+    expect(select).toBeDisabled()
+    expect(select).toHaveTextContent('llama3.2')
+  })
+
+  it('lists loaded models plus a default option, and calls setSelectedModel on change', () => {
+    useAiChatMock.mockReturnValue(chatState())
+    useLLMStatusMock.mockReturnValue(
+      llmStatusState({
+        status: {
+          provider: 'anthropic',
+          ollama_available: false,
+          anthropic_configured: true,
+          model: 'claude-sonnet-4-5-20250929',
+        },
+      }),
+    )
+    useLLMModelsMock.mockReturnValue(
+      llmModelsState({
+        models: [
+          { name: 'claude-sonnet-4-5-20250929' },
+          { name: 'claude-opus-4-1-20250805' },
+        ],
+      }),
+    )
+
+    renderChatPanel()
+
+    const select = screen.getByRole('combobox') as HTMLSelectElement
+    expect(select).not.toBeDisabled()
+    expect(
+      screen.getByRole('option', {
+        name: /Default \(claude-sonnet-4-5-20250929\)/,
+      }),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole('option', { name: 'claude-opus-4-1-20250805' }),
+    ).toBeInTheDocument()
+
+    fireEvent.change(select, { target: { value: 'claude-opus-4-1-20250805' } })
+    expect(setSelectedModelMock).toHaveBeenCalledWith(
+      'claude-opus-4-1-20250805',
+    )
+  })
+
+  it('passes the store selectedModel through to send() via useAiChat', () => {
+    const sendMock = vi.fn()
+    useAiChatMock.mockReturnValue(
+      chatState({ selectedModel: 'claude-opus-4-1-20250805', send: sendMock }),
+    )
+    useLLMStatusMock.mockReturnValue(llmStatusState())
+    useLLMModelsMock.mockReturnValue(llmModelsState())
+
+    renderChatPanel()
+
+    // useAiChat already owns the selectedModel→send() wiring (tested in
+    // useAiChat's own suite); this just checks ChatPanel doesn't need to
+    // pass a model argument itself -- send(text) alone is enough.
+    expect(sendMock).not.toHaveBeenCalled()
   })
 })

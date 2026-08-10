@@ -70,6 +70,7 @@ export function useAiChat() {
     turns,
     rawMessages,
     isSending,
+    selectedModel,
     appendUserTurn,
     appendAssistantTurn,
     setSending,
@@ -79,7 +80,10 @@ export function useAiChat() {
   const [error, setError] = useState<ChatError | null>(null)
 
   const send = useCallback(
-    async (text: string) => {
+    // `model` overrides the store's selectedModel for this one call, if
+    // given; ChatPanel normally doesn't pass it and relies on the store
+    // value set by its <select>, but tests/callers can force a value.
+    async (text: string, model?: string | null) => {
       // Checked before ai_chat is ever called (not after a failed round-
       // trip) so a user without a session gets the "go connect one" nudge
       // instantly, with no server involved.
@@ -99,7 +103,11 @@ export function useAiChat() {
           ...rawMessages,
           { role: 'user' as const, content: text },
         ]
-        const result = await aiChat(sessionId, pendingMessages)
+        const result = await aiChat(
+          sessionId,
+          pendingMessages,
+          model !== undefined ? model : selectedModel,
+        )
 
         if (isAiChatErrorResult(result)) {
           setError(classifyAiChatErrorCode(result.error, result.message))
@@ -133,6 +141,7 @@ export function useAiChat() {
     [
       sessionId,
       rawMessages,
+      selectedModel,
       appendUserTurn,
       appendAssistantTurn,
       setSending,
@@ -141,5 +150,5 @@ export function useAiChat() {
     ],
   )
 
-  return { turns, isSending, error, send }
+  return { turns, isSending, error, selectedModel, send }
 }

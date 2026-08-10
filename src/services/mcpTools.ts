@@ -457,8 +457,16 @@ export function toolCallsMutatedGraph(calls: ExecutedToolCall[]): boolean {
 export async function aiChat(
   sessionId: string,
   messages: ChatMessage[],
+  model?: string | null,
 ): Promise<AiChatResult> {
-  const result = await callTool('ai_chat', { session_id: sessionId, messages })
+  const args: Record<string, unknown> = { session_id: sessionId, messages }
+  // Пропускаем 'model' вовсе, когда не выбран — это значит "использовать
+  // дефолт провайдера", тот же смысл, что и null/undefined на схеме
+  // ai_chat в cks-mcp (см. src/cks_mcp/tools/ai_chat/schema.py).
+  if (model) {
+    args.model = model
+  }
+  const result = await callTool('ai_chat', args)
   return result as unknown as AiChatResult
 }
 
@@ -488,4 +496,27 @@ export interface LLMStatus {
 export async function getLLMStatus(): Promise<LLMStatus> {
   const result = await callTool('get_llm_status', {})
   return result as unknown as LLMStatus
+}
+
+// ---------------------------------------------------------------------------
+// LLM model list (list_llm_models, cks-mcp)
+// ---------------------------------------------------------------------------
+
+/** Одна модель в ответе list_llm_models (см. cks-mcp
+ *  src/cks_mcp/tools/list_llm_models/handler.py). Для ollama — реальные
+ *  установленные модели (GET /api/tags), для anthropic/openai_compatible —
+ *  захардкоженный короткий список. */
+export interface LLMModel {
+  name: string
+}
+
+interface ListLLMModelsResponse {
+  provider: LLMStatus['provider']
+  models: LLMModel[]
+}
+
+/** Не принимает session_id — та же причина, что и у getLLMStatus. */
+export async function listLLMModels(): Promise<LLMModel[]> {
+  const result = await callTool('list_llm_models', {})
+  return (result as unknown as ListLLMModelsResponse).models
 }
