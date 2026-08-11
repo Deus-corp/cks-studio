@@ -1,7 +1,8 @@
 import type { Node } from '@xyflow/react'
-import { useCallback, useEffect, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useState } from 'react'
 import { GraphCanvas } from '@/components/graph/GraphCanvas'
-import { GraphCanvas3D } from '@/components/graph/GraphCanvas3D'
+import { GraphSkeleton } from '@/components/graph/GraphSkeleton'
+import { TypeLegend } from '@/components/graph/TypeLegend'
 import { SidePanel } from '@/components/layout/SidePanel'
 import { CreateNodeForm } from '@/features/graph-explorer/CreateNodeForm'
 import { CreateRelationForm } from '@/features/graph-explorer/CreateRelationForm'
@@ -9,6 +10,17 @@ import { useGraphStore } from '@/features/graph-explorer/graphExplorerStore'
 import { getFullGraph, querySubgraph } from '@/services/mcpTools'
 import { useSessionStore } from '@/services/sessionStore'
 import { cksToReactFlow, traceInferenceChain } from '@/shared/utils/graphUtils'
+
+// three.js (via 3d-force-graph) is ~500KB gzipped -- code-split it into
+// its own chunk so switching to 2D-only usage (the default view) never
+// pays that cost. Suspense fallback below reuses the same skeleton
+// GraphCanvas shows while data is loading, so the loading state looks
+// the same regardless of which mode triggered it.
+const GraphCanvas3D = lazy(() =>
+  import('@/components/graph/GraphCanvas3D').then((m) => ({
+    default: m.GraphCanvas3D,
+  })),
+)
 
 type CreateMode = 'none' | 'node' | 'relation'
 
@@ -248,12 +260,14 @@ export function GraphPage() {
         {error && <p className="text-danger text-xs w-full">{error}</p>}
       </header>
       <div className="flex-1 flex">
-        <main className="flex-1">
+        <main className="flex-1 relative">
           {viewMode === '3d' ? (
-            <GraphCanvas3D
-              onNodeSelect={setSelectedNode}
-              isLoading={isLoading}
-            />
+            <Suspense fallback={<GraphSkeleton />}>
+              <GraphCanvas3D
+                onNodeSelect={setSelectedNode}
+                isLoading={isLoading}
+              />
+            </Suspense>
           ) : (
             <GraphCanvas
               onNodeSelect={setSelectedNode}
@@ -261,6 +275,7 @@ export function GraphPage() {
               onRefresh={handleRefresh}
             />
           )}
+          <TypeLegend />
         </main>
         <aside className="w-72 border-l border-border-subtle bg-surface-1 overflow-y-auto flex flex-col">
           <SidePanel node={selectedNode} />

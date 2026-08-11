@@ -2,7 +2,7 @@
   "_cks_format_version": "1.0",
   "_cks_metadata": {
     "cks_core_version": "1.21.0",
-    "serialized_at": "2026-08-10T19:12:50.851016+00:00"
+    "serialized_at": "2026-08-11T05:58:55.758349+00:00"
   },
   "_cks_min_reader_version": "1.13.0",
   "objects": [
@@ -38,9 +38,11 @@
       },
       "structure": {
         "description": "MCP server exposing CKS knowledge lifecycle tools to LLMs",
+        "http_env": "CKS_MCP_HTTP_PORT",
         "role": "llm_interface",
-        "tool_count": 53,
-        "version": "v1.57.0"
+        "tool_count": 63,
+        "transports": ["stdio", "http"],
+        "version": "v1.57.1"
       }
     },
     {
@@ -393,7 +395,11 @@
         "name": "llm_providers",
         "type": "Module"
       },
-      "structure": {}
+      "structure": {
+        "client": "cks_mcp.llm.client.LLMClient",
+        "description": "Shared LLM provider dispatch: Ollama, Anthropic, OpenAI-compatible; LLMClient for tool-calling and single-shot",
+        "providers": ["ollama", "anthropic", "openai_compatible", "auto"]
+      }
     },
     {
       "identity": {
@@ -497,7 +503,11 @@
         "name": "construct_knowledge",
         "type": "Tool"
       },
-      "structure": {}
+      "structure": {
+        "description": "LLM-assisted free-text → validated Knowledge Structure via LLMClient single-shot",
+        "group": "LLM & AI",
+        "providers": ["ollama", "anthropic", "openai_compatible", "auto"]
+      }
     },
     {
       "identity": {
@@ -1947,7 +1957,8 @@
         "type": "Tool"
       },
       "structure": {
-        "description": "Enqueues an enrichment_request task into the persistent outbox"
+        "description": "Enqueue enrichment task for Enrichment Agent (Wikipedia/arXiv)",
+        "group": "LLM & AI"
       }
     },
     {
@@ -2076,10 +2087,12 @@
       "structure": {
         "default_interval_seconds": 3600,
         "default_ttl_days": 7,
+        "description": "Flags registered graphs not updated within configured TTL (default 7 days)",
         "detection_only": true,
         "detects": "graph_registry entries whose updated_at exceeds TTL",
         "escalates_task_type": "graph_outdated",
         "introduced_in": "cks-runtime 1.39.0 (Memory Agent v2)",
+        "kind": "sweeper",
         "module": "cks-runtime.reasoning"
       }
     },
@@ -2229,7 +2242,8 @@
         "type": "Tool"
       },
       "structure": {
-        "description": "Read-only TTL freshness check for a registered graph, using the same TTL as GraphFreshnessSweeper",
+        "description": "TTL/freshness check for a registered graph",
+        "group": "Memory & Persistence",
         "module": "cks-mcp.tools.check_graph_freshness",
         "since": "cks-mcp 1.38.0"
       }
@@ -2266,7 +2280,8 @@
         "type": "Tool"
       },
       "structure": {
-        "description": "Free-text case-insensitive search over graph_registry name/description/tags, optional tag and public_only filters",
+        "description": "Search registered graphs by query/tags",
+        "group": "Memory & Persistence",
         "module": "cks-mcp.tools.search_graphs",
         "since": "cks-mcp 1.38.0"
       }
@@ -2304,7 +2319,8 @@
       },
       "structure": {
         "constraints_checked": ["mutual_exclusion", "functional_relation"],
-        "description": "5th background sweeper in cks-runtime.reasoning. Periodically re-validates sessions against MutualExclusionConstraint/FunctionalRelationConstraint (opt-in mutual_exclusion/functional_relation extension constraints). Enqueues contradiction_detected tasks in the persistent Outbox for critic_agent to pick up via resolve_contradiction. Counterpart to InferenceStalenessSweeper/ProvenanceStalenessSweeper/TemporalStalenessSweeper/GraphFreshnessSweeper.",
+        "description": "Scans sessions for unresolved mutual exclusion / functional relation violations",
+        "kind": "sweeper",
         "source_file": "cks_runtime/reasoning/contradiction_sweeper.py",
         "task_type": "contradiction_detected"
       }
@@ -2317,7 +2333,8 @@
       },
       "structure": {
         "auto_resolve": false,
-        "description": "MCP tool (cks-mcp) for resolving contradiction_detected tasks produced by ContradictionSweeper. Mechanical only — no LLM path. Called read-only (no contradiction_ids) it lists live contradictions; called with contradiction_ids it removes the alphabetically-first relation id among each contradiction's conflicting set. Registered in registry.py. Used by critic_agent to handle contradiction_detected outbox tasks.",
+        "description": "Mechanically remove or supersede contradictory relations",
+        "group": "Gossip & Conflict Resolution",
         "llm_required": false,
         "source_file": "src/cks_mcp/tools/resolve_contradiction/handler.py"
       }
@@ -2495,7 +2512,8 @@
         "type": "Tool"
       },
       "structure": {
-        "description": "MCP tool returning all registered CKS MCP plugins with their availability status",
+        "description": "List loaded CksPlugin instances",
+        "group": "Export & Observability",
         "source_file": "src/cks_mcp/tools/list_plugins"
       }
     },
@@ -2549,7 +2567,8 @@
         "type": "Tool"
       },
       "structure": {
-        "description": "Export a complete backup of all runtime storage to a JSON file (sessions, versions, graph registry)"
+        "description": "Export storage backend contents",
+        "group": "Export & Observability"
       }
     },
     {
@@ -2559,7 +2578,8 @@
         "type": "Tool"
       },
       "structure": {
-        "description": "Restore a backup produced by export_storage into the current runtime storage"
+        "description": "Import storage backend contents",
+        "group": "Export & Observability"
       }
     },
     {
@@ -2569,7 +2589,8 @@
         "type": "Tool"
       },
       "structure": {
-        "description": "Copy all data from the current runtime storage into a new backend (SQLite, Postgres, memory)"
+        "description": "Migrate between storage backends",
+        "group": "Export & Observability"
       }
     },
     {
@@ -2678,7 +2699,9 @@
         "type": "Tool"
       },
       "structure": {
-        "description": "Read-only check comparing graph_registry component versions against actual GitHub releases"
+        "description": "Compare component versions; supports Python _version.py and JS/TS package.json via version_source",
+        "group": "Memory & Persistence",
+        "since": "cks-mcp 1.57.1"
       }
     },
     {
@@ -2688,7 +2711,8 @@
         "type": "Tool"
       },
       "structure": {
-        "description": "Brings a registered ecosystem graph back in sync with the real code it describes"
+        "description": "Update metadata of a registered graph in graph_registry",
+        "group": "Memory & Persistence"
       }
     },
     {
@@ -2902,7 +2926,7 @@
         "type": "Tool"
       },
       "structure": {
-        "description": "Read-only tool that proposes a ready-to-apply resolution for a DEAD-lettered conflict task",
+        "description": "Inspect a dead-lettered conflict task",
         "group": "Gossip & Conflict Resolution",
         "llm_required": false,
         "since": "cks-mcp 1.45.0"
@@ -2915,7 +2939,7 @@
         "type": "Tool"
       },
       "structure": {
-        "description": "Applies a proposed resolution to a dead-lettered task and marks it complete",
+        "description": "HITL approve a proposed conflict resolution",
         "group": "Gossip & Conflict Resolution",
         "llm_required": false,
         "since": "cks-mcp 1.45.0"
@@ -2928,7 +2952,7 @@
         "type": "Tool"
       },
       "structure": {
-        "description": "Annotates a dead-lettered task with a human reason and leaves it DEAD",
+        "description": "HITL reject a proposed conflict resolution",
         "group": "Gossip & Conflict Resolution",
         "llm_required": false,
         "since": "cks-mcp 1.45.0"
@@ -2941,7 +2965,7 @@
         "type": "Tool"
       },
       "structure": {
-        "description": "Generates a human-readable Markdown report for any registered graph",
+        "description": "Human-readable explanation of a registered graph",
         "group": "Memory & Persistence",
         "llm_required": false,
         "since": "cks-mcp 1.44.0"
@@ -3111,7 +3135,7 @@
         "type": "Tool"
       },
       "structure": {
-        "description": "Returns telemetry: tool latency percentiles, success rates, LLM cost/token usage and agent metrics",
+        "description": "Per-tool latency percentiles (p50/p95/p99), success rates, top error types",
         "group": "Export & Observability",
         "llm_required": false,
         "since": "early"
@@ -3124,7 +3148,7 @@
         "type": "Tool"
       },
       "structure": {
-        "description": "Performs real HTTP check of a source and cryptographically signs the VerificationRecord",
+        "description": "HTTP check + cryptographic VerificationRecord signing",
         "group": "Verification & Integrity",
         "llm_required": false
       }
@@ -3136,7 +3160,7 @@
         "type": "Tool"
       },
       "structure": {
-        "description": "Detects mutual exclusion and functional relation violations in a knowledge structure",
+        "description": "Mutual exclusion and functional relation violation scan",
         "group": "Verification & Integrity",
         "llm_required": false
       }
@@ -3148,7 +3172,7 @@
         "type": "Tool"
       },
       "structure": {
-        "description": "Creates an isolated branch for safe hypothesis testing without affecting the parent session",
+        "description": "Isolated hypothesis branch with optional ops and diff from fork point",
         "group": "Branching & Merging",
         "llm_required": false
       }
@@ -3160,8 +3184,8 @@
         "type": "Tool"
       },
       "structure": {
-        "description": "Fetches a public URL, extracts structured content and optionally builds a richer graph via LLM",
-        "group": "AI-Assisted & Ingestion",
+        "description": "Fetch URL, extract sections/tables/lists/metadata; optional use_llm for richer graph",
+        "group": "LLM & AI",
         "llm_required": false
       }
     },
@@ -3172,8 +3196,8 @@
         "type": "Tool"
       },
       "structure": {
-        "description": "Suggests structural evolution operations for a knowledge structure",
-        "group": "AI-Assisted & Ingestion",
+        "description": "LLM suggestions for next evolve operations",
+        "group": "LLM & AI",
         "llm_required": true
       }
     },
@@ -3379,7 +3403,7 @@
         "type": "Tool"
       },
       "structure": {
-        "description": "Exports a session's Knowledge Structure to RDF/JSON-LD/Turtle formats",
+        "description": "Export knowledge structure from a session",
         "group": "Export & Observability",
         "llm_required": false
       }
@@ -3391,7 +3415,7 @@
         "type": "Tool"
       },
       "structure": {
-        "description": "Exports a full session bundle for migration or archival",
+        "description": "Package full session (structure + version history) for migration/archive",
         "group": "Export & Observability",
         "llm_required": false
       }
@@ -3403,8 +3427,8 @@
         "type": "Tool"
       },
       "structure": {
-        "description": "Structural diff between two session versions",
-        "group": "Versioning & Branching",
+        "description": "Compare two session versions",
+        "group": "Version Control",
         "llm_required": false
       }
     },
@@ -3427,8 +3451,8 @@
         "type": "Tool"
       },
       "structure": {
-        "description": "Closes a session, releasing it from the runtime",
-        "group": "Versioning & Branching",
+        "description": "Close a runtime session",
+        "group": "Branching & Merging",
         "llm_required": false
       }
     },
@@ -3439,8 +3463,8 @@
         "type": "Tool"
       },
       "structure": {
-        "description": "Atomically claims the next PENDING conflict task of a given type from the persistent outbox",
-        "group": "Conflict Task Lifecycle",
+        "description": "Claim an outbox conflict task for processing",
+        "group": "Gossip & Conflict Resolution",
         "llm_required": false
       }
     },
@@ -3451,8 +3475,8 @@
         "type": "Tool"
       },
       "structure": {
-        "description": "Marks a claimed conflict task as successfully resolved, removing it from the outbox",
-        "group": "Conflict Task Lifecycle",
+        "description": "Mark conflict task completed",
+        "group": "Gossip & Conflict Resolution",
         "llm_required": false
       }
     },
@@ -3463,8 +3487,8 @@
         "type": "Tool"
       },
       "structure": {
-        "description": "Marks a claimed conflict task as transiently failed, scheduling retry with exponential backoff",
-        "group": "Conflict Task Lifecycle",
+        "description": "Mark conflict task failed (retry/dead-letter path)",
+        "group": "Gossip & Conflict Resolution",
         "llm_required": false
       }
     },
@@ -3475,8 +3499,8 @@
         "type": "Tool"
       },
       "structure": {
-        "description": "Permanently retires a claimed conflict task the Critic agent could not resolve with confidence",
-        "group": "Conflict Task Lifecycle",
+        "description": "Move conflict task to dead-letter queue",
+        "group": "Gossip & Conflict Resolution",
         "llm_required": false
       }
     },
@@ -3487,8 +3511,8 @@
         "type": "Tool"
       },
       "structure": {
-        "description": "Read-only listing of conflict tasks a Critic agent has given up on",
-        "group": "Conflict Task Lifecycle",
+        "description": "List dead-lettered conflict tasks for HITL review",
+        "group": "Gossip & Conflict Resolution",
         "llm_required": false
       }
     },
@@ -3499,7 +3523,7 @@
         "type": "Tool"
       },
       "structure": {
-        "description": "Drains or peeks the queue of gossip merge conflicts escalated by GossipAdapter (ADR-008)",
+        "description": "List pending gossip merge conflicts",
         "group": "Gossip & Conflict Resolution",
         "llm_required": false
       }
@@ -3511,7 +3535,7 @@
         "type": "Tool"
       },
       "structure": {
-        "description": "Drains or peeks the queue of reasoning-staleness findings escalated by InferenceStalenessSweeper",
+        "description": "List inference confidence conflicts",
         "group": "Gossip & Conflict Resolution",
         "llm_required": false
       }
@@ -3523,9 +3547,10 @@
         "type": "Tool"
       },
       "structure": {
-        "description": "Resolves an InferenceConfidenceConflict (ADR-001): two or more active InferenceSteps concluding the same fact",
+        "description": "LLM or auto arbitration for inference confidence conflicts",
         "group": "Gossip & Conflict Resolution",
-        "llm_required": true
+        "llm_required": true,
+        "providers": ["ollama", "anthropic", "openai_compatible", "auto"]
       }
     },
     {
@@ -3535,7 +3560,7 @@
         "type": "Tool"
       },
       "structure": {
-        "description": "LLM-assisted resolution of structural gossip merge conflicts between two sessions",
+        "description": "Resolve gossip merge conflict (LLMClient single-shot capable)",
         "group": "Gossip & Conflict Resolution",
         "llm_required": true
       }
@@ -3547,8 +3572,8 @@
         "type": "Tool"
       },
       "structure": {
-        "description": "Resolves a temporal_conflict task (ADR-011 TemporalStalenessSweeper): a KnowledgeObject whose valid_until has passed",
-        "group": "Verification & Integrity",
+        "description": "Resolve expired valid_until facts (e.g. bump TTL)",
+        "group": "Gossip & Conflict Resolution",
         "llm_required": false
       }
     },
@@ -3559,8 +3584,8 @@
         "type": "Tool"
       },
       "structure": {
-        "description": "Resolves a provenance_conflict task (ADR-010 ProvenanceStalenessSweeper) by re-checking the source",
-        "group": "Verification & Integrity",
+        "description": "Re-verify a source and update VerificationRecord",
+        "group": "Gossip & Conflict Resolution",
         "llm_required": false
       }
     },
@@ -4021,9 +4046,18 @@
         "type": "Component"
       },
       "structure": {
-        "description": "React 19 + TypeScript SPA visual workspace for the CKS ecosystem: graph explorer, inference/CRDT fork inspector, agent pipeline monitor, public gallery browser, and AI chat panel, connected to cks-mcp over MCP.",
+        "description": "Visual workspace to explore, monitor, and manage CKS graphs",
         "repo_url": "https://github.com/Deus-corp/cks-studio",
-        "version": "v0.5.9",
+        "stack": [
+          "React 19",
+          "Vite",
+          "React Flow",
+          "3d-force-graph",
+          "Zustand",
+          "Tailwind",
+          "vite-plugin-pwa"
+        ],
+        "version": "0.6.0",
         "version_check_note": "check_component_versions fetches _version.py (Python convention) and will always report fetch_failed for this component; actual version is tracked in package.json (npm). Verified manually 2026-08-10: package.json version 0.5.9 matches graph_version.",
         "version_source": "package.json"
       }
@@ -4035,7 +4069,8 @@
         "type": "Module"
       },
       "structure": {
-        "description": "Interactive zoom/pan/drill-down graph visualization"
+        "description": "2D/3D canvas, create node/relation, type filter, minimap, export PNG/SVG, search palette, neighbourhood explore",
+        "since": "cks-studio 0.3.0"
       }
     },
     {
@@ -4045,7 +4080,8 @@
         "type": "Module"
       },
       "structure": {
-        "description": "Browses the public graph gallery (list_graphs/search_graphs) and opens graphs, e.g. the cks-ecosystem demo graph"
+        "description": "Browse/search public graphs; lazy health scores via check_graph_health",
+        "since": "cks-studio 0.2.0"
       }
     },
     {
@@ -4055,7 +4091,14 @@
         "type": "Module"
       },
       "structure": {
-        "description": "Chat panel that calls cks-mcp's ai_chat tool; supports any OpenAI-compatible provider, Ollama, or Anthropic, configured server-side only"
+        "capabilities": [
+          "tool_calls",
+          "model_selector",
+          "onboarding",
+          "graph_sync"
+        ],
+        "description": "Session-scoped chat via ai_chat; tool-call disclosure; live graph refresh; model selector; onboarding banners",
+        "since": "cks-studio 0.5.0"
       }
     },
     {
@@ -4065,7 +4108,8 @@
         "type": "Module"
       },
       "structure": {
-        "description": "Monitors and starts/stops sweepers and standalone agent processes at runtime via list_agents/agent_status/start_agent/stop_agent/list_processes/process_status"
+        "description": "Sweeper cards + standalone process cards; start/stop/request_process_stop",
+        "since": "cks-studio 0.3.2"
       }
     },
     {
@@ -4075,7 +4119,11 @@
         "type": "Tool"
       },
       "structure": {
-        "description": "Send a chat turn to an LLM with restricted tool access, scoped to a session"
+        "description": "Bounded agentic chat loop; LLM may call session-scoped safe MCP tools (max 8 iterations)",
+        "group": "LLM & AI",
+        "optional_args": ["model"],
+        "providers": ["ollama", "anthropic", "openai_compatible", "auto"],
+        "since": "cks-mcp 1.55.0"
       }
     },
     {
@@ -4085,7 +4133,9 @@
         "type": "Tool"
       },
       "structure": {
-        "description": "Reports which LLM provider ai_chat/construct_knowledge would use and whether it is reachable/configured, without exposing API keys"
+        "description": "Read-only provider status: selected provider, model, ollama_available, anthropic_configured, openai_compatible_configured",
+        "group": "LLM & AI",
+        "since": "cks-mcp 1.56.0"
       }
     },
     {
@@ -4095,7 +4145,9 @@
         "type": "Tool"
       },
       "structure": {
-        "description": "Lists available models for the current LLM provider (Ollama, Anthropic, OpenAI-compatible)"
+        "description": "Lists models for current provider (Ollama /api/tags; Anthropic and OpenAI-compatible via curated lists)",
+        "group": "LLM & AI",
+        "since": "cks-mcp 1.57.0"
       }
     },
     {
@@ -4586,8 +4638,8 @@
         "type": "ADR"
       },
       "structure": {
-        "description": "G-Set + Merkle Tree CRDT adapter; Stage 2 (MV-Register) and Stage 3 (ForkResolutionAgent) build on this",
-        "status": "Implemented (Stage 1 of 3)"
+        "description": "G-Set + Merkle Tree (Stage 1); MV-Register, fork detection, CRDTQuarantine, conflict outbox (Stage 2); ForkResolutionAgent (Stage 3)",
+        "status": "Implemented (Stage 1–2 of 3)"
       }
     },
     {
@@ -5054,6 +5106,837 @@
       "structure": {
         "participants": ["cks-studio", "runtime-reasoning"],
         "relation_type": "monitors"
+      }
+    },
+    {
+      "identity": {
+        "id": "llm-provider-ollama",
+        "name": "Ollama",
+        "type": "LLMProvider"
+      },
+      "structure": {
+        "default_host": "http://localhost:11434",
+        "default_model": "llama3.2",
+        "description": "Local LLM provider via Ollama /api/chat and /api/tags",
+        "env": ["CKS_LLM_PROVIDER", "CKS_OLLAMA_HOST", "CKS_OLLAMA_MODEL"],
+        "requires_api_key": false,
+        "supports_tools": true
+      }
+    },
+    {
+      "identity": {
+        "id": "llm-provider-anthropic",
+        "name": "Anthropic",
+        "type": "LLMProvider"
+      },
+      "structure": {
+        "default_model": "claude-sonnet-4-6",
+        "description": "Anthropic Claude API provider",
+        "env": ["CKS_LLM_PROVIDER", "ANTHROPIC_API_KEY", "CKS_LLM_MODEL"],
+        "requires_api_key": true,
+        "supports_tools": true
+      }
+    },
+    {
+      "identity": {
+        "id": "llm-provider-openai-compatible",
+        "name": "OpenAI-compatible",
+        "type": "LLMProvider"
+      },
+      "structure": {
+        "description": "Generic OpenAI-compatible API (OpenAI, Groq, DeepSeek, Together, LM Studio, vLLM)",
+        "env": [
+          "CKS_LLM_PROVIDER",
+          "CKS_OPENAI_BASE_URL",
+          "CKS_OPENAI_API_KEY",
+          "CKS_OPENAI_MODEL"
+        ],
+        "requires_api_key": true,
+        "since": "cks-mcp 1.56.1",
+        "supports_tools": true
+      }
+    },
+    {
+      "identity": {
+        "id": "component-llm-client",
+        "name": "LLMClient",
+        "type": "Component"
+      },
+      "structure": {
+        "description": "Unified provider selection and tool-calling/single-shot dispatch with injectable fakes for tests",
+        "since": "cks-mcp 1.56.0",
+        "source_file": "src/cks_mcp/llm/client.py"
+      }
+    },
+    {
+      "identity": {
+        "id": "tool-revert_version",
+        "name": "revert_version",
+        "type": "Tool"
+      },
+      "structure": {
+        "description": "Revert session to a prior version",
+        "group": "Version Control"
+      }
+    },
+    {
+      "identity": {
+        "id": "mcp-http-transport",
+        "name": "http_transport",
+        "type": "Module"
+      },
+      "structure": {
+        "description": "Optional aiohttp MCP HTTP server with CORS when CKS_MCP_HTTP_PORT is set; enables cks-studio",
+        "env": ["CKS_MCP_HTTP_PORT"],
+        "since": "cks-mcp 1.52.3"
+      }
+    },
+    {
+      "identity": {
+        "id": "runtime-reasoning-graph_health_sweeper",
+        "name": "graph_health_sweeper",
+        "type": "Sweeper"
+      },
+      "structure": {
+        "description": "Periodic graph health scoring for registered graphs",
+        "kind": "sweeper"
+      }
+    },
+    {
+      "identity": {
+        "id": "runtime-reasoning-graph_autoupdate_sweeper",
+        "name": "graph_autoupdate_sweeper",
+        "type": "Sweeper"
+      },
+      "structure": {
+        "description": "Auto-update / escalate stale registered graphs",
+        "kind": "sweeper"
+      }
+    },
+    {
+      "identity": {
+        "id": "runtime-crdt-mv-register",
+        "name": "mv_register",
+        "type": "Module"
+      },
+      "structure": {
+        "adr": "ADR-013 Stage 2",
+        "description": "Multi-value register for pointer management and concurrent fork detection",
+        "since": "cks-runtime 1.46.0"
+      }
+    },
+    {
+      "identity": {
+        "id": "runtime-crdt-quarantine",
+        "name": "CRDTQuarantine",
+        "type": "Module"
+      },
+      "structure": {
+        "description": "Validates incoming KnowledgeObjects via cks.validate and Merkle identity before CRDT admit",
+        "since": "cks-runtime 1.46.0"
+      }
+    },
+    {
+      "identity": {
+        "id": "event-CRDTForkDetected",
+        "name": "CRDTForkDetected",
+        "type": "Event"
+      },
+      "structure": {
+        "description": "Published when gossip merge discovers concurrent MV-Register fork",
+        "since": "cks-runtime 1.46.0"
+      }
+    },
+    {
+      "identity": {
+        "id": "event-DuplicateReplicaIdDetected",
+        "name": "DuplicateReplicaIdDetected",
+        "type": "Event"
+      },
+      "structure": {
+        "description": "Published when two replicas share replica_id; merge blocked to prevent silent divergence",
+        "since": "cks-runtime 1.49.2"
+      }
+    },
+    {
+      "identity": {
+        "id": "event-AgentStepStarted",
+        "name": "AgentStepStarted",
+        "type": "Event"
+      },
+      "structure": {
+        "description": "Pipeline step started; for studio observability",
+        "since": "cks-runtime 1.48.5"
+      }
+    },
+    {
+      "identity": {
+        "id": "event-AgentStepCompleted",
+        "name": "AgentStepCompleted",
+        "type": "Event"
+      },
+      "structure": {
+        "description": "Pipeline step completed; for studio observability",
+        "since": "cks-runtime 1.48.5"
+      }
+    },
+    {
+      "identity": {
+        "id": "constraint-layering-rule",
+        "name": "LayeringRuleConstraint",
+        "type": "Constraint"
+      },
+      "structure": {
+        "description": "Opt-in: depends_on between ecosystem components must respect core < runtime < mcp",
+        "identity_code": "CKS-EXT-LAYERING-RULE",
+        "since": "cks-core 1.21.0"
+      }
+    },
+    {
+      "identity": {
+        "id": "constraint-temporal-validity",
+        "name": "TemporalValidityConstraint",
+        "type": "Constraint"
+      },
+      "structure": {
+        "description": "Opt-in: warns when structure.valid_until is in the past",
+        "identity_code": "CKS-EXT-TEMPORAL-VALIDITY",
+        "since": "cks-core 1.20.0"
+      }
+    },
+    {
+      "identity": {
+        "id": "constraint-inference-confidence-conflict",
+        "name": "InferenceConfidenceConflictConstraint",
+        "type": "Constraint"
+      },
+      "structure": {
+        "description": "Opt-in WARNING when multiple active InferenceSteps disagree on confidence for same conclusion",
+        "since": "cks-core 1.16.0"
+      }
+    },
+    {
+      "identity": {
+        "id": "constraint-stale-premise",
+        "name": "StalePremiseConstraint",
+        "type": "Constraint"
+      },
+      "structure": {
+        "description": "Opt-in WARNING when active InferenceStep cites superseded InferenceStep premise",
+        "since": "cks-core 1.17.0"
+      }
+    },
+    {
+      "identity": {
+        "id": "constraint-mutual-exclusion",
+        "name": "MutualExclusionConstraint",
+        "type": "Constraint"
+      },
+      "structure": {
+        "description": "Optional contradiction: two relation_types must not both connect same ordered pair",
+        "since": "cks-core 1.13.0"
+      }
+    },
+    {
+      "identity": {
+        "id": "constraint-functional-relation",
+        "name": "FunctionalRelationConstraint",
+        "type": "Constraint"
+      },
+      "structure": {
+        "description": "Optional contradiction: relation_type single-valued per source",
+        "since": "cks-core 1.13.0"
+      }
+    },
+    {
+      "identity": {
+        "id": "operator-resolve-inference-conflict",
+        "name": "ResolveInferenceConflict",
+        "type": "Operator"
+      },
+      "structure": {
+        "description": "Atomic evolution: supersede losing InferenceSteps for a conclusion in favor of winner_id",
+        "since": "cks-core 1.19.0",
+        "wire_type": "resolve_inference_conflict"
+      }
+    },
+    {
+      "identity": {
+        "id": "operator-record-inference",
+        "name": "RecordInference",
+        "type": "Operator"
+      },
+      "structure": {
+        "description": "Record InferenceStep with premises, conclusion, confidence",
+        "since": "cks-core 1.15.2"
+      }
+    },
+    {
+      "identity": {
+        "id": "operator-rename-object",
+        "name": "RenameObject",
+        "type": "Operator"
+      },
+      "structure": {
+        "description": "Change identity.name without changing id/type/relations",
+        "since": "cks-core 1.14.0"
+      }
+    },
+    {
+      "identity": {
+        "id": "query-explain-inference",
+        "name": "explain_inference",
+        "type": "Function"
+      },
+      "structure": {
+        "description": "Walk active InferenceStep chains for object_id; pure query, no mutation",
+        "since": "cks-core 1.18.0"
+      }
+    },
+    {
+      "identity": {
+        "id": "agent-synthesizer",
+        "name": "SynthesizerAgent",
+        "type": "Agent"
+      },
+      "structure": {
+        "adr": "mcp-ADR-007 Milestone 2+",
+        "description": "Pipeline step: synthesize findings after review",
+        "status": "planned"
+      }
+    },
+    {
+      "identity": {
+        "id": "agent-arbiter",
+        "name": "ArbiterAgent",
+        "type": "Agent"
+      },
+      "structure": {
+        "adr": "mcp-ADR-007 Milestone 2+",
+        "description": "Pipeline step: final arbitration between competing conclusions",
+        "status": "planned"
+      }
+    },
+    {
+      "identity": {
+        "id": "studio-pwa",
+        "name": "PWA",
+        "type": "Feature"
+      },
+      "structure": {
+        "description": "Installable standalone app via web manifest + vite-plugin-pwa static caching",
+        "since": "cks-studio 0.5.3"
+      }
+    },
+    {
+      "identity": {
+        "id": "studio-graph-3d",
+        "name": "GraphCanvas3D",
+        "type": "Feature"
+      },
+      "structure": {
+        "description": "3D force-directed graph view (3d-force-graph / Three.js); toggle with 2D dagre",
+        "since": "cks-studio 0.6.0"
+      }
+    },
+    {
+      "identity": {
+        "id": "studio-theme",
+        "name": "Theme",
+        "type": "Feature"
+      },
+      "structure": {
+        "description": "Light/dark theme with design tokens; respects prefers-color-scheme",
+        "since": "cks-studio 0.5.1"
+      }
+    },
+    {
+      "identity": {
+        "id": "studio-search-palette",
+        "name": "SearchPalette",
+        "type": "Feature"
+      },
+      "structure": {
+        "description": "Cmd/Ctrl+K fuzzy search over nodes by label/id",
+        "since": "cks-studio 0.5.1"
+      }
+    },
+    {
+      "identity": {
+        "id": "studio-pipeline-monitor",
+        "name": "PipelineMonitor",
+        "type": "Feature"
+      },
+      "structure": {
+        "description": "Kanban of pipeline object status (Researcher → Reviewer) with transition log",
+        "since": "cks-studio 0.2.0"
+      }
+    },
+    {
+      "identity": {
+        "id": "studio-chat-onboarding",
+        "name": "ChatOnboarding",
+        "type": "Feature"
+      },
+      "structure": {
+        "description": "Discriminated ChatError banners: no_session, llm_provider_unavailable, network, tool failures",
+        "since": "cks-studio 0.5.4"
+      }
+    },
+    {
+      "identity": {
+        "id": "studio-settings-llm",
+        "name": "SettingsLLMStatus",
+        "type": "Feature"
+      },
+      "structure": {
+        "description": "Settings page block showing provider/model/availability via get_llm_status",
+        "since": "cks-studio 0.5.2"
+      }
+    },
+    {
+      "identity": {
+        "id": "studio-model-selector",
+        "name": "ModelSelector",
+        "type": "Feature"
+      },
+      "structure": {
+        "description": "Chat header model dropdown; passes optional model to ai_chat",
+        "since": "cks-studio 0.5.5"
+      }
+    },
+    {
+      "identity": {
+        "id": "rel-llm-client-uses-ollama",
+        "name": "uses",
+        "type": "Relation"
+      },
+      "structure": {
+        "participants": ["component-llm-client", "llm-provider-ollama"],
+        "relation_type": "uses"
+      }
+    },
+    {
+      "identity": {
+        "id": "rel-llm-client-uses-anthropic",
+        "name": "uses",
+        "type": "Relation"
+      },
+      "structure": {
+        "participants": ["component-llm-client", "llm-provider-anthropic"],
+        "relation_type": "uses"
+      }
+    },
+    {
+      "identity": {
+        "id": "rel-llm-client-uses-openai-compat",
+        "name": "uses",
+        "type": "Relation"
+      },
+      "structure": {
+        "participants": [
+          "component-llm-client",
+          "llm-provider-openai-compatible"
+        ],
+        "relation_type": "uses"
+      }
+    },
+    {
+      "identity": {
+        "id": "rel-ai-chat-uses-llm-client",
+        "name": "uses",
+        "type": "Relation"
+      },
+      "structure": {
+        "participants": ["tool-ai_chat", "component-llm-client"],
+        "relation_type": "uses"
+      }
+    },
+    {
+      "identity": {
+        "id": "rel-construct-uses-llm-client",
+        "name": "uses",
+        "type": "Relation"
+      },
+      "structure": {
+        "participants": ["tool-construct_knowledge", "component-llm-client"],
+        "relation_type": "uses"
+      }
+    },
+    {
+      "identity": {
+        "id": "rel-mcp-contains-llm-client",
+        "name": "contains",
+        "type": "Relation"
+      },
+      "structure": {
+        "participants": ["cks-mcp", "component-llm-client"],
+        "relation_type": "contains"
+      }
+    },
+    {
+      "identity": {
+        "id": "rel-mcp-contains-http-transport",
+        "name": "contains",
+        "type": "Relation"
+      },
+      "structure": {
+        "participants": ["cks-mcp", "mcp-http-transport"],
+        "relation_type": "contains"
+      }
+    },
+    {
+      "identity": {
+        "id": "rel-studio-uses-http-transport",
+        "name": "uses",
+        "type": "Relation"
+      },
+      "structure": {
+        "participants": ["cks-studio", "mcp-http-transport"],
+        "relation_type": "uses"
+      }
+    },
+    {
+      "identity": {
+        "id": "rel-reasoning-contains-graph-freshness",
+        "name": "contains",
+        "type": "Relation"
+      },
+      "structure": {
+        "participants": [
+          "runtime-reasoning",
+          "runtime-reasoning-graph_freshness_sweeper"
+        ],
+        "relation_type": "contains"
+      }
+    },
+    {
+      "identity": {
+        "id": "rel-reasoning-contains-graph-health",
+        "name": "contains",
+        "type": "Relation"
+      },
+      "structure": {
+        "participants": [
+          "runtime-reasoning",
+          "runtime-reasoning-graph_health_sweeper"
+        ],
+        "relation_type": "contains"
+      }
+    },
+    {
+      "identity": {
+        "id": "rel-reasoning-contains-graph-autoupdate",
+        "name": "contains",
+        "type": "Relation"
+      },
+      "structure": {
+        "participants": [
+          "runtime-reasoning",
+          "runtime-reasoning-graph_autoupdate_sweeper"
+        ],
+        "relation_type": "contains"
+      }
+    },
+    {
+      "identity": {
+        "id": "rel-reasoning-contains-contradiction-sweeper",
+        "name": "contains",
+        "type": "Relation"
+      },
+      "structure": {
+        "participants": [
+          "runtime-reasoning",
+          "runtime-reasoning-contradiction_sweeper"
+        ],
+        "relation_type": "contains"
+      }
+    },
+    {
+      "identity": {
+        "id": "rel-core-constraints-contains-layering",
+        "name": "contains",
+        "type": "Relation"
+      },
+      "structure": {
+        "participants": ["core-constraints", "constraint-layering-rule"],
+        "relation_type": "contains"
+      }
+    },
+    {
+      "identity": {
+        "id": "rel-core-constraints-contains-temporal",
+        "name": "contains",
+        "type": "Relation"
+      },
+      "structure": {
+        "participants": ["core-constraints", "constraint-temporal-validity"],
+        "relation_type": "contains"
+      }
+    },
+    {
+      "identity": {
+        "id": "rel-core-constraints-contains-mutual-exclusion",
+        "name": "contains",
+        "type": "Relation"
+      },
+      "structure": {
+        "participants": ["core-constraints", "constraint-mutual-exclusion"],
+        "relation_type": "contains"
+      }
+    },
+    {
+      "identity": {
+        "id": "rel-core-constraints-contains-functional",
+        "name": "contains",
+        "type": "Relation"
+      },
+      "structure": {
+        "participants": ["core-constraints", "constraint-functional-relation"],
+        "relation_type": "contains"
+      }
+    },
+    {
+      "identity": {
+        "id": "rel-core-evolution-contains-resolve-inference",
+        "name": "contains",
+        "type": "Relation"
+      },
+      "structure": {
+        "participants": [
+          "core-evolution",
+          "operator-resolve-inference-conflict"
+        ],
+        "relation_type": "contains"
+      }
+    },
+    {
+      "identity": {
+        "id": "rel-core-evolution-contains-record-inference",
+        "name": "contains",
+        "type": "Relation"
+      },
+      "structure": {
+        "participants": ["core-evolution", "operator-record-inference"],
+        "relation_type": "contains"
+      }
+    },
+    {
+      "identity": {
+        "id": "rel-studio-contains-pwa",
+        "name": "contains",
+        "type": "Relation"
+      },
+      "structure": {
+        "participants": ["cks-studio", "studio-pwa"],
+        "relation_type": "contains"
+      }
+    },
+    {
+      "identity": {
+        "id": "rel-studio-contains-graph-3d",
+        "name": "contains",
+        "type": "Relation"
+      },
+      "structure": {
+        "participants": ["cks-studio", "studio-graph-3d"],
+        "relation_type": "contains"
+      }
+    },
+    {
+      "identity": {
+        "id": "rel-studio-contains-theme",
+        "name": "contains",
+        "type": "Relation"
+      },
+      "structure": {
+        "participants": ["cks-studio", "studio-theme"],
+        "relation_type": "contains"
+      }
+    },
+    {
+      "identity": {
+        "id": "rel-studio-contains-search-palette",
+        "name": "contains",
+        "type": "Relation"
+      },
+      "structure": {
+        "participants": ["cks-studio", "studio-search-palette"],
+        "relation_type": "contains"
+      }
+    },
+    {
+      "identity": {
+        "id": "rel-studio-contains-pipeline-monitor",
+        "name": "contains",
+        "type": "Relation"
+      },
+      "structure": {
+        "participants": ["cks-studio", "studio-pipeline-monitor"],
+        "relation_type": "contains"
+      }
+    },
+    {
+      "identity": {
+        "id": "rel-studio-contains-chat-onboarding",
+        "name": "contains",
+        "type": "Relation"
+      },
+      "structure": {
+        "participants": ["cks-studio", "studio-chat-onboarding"],
+        "relation_type": "contains"
+      }
+    },
+    {
+      "identity": {
+        "id": "rel-studio-contains-settings-llm",
+        "name": "contains",
+        "type": "Relation"
+      },
+      "structure": {
+        "participants": ["cks-studio", "studio-settings-llm"],
+        "relation_type": "contains"
+      }
+    },
+    {
+      "identity": {
+        "id": "rel-studio-contains-model-selector",
+        "name": "contains",
+        "type": "Relation"
+      },
+      "structure": {
+        "participants": ["cks-studio", "studio-model-selector"],
+        "relation_type": "contains"
+      }
+    },
+    {
+      "identity": {
+        "id": "rel-model-selector-uses-list-models",
+        "name": "uses",
+        "type": "Relation"
+      },
+      "structure": {
+        "participants": ["studio-model-selector", "tool-list_llm_models"],
+        "relation_type": "uses"
+      }
+    },
+    {
+      "identity": {
+        "id": "rel-settings-llm-uses-get-status",
+        "name": "uses",
+        "type": "Relation"
+      },
+      "structure": {
+        "participants": ["studio-settings-llm", "tool-get_llm_status"],
+        "relation_type": "uses"
+      }
+    },
+    {
+      "identity": {
+        "id": "rel-pipeline-monitor-uses-events",
+        "name": "uses",
+        "type": "Relation"
+      },
+      "structure": {
+        "participants": ["studio-pipeline-monitor", "event-AgentStepCompleted"],
+        "relation_type": "uses"
+      }
+    },
+    {
+      "identity": {
+        "id": "rel-orchestrator-planned-synthesizer",
+        "name": "orchestrates",
+        "type": "Relation"
+      },
+      "structure": {
+        "participants": [
+          "component-cks-agent-orchestrator",
+          "agent-synthesizer"
+        ],
+        "relation_type": "orchestrates"
+      }
+    },
+    {
+      "identity": {
+        "id": "rel-orchestrator-planned-arbiter",
+        "name": "orchestrates",
+        "type": "Relation"
+      },
+      "structure": {
+        "participants": ["component-cks-agent-orchestrator", "agent-arbiter"],
+        "relation_type": "orchestrates"
+      }
+    },
+    {
+      "identity": {
+        "id": "rel-runtime-implements-crdt-mv",
+        "name": "contains",
+        "type": "Relation"
+      },
+      "structure": {
+        "participants": ["cks-runtime", "runtime-crdt-mv-register"],
+        "relation_type": "contains"
+      }
+    },
+    {
+      "identity": {
+        "id": "rel-runtime-contains-crdt-quarantine",
+        "name": "contains",
+        "type": "Relation"
+      },
+      "structure": {
+        "participants": ["cks-runtime", "runtime-crdt-quarantine"],
+        "relation_type": "contains"
+      }
+    },
+    {
+      "identity": {
+        "id": "rel-gossip-emits-fork",
+        "name": "emits",
+        "type": "Relation"
+      },
+      "structure": {
+        "participants": ["runtime-gossip", "event-CRDTForkDetected"],
+        "relation_type": "emits"
+      }
+    },
+    {
+      "identity": {
+        "id": "rel-gossip-emits-dup-replica",
+        "name": "emits",
+        "type": "Relation"
+      },
+      "structure": {
+        "participants": ["runtime-gossip", "event-DuplicateReplicaIdDetected"],
+        "relation_type": "emits"
+      }
+    },
+    {
+      "identity": {
+        "id": "rel-orchestrator-emits-step-started",
+        "name": "emits",
+        "type": "Relation"
+      },
+      "structure": {
+        "participants": [
+          "component-cks-agent-orchestrator",
+          "event-AgentStepStarted"
+        ],
+        "relation_type": "emits"
+      }
+    },
+    {
+      "identity": {
+        "id": "rel-orchestrator-emits-step-completed",
+        "name": "emits",
+        "type": "Relation"
+      },
+      "structure": {
+        "participants": [
+          "component-cks-agent-orchestrator",
+          "event-AgentStepCompleted"
+        ],
+        "relation_type": "emits"
       }
     }
   ],

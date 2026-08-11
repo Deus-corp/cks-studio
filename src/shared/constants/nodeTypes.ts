@@ -9,13 +9,32 @@
  * местах, и они бы неизбежно разошлись.
  */
 
-/** Цвет по CKS-типу объекта (Definition, Claim, Concept, Fork, Resolution, ...). */
+/** Цвет по CKS-типу объекта. Покрывает как базовые типы Knowledge
+ *  Structure (Definition, Claim, Concept, Fork, Resolution), так и типы,
+ *  которые появляются в графах экосистемы (register_graph/evolve_knowledge
+ *  поверх нескольких репозиториев): Component, Module, ADR, Tool, Agent,
+ *  Interface, StorageBackend, Plugin, Sweeper, Task, Relation.
+ *  Раньше вторая группа отсутствовала и всегда попадала в
+ *  DEFAULT_NODE_TYPE_COLOR — граф экосистемы выглядел одноцветным. */
 export const NODE_TYPE_COLORS: Record<string, string> = {
+  // Базовые типы Knowledge Structure
   Definition: '#3b82f6',
   Claim: '#8b5cf6',
   Concept: '#10b981',
   Fork: '#f59e0b',
   Resolution: '#06b6d4',
+  // Типы экосистемных графов (cks-ecosystem и подобные)
+  Component: '#3b82f6',
+  Module: '#22d3ee',
+  ADR: '#f59e0b',
+  Tool: '#a78bfa',
+  Agent: '#ec4899',
+  Interface: '#14b8a6',
+  StorageBackend: '#84cc16',
+  Plugin: '#f97316',
+  Sweeper: '#eab308',
+  Task: '#ef4444',
+  Relation: '#64748b',
 }
 
 /** Цвет для CKS-типов, которых нет в NODE_TYPE_COLORS. */
@@ -28,6 +47,17 @@ export const NODE_TYPE_ICONS: Record<string, string> = {
   Concept: '💡',
   Fork: '⑂',
   Resolution: '✓',
+  Component: '🧩',
+  Module: '📦',
+  ADR: '📝',
+  Tool: '🔧',
+  Agent: '🤖',
+  Interface: '🔌',
+  StorageBackend: '🗄️',
+  Plugin: '🧷',
+  Sweeper: '🧹',
+  Task: '☑️',
+  Relation: '↔️',
 }
 
 export const DEFAULT_NODE_TYPE_ICON = '?'

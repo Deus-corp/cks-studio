@@ -13,7 +13,6 @@ import { GraphEmptyState } from '@/components/graph/GraphEmptyState'
 import { GraphSearchPalette } from '@/components/graph/GraphSearchPalette'
 import { GraphSkeleton } from '@/components/graph/GraphSkeleton'
 import { nodeTypes } from '@/components/graph/nodes'
-import { TypeLegend } from '@/components/graph/TypeLegend'
 import type { GraphState } from '@/features/graph-explorer/graphExplorerStore'
 import { useGraphStore } from '@/features/graph-explorer/graphExplorerStore'
 import { useGraphLayout } from '@/features/graph-explorer/useGraphLayout'
@@ -296,8 +295,6 @@ export function GraphCanvas({
 
       {nodes.length === 0 && !isLoading && <GraphEmptyState />}
       {isLoading && nodes.length === 0 && <GraphSkeleton />}
-
-      <TypeLegend />
 
       {pathStartId && (
         <div className="absolute top-3 left-3 z-10 bg-amber-900/90 border border-amber-700 text-amber-100 text-xs rounded px-3 py-1.5">

@@ -6,6 +6,15 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 
 ---
 
+## [0.6.1] - 2026-08-11
+
+### Added
+- **3D graph improvements** – nodes now show always-visible text labels, size scales with degree (hub nodes appear larger), hover highlights the node and its neighbours while dimming the rest.
+- **Lazy‑loaded 3D module** – `GraphCanvas3D` is now code‑split (React.lazy + Suspense), so the 2D-only default view never pays the cost of the Three.js bundle.
+- **Ecosystem type icons** – added distinct colours and emoji icons for `Component`, `Module`, `ADR`, `Tool`, `Agent`, `Interface`, `StorageBackend`, `Plugin`, `Sweeper`, `Task`, and `Relation` so the ecosystem graph is no longer monochrome.
+
+---
+
 ## [0.6.0] - 2026-08-11
 
 ### Added
