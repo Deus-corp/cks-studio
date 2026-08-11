@@ -6,6 +6,20 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 
 ---
 
+## [0.6.2] - 2026-08-11
+
+### Added
+- **3D graph parity** – path highlighting (Shift+click), drag‑and‑drop subgraph import, relation‑draft participant picking, and Cmd/Ctrl+K search now work in 3D mode, matching the 2D GraphCanvas.
+- **3D clustering** – nodes are softly grouped by their containing Component/Module, making the ecosystem graph visually separable by repository.
+- **3D orientation grid and axes** – a subtle ground plane and RGB axes help orient the view without interfering with the data.
+- **2D layout direction toggle** – switch between top‑to‑bottom (TB) and left‑to‑right (LR) dagre layout in 2D mode to handle wide graphs.
+
+### Changed
+- **`looksLikeSubgraphResult`** extracted to `graphUtils.ts` and reused by both 2D and 3D canvases.
+- **`useGraphLayout`** now accepts a `rankdir` parameter for the layout direction toggle.
+
+---
+
 ## [0.6.1] - 2026-08-11
 
 ### Added

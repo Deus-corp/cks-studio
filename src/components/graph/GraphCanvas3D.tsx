@@ -3,8 +3,8 @@
 /**
  * 3D counterpart to GraphCanvas. Same data source (useGraphStore) and same
  * node-click contract (onNodeSelect), but rendered as a force-directed
- * point cloud in a sphere via 3d-force-graph/three.js instead of a 2D
- * dagre layout via @xyflow/react.
+ * point cloud via 3d-force-graph/three.js instead of a 2D dagre layout via
+ * @xyflow/react.
  *
  * Why this exists: dagre's rankdir:'TB' layout puts every same-rank node
  * in a single horizontal row (see useGraphLayout.ts) -- a graph with many
@@ -13,24 +13,31 @@
  * so a graph like that reads as a roughly spherical cluster rather than a
  * stretched-out ribbon.
  *
- * This is a first-pass prototype: node click/select, always-on labels,
- * degree-based sizing, and hover neighbor-highlighting work, but
- * path-highlighting, drag-and-drop subgraph import, relation-draft
- * participant picking, and search (all present in GraphCanvas) are not
- * wired up yet. It intentionally reuses the same hiddenTypes filtering
- * so switching modes doesn't reset what's visible.
+ * Feature parity with GraphCanvas: always-on labels, degree-based sizing,
+ * hover neighbor-highlighting, path-highlighting (Shift+click two nodes),
+ * drag-and-drop subgraph (.json) import, relation-draft participant
+ * picking, ⌘K search, and a soft component-containment clustering force
+ * plus a ground grid for spatial orientation. Not yet ported: the 2D
+ * minimap and per-node drag-to-reposition (3d-force-graph nodes are
+ * simulation-driven, not manually draggable the way xyflow nodes are).
  */
 
-import type { Node } from '@xyflow/react'
+import type { Edge, Node } from '@xyflow/react'
 import ForceGraph3D, { type ForceGraph3DInstance } from '3d-force-graph'
-import { useEffect, useRef } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import * as THREE from 'three'
 import SpriteText from 'three-spritetext'
 import { GraphEmptyState } from '@/components/graph/GraphEmptyState'
+import { GraphSearchPalette3D } from '@/components/graph/GraphSearchPalette3D'
 import { GraphSkeleton } from '@/components/graph/GraphSkeleton'
 import type { GraphState } from '@/features/graph-explorer/graphExplorerStore'
 import { useGraphStore } from '@/features/graph-explorer/graphExplorerStore'
 import { nodeTypeColor } from '@/shared/constants/nodeTypes'
+import type { SubgraphResult } from '@/shared/types/graph'
+import {
+  cksToReactFlow,
+  looksLikeSubgraphResult,
+} from '@/shared/utils/graphUtils'
 
 interface Graph3DNode {
   id: string
@@ -41,11 +48,20 @@ interface Graph3DNode {
    *  radius so hub nodes (e.g. cks-mcp, cks-runtime) read as visually
    *  more important than a single leaf Tool. */
   degree: number
+  /** Nearest containing Component/Module, found by following 'contains'
+   *  edges up from this node (see computeClusters below). Nodes with no
+   *  containing ancestor (most ADRs, Relations) are left undefined and
+   *  the clustering force simply ignores them -- they still participate
+   *  in the normal charge/link forces. */
+  cluster?: string
   // Populated by the force simulation at runtime (not set by us) --
   // optional because they don't exist until the first simulation tick.
   x?: number
   y?: number
   z?: number
+  vx?: number
+  vy?: number
+  vz?: number
   // Attached by 3d-force-graph itself once a custom nodeThreeObject has
   // been rendered for this datum -- used from onNodeHover to dim/reset
   // sibling nodes' materials directly without forcing a full data
@@ -54,6 +70,7 @@ interface Graph3DNode {
 }
 
 interface Graph3DLink {
+  id: string
   source: string
   target: string
   label: string
@@ -62,11 +79,84 @@ interface Graph3DLink {
 /** Shape links actually have once 3d-force-graph's simulation has run --
  *  it mutates link.source/target from the original id strings into
  *  references to the resolved node objects. Only used when reading data
- *  back via graph.graphData() (hover handler), never when building it. */
+ *  back via graph.graphData() (hover/highlight effects), never when
+ *  building it. */
 interface RuntimeGraph3DLink extends Omit<Graph3DLink, 'source' | 'target'> {
   source: string | Graph3DNode
   target: string | Graph3DNode
   __lineObj?: THREE.Object3D
+}
+
+/** Adjacency built from 'contains' edges: parent Component/Module id ->
+ *  direct child ids. Used to flood-fill a cluster id (the nearest
+ *  top-level Component/Module ancestor) down onto every descendant, so
+ *  e.g. all Tools/ADRs belonging to cks-mcp softly pull toward the same
+ *  point in space instead of floating free in the general charge cloud. */
+function computeClusters(nodes: Node[], edges: Edge[]): Map<string, string> {
+  const children = new Map<string, string[]>()
+  for (const edge of edges) {
+    if ((edge.label as string | undefined) !== 'contains') continue
+    if (!children.has(edge.source)) children.set(edge.source, [])
+    children.get(edge.source)?.push(edge.target)
+  }
+
+  const clusterOf = new Map<string, string>()
+  const roots = nodes.filter(
+    (n) => n.data?.cksType === 'Component' || n.data?.cksType === 'Module',
+  )
+  for (const root of roots) {
+    // A node already assigned by an earlier root keeps that assignment
+    // (first containing ancestor wins) rather than being reparented by
+    // a second 'contains' edge from elsewhere.
+    if (clusterOf.has(root.id)) continue
+    clusterOf.set(root.id, root.id)
+    const queue = [root.id]
+    while (queue.length > 0) {
+      const current = queue.shift() as string
+      for (const childId of children.get(current) ?? []) {
+        if (clusterOf.has(childId)) continue
+        clusterOf.set(childId, root.id)
+        queue.push(childId)
+      }
+    }
+  }
+  return clusterOf
+}
+
+/** Custom d3-force pulling each clustered node toward its cluster's
+ *  current centroid. Reads live node positions via `getNodes` on every
+ *  tick (rather than closing over a snapshot) so it keeps working
+ *  correctly across graphData() swaps (filtering, live updates) without
+ *  needing to be re-registered. */
+function makeClusterForce(getNodes: () => Graph3DNode[]) {
+  const strength = 0.5
+  return (alpha: number) => {
+    const currentNodes = getNodes()
+    const centroids = new Map<
+      string,
+      { x: number; y: number; z: number; count: number }
+    >()
+    for (const n of currentNodes) {
+      if (!n.cluster) continue
+      const c = centroids.get(n.cluster) ?? { x: 0, y: 0, z: 0, count: 0 }
+      c.x += n.x ?? 0
+      c.y += n.y ?? 0
+      c.z += n.z ?? 0
+      c.count += 1
+      centroids.set(n.cluster, c)
+    }
+    for (const n of currentNodes) {
+      if (!n.cluster) continue
+      const c = centroids.get(n.cluster)
+      // A cluster of one (nothing else assigned to this root) has
+      // nothing to pull toward -- skip rather than pull it toward
+      // itself, which would be a no-op anyway but wastes a tick.
+      if (!c || c.count < 2) continue
+      n.vx = (n.vx ?? 0) + (c.x / c.count - (n.x ?? 0)) * strength * alpha
+      n.vy = (n.vy ?? 0) + (c.y / c.count - (n.y ?? 0)) * strength * alpha
+      n.vz = (n.vz ?? 0) + (c.z / c.count - (n.z ?? 0)) * strength * alpha
+    }
+  }
 }
 
 export function GraphCanvas3D({
@@ -80,6 +170,23 @@ export function GraphCanvas3D({
   const edges = useGraphStore((s: GraphState) => s.edges)
   const hiddenTypes = useGraphStore((s: GraphState) => s.hiddenTypes)
   const selectNode = useGraphStore((s: GraphState) => s.selectNode)
+  const setNodes = useGraphStore((s: GraphState) => s.setNodes)
+  const setEdges = useGraphStore((s: GraphState) => s.setEdges)
+  const highlightedEdgeIds = useGraphStore(
+    (s: GraphState) => s.highlightedEdgeIds,
+  )
+  const setHighlightedEdges = useGraphStore(
+    (s: GraphState) => s.setHighlightedEdges,
+  )
+  const relationDraft = useGraphStore((s: GraphState) => s.relationDraft)
+  const toggleRelationParticipant = useGraphStore(
+    (s: GraphState) => s.toggleRelationParticipant,
+  )
+
+  const [pathStartId, setPathStartId] = useState<string | null>(null)
+  const [isSearchOpen, setIsSearchOpen] = useState(false)
+  const [isDragOver, setIsDragOver] = useState(false)
+  const [dropError, setDropError] = useState<string | null>(null)
 
   const containerRef = useRef<HTMLDivElement>(null)
   // ForceGraphInstance is mutable/imperative (three.js scene handle), not
@@ -91,17 +198,43 @@ export function GraphCanvas3D({
     Graph3DLink
   > | null>(null)
   // The mount effect below runs once and captures its closure at that
-  // point; onNodeClick needs the *current* nodes array (with full
-  // .data.structure, not just what Graph3DNode carries) to hand SidePanel
-  // the same shape GraphCanvas does, so it's kept in a ref instead of a
-  // dependency that would force tearing down/recreating the WebGL scene
-  // on every graph update.
+  // point; several handlers need the *current* store values (full node
+  // data, path-highlight state, relation-draft state) without forcing a
+  // teardown/recreate of the WebGL scene on every change, so they're
+  // mirrored into refs and read from there instead of the closure.
   const nodesRef = useRef<Node[]>(nodes)
   nodesRef.current = nodes
+  const edgesRef = useRef<Edge[]>(edges)
+  edgesRef.current = edges
+  const pathStartIdRef = useRef<string | null>(pathStartId)
+  pathStartIdRef.current = pathStartId
+  const relationDraftRef = useRef(relationDraft)
+  relationDraftRef.current = relationDraft
   // Adjacency built alongside graphData in the data effect below, read
   // by onNodeHover in the mount effect. A ref (not state) because hover
   // firing on every mouse-move must never trigger a React re-render.
   const neighborsRef = useRef<Map<string, Set<string>>>(new Map())
+
+  const focusNode = useCallback((nodeId: string) => {
+    const graph = graphRef.current
+    if (!graph) return
+    const target = (graph.graphData().nodes as Graph3DNode[]).find(
+      (n) => n.id === nodeId,
+    )
+    if (!target) return
+    const distance = 120
+    const distRatio =
+      1 + distance / Math.hypot(target.x ?? 1, target.y ?? 1, target.z ?? 1)
+    graph.cameraPosition(
+      {
+        x: (target.x ?? 0) * distRatio,
+        y: (target.y ?? 0) * distRatio,
+        z: (target.z ?? 0) * distRatio,
+      },
+      { x: target.x ?? 0, y: target.y ?? 0, z: target.z ?? 0 },
+      800,
+    )
+  }, [])
 
   // Mount/unmount the three.js scene once. Data is pushed in via
   // .graphData() in the effect below rather than recreated here, so
@@ -144,6 +277,27 @@ export function GraphCanvas3D({
         )
         group.add(sphere)
 
+        // relation-draft: a thin ring showing which participant slot
+        // (1st/2nd) this node occupies, matching CksNode's badge in 2D.
+        const participantIndex = relationDraftRef.current.active
+          ? relationDraftRef.current.participantIds.indexOf(n.id)
+          : -1
+        if (participantIndex !== -1) {
+          const ring = new THREE.Mesh(
+            new THREE.TorusGeometry(radius + 1.8, 0.5, 8, 32),
+            new THREE.MeshBasicMaterial({ color: '#fbbf24' }),
+          )
+          group.add(ring)
+          const badge = new SpriteText(String(participantIndex + 1))
+          badge.color = '#0f172a'
+          badge.backgroundColor = '#fbbf24'
+          badge.textHeight = 2.6
+          badge.padding = 1
+          badge.borderRadius = 6
+          badge.position.set(radius * 0.7, radius * 0.7, 0)
+          group.add(badge)
+        }
+
         // Truncate long names -- full name is still in the hover
         // tooltip via nodeLabel above.
         const label = n.name.length > 22 ? `${n.name.slice(0, 21)}…` : n.name
@@ -160,11 +314,17 @@ export function GraphCanvas3D({
       })
       .nodeThreeObjectExtend(false)
       .linkLabel((link) => (link as Graph3DLink).label)
-      .linkColor(() => 'rgba(148, 163, 184, 0.55)')
+      .linkColor((link) =>
+        highlightedEdgeIdsRef.current.has((link as Graph3DLink).id)
+          ? '#22d3ee'
+          : 'rgba(148, 163, 184, 0.55)',
+      )
+      .linkWidth((link) =>
+        highlightedEdgeIdsRef.current.has((link as Graph3DLink).id) ? 2.5 : 0.6,
+      )
       .linkOpacity(0.6)
       .linkDirectionalArrowLength(3.5)
       .linkDirectionalArrowRelPos(1)
-      .linkWidth(0.6)
       .onNodeHover((node) => {
         const hoveredId = (node as Graph3DNode | null)?.id ?? null
         const neighborIds = hoveredId
@@ -198,13 +358,20 @@ export function GraphCanvas3D({
           const touches =
             hoveredId !== null &&
             (sourceId === hoveredId || targetId === hoveredId)
+          const isPathHighlighted = highlightedEdgeIdsRef.current.has(gl.id)
           const lineMaterial = (
             gl.__lineObj as unknown as THREE.Line | undefined
           )?.material as THREE.LineBasicMaterial | undefined
           if (lineMaterial) {
-            lineMaterial.opacity =
-              hoveredId === null ? 0.6 : touches ? 0.9 : 0.06
             lineMaterial.transparent = true
+            lineMaterial.opacity =
+              hoveredId === null
+                ? isPathHighlighted
+                  ? 0.95
+                  : 0.6
+                : touches
+                  ? 0.9
+                  : 0.06
           }
         }
 
@@ -212,27 +379,71 @@ export function GraphCanvas3D({
           containerRef.current.style.cursor = hoveredId ? 'pointer' : 'default'
         }
       })
-      .onNodeClick((node) => {
+      .onNodeClick((node, event) => {
         const n = node as Graph3DNode
+
+        // Relation-draft mode (creating a new relation, started from
+        // GraphPage's "New relation" button): click picks/unpicks this
+        // node as a participant instead of selecting/navigating.
+        if (relationDraftRef.current.active && !event.shiftKey) {
+          toggleRelationParticipant(n.id)
+          return
+        }
+
+        // Shift+click twice: highlight the shortest path between the
+        // two clicked nodes, same as GraphCanvas's Shift+click.
+        if (event.shiftKey) {
+          if (!pathStartIdRef.current) {
+            setPathStartId(n.id)
+            return
+          }
+          const path = findPathBetweenNodes3D(
+            pathStartIdRef.current,
+            n.id,
+            edgesRef.current,
+          )
+          setHighlightedEdges(path)
+          setPathStartId(null)
+          return
+        }
+
         selectNode(n.id)
         const fullNode = nodesRef.current.find((rn) => rn.id === n.id)
         if (fullNode) onNodeSelect?.(fullNode)
         // Recenter the camera on the clicked node, same distance out, so
         // clicking through a cluster feels like navigating rather than
         // just re-coloring a dot buried in the point cloud.
-        const distance = 120
-        const distRatio =
-          1 + distance / Math.hypot(n.x ?? 1, n.y ?? 1, n.z ?? 1)
-        graph.cameraPosition(
-          {
-            x: (n.x ?? 0) * distRatio,
-            y: (n.y ?? 0) * distRatio,
-            z: (n.z ?? 0) * distRatio,
-          },
-          { x: n.x ?? 0, y: n.y ?? 0, z: n.z ?? 0 },
-          800,
-        )
+        focusNode(n.id)
       })
+      .onBackgroundClick(() => {
+        selectNode(null)
+        setPathStartId(null)
+      })
+
+    // Component-containment clustering: softly pulls Tools/ADRs/etc.
+    // toward their owning Component/Module's centroid so the graph
+    // visually separates into per-repo/per-module sub-clusters instead
+    // of one undifferentiated cloud. See makeClusterForce's doc comment.
+    graph.d3Force(
+      'cluster',
+      makeClusterForce(() => graph.graphData().nodes as Graph3DNode[]),
+    )
+
+    // Ground grid + origin axes purely for spatial orientation while
+    // orbiting/panning a graph with no other fixed reference points --
+    // low-opacity so it recedes behind the actual data.
+    const scene = graph.scene()
+    const grid = new THREE.GridHelper(500, 25, 0x475569, 0x1e293b)
+    grid.position.y = -180
+    for (const mat of Array.isArray(grid.material)
+      ? grid.material
+      : [grid.material]) {
+      mat.transparent = true
+      mat.opacity = 0.18
+    }
+    scene.add(grid)
+    const axes = new THREE.AxesHelper(50)
+    scene.add(axes)
 
     graphRef.current = graph
 
@@ -253,7 +464,35 @@ export function GraphCanvas3D({
       if (containerRef.current) containerRef.current.innerHTML = ''
       graphRef.current = null
     }
-  }, [onNodeSelect, selectNode])
+    // Deliberately excludes highlightedEdgeIds/relationDraft/pathStartId:
+    // those are read from refs (see highlightedEdgeIdsRef below and the
+    // *Ref mirrors above) so changing them re-colors/re-picks in place
+    // without tearing down and rebuilding the WebGL scene.
+  }, [
+    onNodeSelect,
+    selectNode,
+    setHighlightedEdges,
+    toggleRelationParticipant,
+    focusNode,
+  ])
+
+  // highlightedEdgeIds needs to be readable from inside the mount
+  // effect's closures (linkColor/linkWidth/hover) without re-running
+  // that effect on every highlight change -- mirrored into a ref here,
+  // then the link accessors are force-refreshed below.
+  const highlightedEdgeIdsRef = useRef(highlightedEdgeIds)
+  highlightedEdgeIdsRef.current = highlightedEdgeIds
+  // biome-ignore lint/correctness/useExhaustiveDependencies: highlightedEdgeIds is read via the ref above inside linkColor/linkWidth closures; it's listed here purely to re-trigger the refresh call below when it changes.
+  useEffect(() => {
+    const graph = graphRef.current
+    if (!graph) return
+    // Re-invoking an accessor with itself is 3d-force-graph's documented
+    // way to force it to re-evaluate that accessor for all existing
+    // links without a full graphData() swap (which would also restart
+    // the simulation/camera).
+    graph.linkColor(graph.linkColor())
+    graph.linkWidth(graph.linkWidth())
+  }, [highlightedEdgeIds])
 
   // Push data + type-visibility filtering whenever the store changes.
   // Filtering here (not via a separate visibleNodes memo like
@@ -278,6 +517,7 @@ export function GraphCanvas3D({
         (edge) => visibleIds.has(edge.source) && visibleIds.has(edge.target),
       )
       .map((edge) => ({
+        id: edge.id,
         source: edge.source,
         target: edge.target,
         label: (edge.label as string) || '',
@@ -300,6 +540,8 @@ export function GraphCanvas3D({
     }
     neighborsRef.current = neighbors
 
+    const clusterOf = computeClusters(visibleNodes, edges)
+
     const graph3DNodes: Graph3DNode[] = visibleNodes.map((node) => {
       const cksType = (node.data?.cksType as string) || 'Concept'
       return {
@@ -308,17 +550,208 @@ export function GraphCanvas3D({
         cksType,
         color: nodeTypeColor(cksType),
         degree: degree.get(node.id) ?? 0,
+        cluster: clusterOf.get(node.id),
       }
     })
 
     graph.graphData({ nodes: graph3DNodes, links: graph3DLinks })
   }, [nodes, edges, hiddenTypes])
 
+  // Re-render node visuals (participant rings) when relation-draft
+  // selection changes -- nodeThreeObject only re-runs per node when
+  // graphData is swapped, so force a refresh the same way link color
+  // does above.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: relationDraft is read via relationDraftRef inside nodeThreeObject's closure; listed here purely to re-trigger the refresh call below when it changes.
+  useEffect(() => {
+    const graph = graphRef.current
+    if (!graph) return
+    graph.nodeThreeObject(graph.nodeThreeObject())
+  }, [relationDraft])
+
+  const handleDragOver = useCallback((event: React.DragEvent) => {
+    event.preventDefault()
+    setIsDragOver(true)
+  }, [])
+
+  const handleDragLeave = useCallback(() => {
+    setIsDragOver(false)
+  }, [])
+
+  const handleDrop = useCallback(
+    (event: React.DragEvent) => {
+      event.preventDefault()
+      setIsDragOver(false)
+      setDropError(null)
+
+      const file = event.dataTransfer.files?.[0]
+      if (!file) return
+      if (!file.name.endsWith('.json')) {
+        setDropError('Expected a .json file with a subgraph (nodes/edges).')
+        return
+      }
+
+      const reader = new FileReader()
+      reader.onload = () => {
+        try {
+          const parsed: unknown = JSON.parse(String(reader.result))
+          if (!looksLikeSubgraphResult(parsed)) {
+            setDropError(
+              "File doesn't look like a query_subgraph export ({nodes, edges}). " +
+                'A full .cks.json ({objects: [...]}) needs to be imported via ' +
+                'scripts/import-ecosystem-graph.py — that requires creating a session on the server.',
+            )
+            return
+          }
+          const { nodes: newNodes, edges: newEdges } = cksToReactFlow(
+            parsed as SubgraphResult,
+          )
+          setNodes(newNodes)
+          setEdges(newEdges)
+        } catch {
+          setDropError('Could not parse JSON.')
+        }
+      }
+      reader.readAsText(file)
+    },
+    [setNodes, setEdges],
+  )
+
   return (
-    <div className="w-full h-full relative">
+    <div
+      className="w-full h-full relative"
+      role="application"
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+    >
       <div ref={containerRef} className="w-full h-full" />
+
+      {nodes.length > 0 && (
+        <div className="absolute top-3 left-3 z-10">
+          <button
+            type="button"
+            onClick={() => setIsSearchOpen(true)}
+            className="flex items-center gap-1.5 bg-surface-1/95 backdrop-blur-sm border border-border-subtle hover:border-border rounded-md px-2.5 py-1.5 text-xs text-text-secondary hover:text-text-primary shadow-lg transition-colors"
+          >
+            <svg
+              width="12"
+              height="12"
+              viewBox="0 0 24 24"
+              fill="none"
+              aria-hidden="true"
+            >
+              <circle
+                cx="11"
+                cy="11"
+                r="7"
+                stroke="currentColor"
+                strokeWidth="2"
+              />
+              <line
+                x1="21"
+                y1="21"
+                x2="16.65"
+                y2="16.65"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+              />
+            </svg>
+            Search nodes
+            <kbd className="font-mono text-[10px] text-text-tertiary border border-border-subtle rounded px-1">
+              ⌘K
+            </kbd>
+          </button>
+        </div>
+      )}
+      <GraphSearchPalette3D
+        isOpen={isSearchOpen}
+        onOpenChange={setIsSearchOpen}
+        onFocusNode={focusNode}
+      />
+
+      {pathStartId && (
+        <div className="absolute top-3 left-1/2 -translate-x-1/2 z-10 bg-amber-900/90 border border-amber-700 text-amber-100 text-xs rounded px-3 py-1.5">
+          Shift+click a second node to highlight the path to it
+        </div>
+      )}
+
+      {isDragOver && (
+        <div className="absolute inset-0 z-20 flex items-center justify-center bg-accent/10 border-2 border-dashed border-accent pointer-events-none">
+          <p className="text-sm text-text-primary bg-surface-1/95 px-4 py-2 rounded-md shadow-lg">
+            Drop a subgraph .json file
+          </p>
+        </div>
+      )}
+      {dropError && (
+        <div className="absolute bottom-16 left-3 z-10 bg-danger/90 text-white text-xs rounded px-3 py-1.5 max-w-sm">
+          {dropError}
+          <button
+            type="button"
+            onClick={() => setDropError(null)}
+            className="ml-2 underline"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
+
       {nodes.length === 0 && !isLoading && <GraphEmptyState />}
       {isLoading && nodes.length === 0 && <GraphSkeleton />}
     </div>
   )
+}
+
+/** Same BFS shortest-path-by-edge-count as graphUtils' findPathBetweenNodes,
+ *  duplicated here because that one is typed against @xyflow/react's Edge
+ *  (edge.source/target as plain node id strings), which our Edge[] here
+ *  also happens to be -- but keeping a local copy avoids coupling this
+ *  file's path logic to 2D-specific imports/behavior if the two ever
+ *  need to diverge (e.g. weighting by 3D distance). */
+function findPathBetweenNodes3D(
+  fromId: string,
+  toId: string,
+  edges: Edge[],
+): Set<string> {
+  if (fromId === toId) return new Set()
+
+  const adjacency = new Map<string, { edgeId: string; neighborId: string }[]>()
+  for (const edge of edges) {
+    if (!edge.source || !edge.target) continue
+    if (!adjacency.has(edge.source)) adjacency.set(edge.source, [])
+    if (!adjacency.has(edge.target)) adjacency.set(edge.target, [])
+    adjacency
+      .get(edge.source)
+      ?.push({ edgeId: edge.id, neighborId: edge.target })
+    adjacency
+      .get(edge.target)
+      ?.push({ edgeId: edge.id, neighborId: edge.source })
+  }
+
+  const visited = new Set<string>([fromId])
+  const cameFrom = new Map<string, { edgeId: string; prevId: string }>()
+  const queue: string[] = [fromId]
+
+  while (queue.length > 0) {
+    const current = queue.shift() as string
+    if (current === toId) break
+    for (const { edgeId, neighborId } of adjacency.get(current) ?? []) {
+      if (visited.has(neighborId)) continue
+      visited.add(neighborId)
+      cameFrom.set(neighborId, { edgeId, prevId: current })
+      queue.push(neighborId)
+    }
+  }
+
+  if (!visited.has(toId)) return new Set()
+
+  const pathEdgeIds = new Set<string>()
+  let cursor = toId
+  while (cursor !== fromId) {
+    const step = cameFrom.get(cursor)
+    if (!step) break
+    pathEdgeIds.add(step.edgeId)
+    cursor = step.prevId
+  }
+  return pathEdgeIds
 }

@@ -2,6 +2,17 @@ import type { Edge, Node } from '@xyflow/react'
 import { MarkerType } from '@xyflow/react'
 import type { CksObject, SubgraphResult } from '@/shared/types/graph'
 
+/** Type guard for a dropped .json file's parsed content -- used by both
+ *  GraphCanvas (2D) and GraphCanvas3D's drag-and-drop subgraph import so
+ *  the two canvases validate dropped files identically. */
+export function looksLikeSubgraphResult(
+  value: unknown,
+): value is SubgraphResult {
+  if (!value || typeof value !== 'object') return false
+  const v = value as Record<string, unknown>
+  return Array.isArray(v.nodes) && Array.isArray(v.edges)
+}
+
 /** Тип ребра в ответе subgraph */
 type EdgeData = { source: string; target: string; relation_type: string }
 

@@ -39,6 +39,14 @@ export interface GraphState {
    *  them over a volume instead. */
   viewMode: '2d' | '3d'
   setViewMode: (mode: '2d' | '3d') => void
+  /** dagre rankdir for the 2D layout. 'TB' (default) puts same-rank
+   *  siblings in one wide horizontal row -- graphs with many nodes
+   *  sharing a rank (e.g. many Tools implementing one ADR) stretch very
+   *  wide. 'LR' rotates the same layout 90°, trading width for height,
+   *  which reads better on an ultrawide monitor or when the graph is
+   *  bushier than it is deep. */
+  layoutDirection: 'TB' | 'LR'
+  setLayoutDirection: (dir: 'TB' | 'LR') => void
 }
 
 export const useGraphStore = create<GraphState>((set) => ({
@@ -153,4 +161,7 @@ export const useGraphStore = create<GraphState>((set) => ({
 
   viewMode: '2d',
   setViewMode: (mode) => set({ viewMode: mode }),
+
+  layoutDirection: 'TB',
+  setLayoutDirection: (dir) => set({ layoutDirection: dir }),
 }))

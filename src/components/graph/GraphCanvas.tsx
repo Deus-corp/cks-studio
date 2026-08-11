@@ -17,14 +17,11 @@ import type { GraphState } from '@/features/graph-explorer/graphExplorerStore'
 import { useGraphStore } from '@/features/graph-explorer/graphExplorerStore'
 import { useGraphLayout } from '@/features/graph-explorer/useGraphLayout'
 import { nodeTypeColor } from '@/shared/constants/nodeTypes'
-import type { SubgraphResult } from '@/shared/types/graph'
-import { cksToReactFlow, findPathBetweenNodes } from '@/shared/utils/graphUtils'
-
-function looksLikeSubgraphResult(value: unknown): value is SubgraphResult {
-  if (!value || typeof value !== 'object') return false
-  const v = value as Record<string, unknown>
-  return Array.isArray(v.nodes) && Array.isArray(v.edges)
-}
+import {
+  cksToReactFlow,
+  findPathBetweenNodes,
+  looksLikeSubgraphResult,
+} from '@/shared/utils/graphUtils'
 
 export function GraphCanvas({
   onNodeSelect,
@@ -57,6 +54,10 @@ export function GraphCanvas({
     (s: GraphState) => s.toggleRelationParticipant,
   )
   const hiddenTypes = useGraphStore((s: GraphState) => s.hiddenTypes)
+  const layoutDirection = useGraphStore((s: GraphState) => s.layoutDirection)
+  const setLayoutDirection = useGraphStore(
+    (s: GraphState) => s.setLayoutDirection,
+  )
 
   const [isDragOver, setIsDragOver] = useState(false)
   const [dropError, setDropError] = useState<string | null>(null)
@@ -86,6 +87,7 @@ export function GraphCanvas({
   const { nodes: layoutedNodes, edges: layoutedEdges } = useGraphLayout(
     visibleNodes,
     visibleEdges,
+    layoutDirection,
   )
 
   const displayNodes = relationDraft.active
@@ -250,40 +252,56 @@ export function GraphCanvas({
         <ExportControls onRefresh={onRefresh} isRefreshing={isLoading} />
         {nodes.length > 0 && (
           <Panel position="top-left">
-            <button
-              type="button"
-              onClick={() => setIsSearchOpen(true)}
-              className="flex items-center gap-1.5 bg-surface-1/95 backdrop-blur-sm border border-border-subtle hover:border-border rounded-md px-2.5 py-1.5 text-xs text-text-secondary hover:text-text-primary shadow-lg transition-colors"
-            >
-              <svg
-                width="12"
-                height="12"
-                viewBox="0 0 24 24"
-                fill="none"
-                aria-hidden="true"
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setIsSearchOpen(true)}
+                className="flex items-center gap-1.5 bg-surface-1/95 backdrop-blur-sm border border-border-subtle hover:border-border rounded-md px-2.5 py-1.5 text-xs text-text-secondary hover:text-text-primary shadow-lg transition-colors"
               >
-                <circle
-                  cx="11"
-                  cy="11"
-                  r="7"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                />
-                <line
-                  x1="21"
-                  y1="21"
-                  x2="16.65"
-                  y2="16.65"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                />
-              </svg>
-              Search nodes
-              <kbd className="font-mono text-[10px] text-text-tertiary border border-border-subtle rounded px-1">
-                ⌘K
-              </kbd>
-            </button>
+                <svg
+                  width="12"
+                  height="12"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  aria-hidden="true"
+                >
+                  <circle
+                    cx="11"
+                    cy="11"
+                    r="7"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                  />
+                  <line
+                    x1="21"
+                    y1="21"
+                    x2="16.65"
+                    y2="16.65"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                  />
+                </svg>
+                Search nodes
+                <kbd className="font-mono text-[10px] text-text-tertiary border border-border-subtle rounded px-1">
+                  ⌘K
+                </kbd>
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  setLayoutDirection(layoutDirection === 'TB' ? 'LR' : 'TB')
+                }
+                title={
+                  layoutDirection === 'TB'
+                    ? 'Switch to left-to-right layout (less horizontal stretch on bushy graphs)'
+                    : 'Switch to top-to-bottom layout'
+                }
+                className="flex items-center gap-1.5 bg-surface-1/95 backdrop-blur-sm border border-border-subtle hover:border-border rounded-md px-2.5 py-1.5 text-xs text-text-secondary hover:text-text-primary shadow-lg transition-colors"
+              >
+                {layoutDirection === 'TB' ? '↓ Top-down' : '→ Left-right'}
+              </button>
+            </div>
           </Panel>
         )}
         <GraphSearchPalette

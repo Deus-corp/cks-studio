@@ -24,6 +24,7 @@ function labelWidth(node: Node): number {
 export function useGraphLayout(
   nodes: Node[],
   edges: Edge[],
+  rankdir: 'TB' | 'LR' = 'TB',
 ): { nodes: Node[]; edges: Edge[] } {
   return useMemo(() => {
     if (nodes.length === 0) return { nodes, edges }
@@ -31,7 +32,7 @@ export function useGraphLayout(
     const g = new dagre.graphlib.Graph()
     g.setDefaultEdgeLabel(() => ({}))
     g.setGraph({
-      rankdir: 'TB',
+      rankdir,
       // Long labels (ADR-... titles etc.) make nodes wider than the old
       // fixed 220px, so separation needs more room too, or adjacent
       // wide nodes/ranks overlap even with per-node widths set below.
@@ -66,5 +67,5 @@ export function useGraphLayout(
     })
 
     return { nodes: laidOutNodes, edges }
-  }, [nodes, edges])
+  }, [nodes, edges, rankdir])
 }
