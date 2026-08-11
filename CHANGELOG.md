@@ -6,6 +6,14 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 
 ---
 
+## [0.6.5] - 2026-08-11
+
+### Added
+- **Static demo** – a standalone `demo.html` that renders the full CKS ecosystem graph entirely in the browser, with no server required. Includes a mock MCP client, restricted navigation (Graph / Gallery / Pipeline), and a demo banner. Built alongside the main studio as a second Vite entry point.
+- **`mockClient.ts`** – in‑memory MCP client serving the bundled ecosystem graph for the static demo.
+
+---
+
 ## [0.6.4] - 2026-08-11
 
 ### Fixed

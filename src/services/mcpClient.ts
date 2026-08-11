@@ -13,10 +13,26 @@ export function setMCPBaseUrl(url: string) {
   _baseUrl = url.replace(/\/$/, '')
 }
 
+/**
+ * Demo mode (see src/demo.tsx / src/services/mockClient.ts): when the
+ * static GitHub Pages demo is running there is no cks-mcp server to talk
+ * to, so every callTool() is routed to the in-memory mock client instead
+ * of hitting the network. Nothing outside demo.tsx should ever call this.
+ */
+let _demoCallTool: typeof callTool | null = null
+
+export function setDemoCallTool(fn: typeof callTool | null) {
+  _demoCallTool = fn
+}
+
 export async function callTool(
   toolName: string,
   args: Record<string, unknown>,
 ): Promise<Record<string, unknown>> {
+  if (_demoCallTool) {
+    return _demoCallTool(toolName, args)
+  }
+
   const response = await fetch(`${_baseUrl}/mcp`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

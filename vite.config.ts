@@ -34,4 +34,17 @@ export default defineConfig({
       '@': path.resolve(import.meta.dirname, 'src'),
     },
   },
+  build: {
+    rollupOptions: {
+      // Second entry point for the static demo (src/demo.tsx / demo.html
+      // at repo root, next to index.html -- must live there, not under
+      // public/, so Vite actually transforms its <script src> and bundles
+      // demo.tsx rather than copying the file verbatim). Built alongside
+      // the main studio bundle, output as dist/demo.html.
+      input: {
+        main: path.resolve(import.meta.dirname, 'index.html'),
+        demo: path.resolve(import.meta.dirname, 'demo.html'),
+      },
+    },
+  },
 })
