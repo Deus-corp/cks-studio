@@ -618,13 +618,13 @@ export function GraphCanvas3D({
 
   return (
     <div
-      className="w-full h-full relative"
+      className="w-full h-full relative overflow-hidden"
       role="application"
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
     >
-      <div ref={containerRef} className="w-full h-full" />
+      <div ref={containerRef} className="w-full h-full overflow-hidden" />
 
       {nodes.length > 0 && (
         <div className="absolute top-3 left-3 z-10">

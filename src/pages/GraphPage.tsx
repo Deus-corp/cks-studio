@@ -260,7 +260,7 @@ export function GraphPage() {
         {error && <p className="text-danger text-xs w-full">{error}</p>}
       </header>
       <div className="flex-1 flex">
-        <main className="flex-1 relative">
+        <main className="flex-1 relative overflow-hidden">
           {viewMode === '3d' ? (
             <Suspense fallback={<GraphSkeleton />}>
               <GraphCanvas3D

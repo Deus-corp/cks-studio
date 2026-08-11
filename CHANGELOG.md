@@ -6,6 +6,14 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 
 ---
 
+## [0.6.4] - 2026-08-11
+
+### Fixed
+- **Missing node type icons** – added colours and icons for `Constraints`, `Event`, `Feature`, `Function`, `LLMProvider`, `Operator`. Unknown types now render a fallback icon (📄) instead of "?".
+- **3D sidebar visibility** – the side panel no longer disappears behind the WebGL canvas in 3D mode.
+
+---
+
 ## [0.6.3] - 2026-08-11
 
 ### Fixed

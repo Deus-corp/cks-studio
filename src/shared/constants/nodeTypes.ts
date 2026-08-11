@@ -46,6 +46,15 @@ export const NODE_TYPE_COLORS: Record<string, string> = {
   Proof: '#34d399',
   InferenceStep: '#c084fc',
   VerificationRecord: '#06b6d4',
+  // Типы из cks-ecosystem.json (полный список сверен напрямую с файлом,
+  // а не только с примерами кода) — раньше отсутствовали и падали в
+  // DEFAULT_NODE_TYPE_COLOR.
+  Constraint: '#f43f5e',
+  Event: '#0ea5e9',
+  Feature: '#22c55e',
+  Function: '#eab308',
+  LLMProvider: '#d946ef',
+  Operator: '#78716c',
 }
 
 /** Цвет для CKS-типов, которых нет в NODE_TYPE_COLORS. */
@@ -77,9 +86,22 @@ export const NODE_TYPE_ICONS: Record<string, string> = {
   Proof: '✅',
   InferenceStep: '🔗',
   VerificationRecord: '🛡️',
+  Constraint: '🚧',
+  Event: '⚡',
+  Feature: '✨',
+  Function: 'ƒ',
+  LLMProvider: '🧠',
+  Operator: '⚙️',
 }
 
-export const DEFAULT_NODE_TYPE_ICON = '?'
+/** Универсальная иконка для типов, которых нет ни в NODE_TYPE_ICONS, ни
+ *  в NODE_TYPE_COLORS. Раньше это был знак "?", который на графе с
+ *  незнакомой (или ещё не заведённой в справочнике) экосистемой
+ *  засорял канвас вопросительными знаками у каждого такого узла —
+ *  нейтральная точка-плейсхолдер выглядит как "неизвестный тип
+ *  объекта", а не как ошибка рендеринга. */
+
+export const DEFAULT_NODE_TYPE_ICON = '◆'
 
 /** Цвет по значению structure.current_status пайплайна (ADR-007). */
 export const PIPELINE_STATUS_COLORS: Record<string, string> = {
