@@ -38,17 +38,40 @@ function serializeKnowledge(): Record<string, unknown> {
 
 /** Mirrors query_subgraph_tool's compact_mode response shape (see
  *  mcpTools.ts normalizeCompactSubgraphResponse): a BFS from seed_ids out
- *  to `depth` hops, restricted to the single bundled graph. */
+ *  to `depth` hops, restricted to the single bundled graph.
+ *
+ *  With no seed_ids (the initial-load case some callers use instead of
+ *  serialize_knowledge), there's nothing to BFS from, so fall back to
+ *  returning the entire bundled graph as one subgraph -- matching what a
+ *  real query_subgraph call with an empty seed set would be pointless to
+ *  do, but keeping this tool robust to either call shape. */
 function querySubgraph(args: Record<string, unknown>): Record<string, unknown> {
   const seedIds = Array.isArray(args.seed_ids)
     ? (args.seed_ids as string[])
     : []
-  const depth = typeof args.depth === 'number' ? args.depth : 1
 
-  const byId = new Map(GRAPH.objects.map((obj) => [obj.identity.id, obj]))
   const relations = GRAPH.objects.filter(
     (obj) => obj.identity.type === 'Relation',
   )
+
+  if (seedIds.length === 0) {
+    const nodes = GRAPH.objects.filter(
+      (obj) => obj.identity.type !== 'Relation',
+    )
+    const edges = relations.map((rel) => {
+      const s = rel.structure as Record<string, unknown>
+      return {
+        source: s.source,
+        target: s.target,
+        type: s.relation_type ?? 'related',
+      }
+    })
+    return { subgraph: { nodes, edges } }
+  }
+
+  const depth = typeof args.depth === 'number' ? args.depth : 1
+
+  const byId = new Map(GRAPH.objects.map((obj) => [obj.identity.id, obj]))
 
   const edgesFor = (id: string) =>
     relations.filter((rel) => {

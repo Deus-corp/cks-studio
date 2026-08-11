@@ -12,15 +12,16 @@
  *    immediately instead of showing an empty "connect" state;
  *  - the nav only exposes Graph / Gallery / Pipeline -- Chat, Agents,
  *    Evolve and Diff all require a live cks-mcp server and are hidden;
- *  - a banner explains this is a static demo.
+ *  - a banner explains this is a static demo;
+ *  - a floating "Back to Docs" link returns to the cks-website docs site;
+ *  - Gallery and Pipeline, which need a live cks-mcp server for real data,
+ *    show a static placeholder instead of an empty/broken page.
  */
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { HashRouter, Link, Route, Routes, useLocation } from 'react-router-dom'
 import { ErrorBoundary } from '@/components/common/ErrorBoundary'
-import { GalleryPage } from './pages/GalleryPage'
 import { GraphPage } from './pages/GraphPage'
-import { PipelinePage } from './pages/PipelinePage'
 import { setDemoCallTool } from './services/mcpClient'
 import { DEMO_SESSION, callTool as mockCallTool } from './services/mockClient'
 import { useSessionStore } from './services/sessionStore'
@@ -47,6 +48,45 @@ const DEMO_NAV_LINKS = [
   { to: '/gallery', label: 'Gallery' },
   { to: '/pipeline', label: 'Pipeline' },
 ]
+
+// Where the docs site is mounted (see astro.config.mjs `base`). The demo
+// is embedded under /cks-website/demo/, so this is a relative hop back up
+// to the docs root rather than a hardcoded absolute origin.
+const DOCS_HOME_URL = '/cks-website/'
+
+function BackToDocsLink() {
+  return (
+    <a
+      href={DOCS_HOME_URL}
+      className="fixed top-3 left-3 z-30 flex items-center gap-1.5 bg-surface-1/90 backdrop-blur border border-border-subtle text-text-secondary hover:text-text-primary hover:bg-surface-2 text-xs px-3 py-1.5 rounded-full shadow-sm transition-colors"
+    >
+      <span aria-hidden="true">←</span>
+      Back to Docs
+    </a>
+  )
+}
+
+/** Placeholder shown for demo pages that need a live cks-mcp server to
+ *  show anything meaningful (Gallery lists registered graphs across
+ *  sessions, Pipeline streams live sweeper/agent activity -- neither
+ *  exists in a single bundled static graph). Keeping the routes and nav
+ *  entries in place, instead of hiding them, means the demo still reads
+ *  as the full studio interface rather than a cut-down preview. */
+function UnavailableInDemo({ title }: { title: string }) {
+  return (
+    <div className="h-full flex items-center justify-center px-6">
+      <div className="max-w-sm text-center">
+        <h2 className="text-text-primary font-display font-semibold text-sm mb-2">
+          {title}
+        </h2>
+        <p className="text-text-secondary text-xs leading-relaxed">
+          This section is not available in the static demo. Run cks-mcp locally
+          to see live data.
+        </p>
+      </div>
+    </div>
+  )
+}
 
 function DemoBanner() {
   return (
@@ -107,14 +147,21 @@ function DemoApp() {
   return (
     <HashRouter>
       <div className="h-screen flex flex-col">
+        <BackToDocsLink />
         <DemoBanner />
         <DemoNavBar />
         <div className="flex-1 min-h-0">
           <ErrorBoundary>
             <Routes>
               <Route path="/" element={<GraphPage />} />
-              <Route path="/gallery" element={<GalleryPage />} />
-              <Route path="/pipeline" element={<PipelinePage />} />
+              <Route
+                path="/gallery"
+                element={<UnavailableInDemo title="Graph Gallery" />}
+              />
+              <Route
+                path="/pipeline"
+                element={<UnavailableInDemo title="Pipeline Monitor" />}
+              />
             </Routes>
           </ErrorBoundary>
         </div>

@@ -6,6 +6,17 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 
 ---
 
+## [0.6.6] - 2026-08-11
+
+### Added
+- **Demo back-link** – floating "Back to Docs" button returns visitors from the embedded demo to the documentation site.
+- **Demo placeholder pages** – Gallery and Pipeline tabs now show a static placeholder instead of an empty page.
+
+### Fixed
+- **Empty graph in demo** – `mockClient.querySubgraph` without `seed_ids` now returns the full bundled graph as fallback.
+
+---
+
 ## [0.6.5] - 2026-08-11
 
 ### Added
