@@ -28,6 +28,29 @@ import { useSessionStore } from './services/sessionStore'
 import './styles/index.css'
 import './styles/graph.css'
 
+// Earlier builds of this demo let vite-plugin-pwa auto-register a service
+// worker on this page too (see vite.config.ts for why that's no longer
+// done). That worker's skipWaiting()+clientsClaim() meant it took over
+// the page immediately and kept serving its own cached (and, in the
+// broken-base-path build, permanently 404ing) assets straight through
+// later redeploys -- no amount of fixing the source or rebuilding was
+// visible in an already-affected browser until the old worker was
+// cleared. Best-effort cleanup so anyone who hit that build self-heals
+// on their next visit instead of needing to know to clear site data.
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker
+    .getRegistrations()
+    .then((registrations) => {
+      for (const registration of registrations) {
+        registration.unregister()
+      }
+    })
+    .catch(() => {
+      // Best-effort only -- an unregister failure shouldn't block the
+      // demo from rendering.
+    })
+}
+
 // Route every callTool() through the mock client for the lifetime of this
 // page -- must happen before any page component mounts and fires its
 // first request.
