@@ -6,6 +6,16 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 
 ---
 
+## [0.6.3] - 2026-08-11
+
+### Fixed
+- **Chat input** – replaced single‑line `<input>` with auto‑resizing `<textarea>`, added Enter‑to‑send / Shift+Enter‑for‑newline.
+- **3D mode side panel** – added `z‑10` to the sidebar so it stays above the WebGL canvas.
+- **Missing node type icons** – added colours and icons for `ReasoningNode`, `Entity`, `Axiom`, `Lemma`, `Theorem`, `Proof`, `InferenceStep`, `VerificationRecord`.
+- **Agent panel standalone‑process cards** – improved layout, aligned Request Stop buttons, added a note that these processes are started manually.
+
+---
+
 ## [0.6.2] - 2026-08-11
 
 ### Added

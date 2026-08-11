@@ -277,7 +277,13 @@ export function GraphPage() {
           )}
           <TypeLegend />
         </main>
-        <aside className="w-72 border-l border-border-subtle bg-surface-1 overflow-y-auto flex flex-col">
+        {/* relative + z-10: в 3D-режиме GraphCanvas3D монтирует свой
+         *  WebGL-canvas через three.js вне обычного React-дерева стилей
+         *  ReactFlow, из-за чего он мог создавать собственный stacking
+         *  context поверх соседних элементов flex-раскладки. relative
+         *  явно заводит для aside свой stacking context, а z-10 гарантирует,
+         *  что панель остаётся над 3D-холстом независимо от режима. */}
+        <aside className="relative z-10 w-72 border-l border-border-subtle bg-surface-1 overflow-y-auto flex flex-col">
           <SidePanel node={selectedNode} />
           <div className="p-4 border-t border-border-subtle space-y-2 mt-auto">
             <button

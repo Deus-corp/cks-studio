@@ -1,0 +1,130 @@
+{
+  "_cks_format_version": "1.0",
+  "_cks_metadata": {
+    "cks_core_version": "1.21.0",
+    "serialized_at": "2026-08-11T07:44:07.454233+00:00"
+  },
+  "_cks_min_reader_version": "1.13.0",
+  "objects": [
+    {
+      "identity": {
+        "id": "obj-cks-studio",
+        "name": "CKS Studio",
+        "type": "Entity"
+      },
+      "structure": {
+        "description": "A software project/application."
+      }
+    },
+    {
+      "identity": {
+        "id": "obj-react19",
+        "name": "React 19",
+        "type": "Entity"
+      },
+      "structure": {
+        "description": "A version of the React JavaScript library."
+      }
+    },
+    {
+      "identity": {
+        "id": "obj-react-flow",
+        "name": "React Flow",
+        "type": "Entity"
+      },
+      "structure": {
+        "description": "A library for building node-based graph visualizations."
+      }
+    },
+    {
+      "identity": {
+        "id": "obj-dagre",
+        "name": "Dagre",
+        "type": "Entity"
+      },
+      "structure": {
+        "description": "A library used for 2D graph layout."
+      }
+    },
+    {
+      "identity": {
+        "id": "obj-threejs",
+        "name": "Three.js",
+        "type": "Entity"
+      },
+      "structure": {
+        "description": "A 3D graphics library."
+      }
+    },
+    {
+      "identity": {
+        "id": "obj-3d-force-graph",
+        "name": "3d-force-graph",
+        "type": "Entity"
+      },
+      "structure": {
+        "description": "A wrapper library around Three.js for force-directed graphs."
+      }
+    },
+    {
+      "identity": {
+        "id": "rel-builtwith",
+        "name": "CKS Studio built with React 19",
+        "type": "Relation"
+      },
+      "structure": {
+        "participants": ["obj-cks-studio", "obj-react19"],
+        "relation_type": "built_with"
+      }
+    },
+    {
+      "identity": {
+        "id": "rel-uses-reactflow",
+        "name": "CKS Studio uses React Flow",
+        "type": "Relation"
+      },
+      "structure": {
+        "note": "for graph visualization",
+        "participants": ["obj-cks-studio", "obj-react-flow"],
+        "relation_type": "uses"
+      }
+    },
+    {
+      "identity": {
+        "id": "rel-uses-dagre",
+        "name": "CKS Studio uses Dagre",
+        "type": "Relation"
+      },
+      "structure": {
+        "note": "for 2D layout",
+        "participants": ["obj-cks-studio", "obj-dagre"],
+        "relation_type": "uses"
+      }
+    },
+    {
+      "identity": {
+        "id": "rel-uses-threejs",
+        "name": "CKS Studio uses Three.js",
+        "type": "Relation"
+      },
+      "structure": {
+        "note": "for 3D layout",
+        "participants": ["obj-cks-studio", "obj-threejs"],
+        "relation_type": "uses"
+      }
+    },
+    {
+      "identity": {
+        "id": "rel-wraps-threejs",
+        "name": "3d-force-graph wraps Three.js",
+        "type": "Relation"
+      },
+      "structure": {
+        "note": "for force-directed graphs",
+        "participants": ["obj-3d-force-graph", "obj-threejs"],
+        "relation_type": "wraps"
+      }
+    }
+  ],
+  "version": "1.0"
+}

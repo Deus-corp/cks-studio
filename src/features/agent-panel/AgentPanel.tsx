@@ -127,7 +127,7 @@ function ProcessCard({
 }: ProcessCardProps) {
   const isAlive = process.status === 'alive'
   return (
-    <div className="bg-surface-1 border border-border-subtle rounded p-3 space-y-2">
+    <div className="flex flex-col bg-surface-1 border border-border-subtle rounded p-3 space-y-2 h-full">
       <div className="flex items-center gap-2">
         <span
           className={`w-2 h-2 rounded-full inline-block flex-shrink-0 ${
@@ -171,16 +171,29 @@ function ProcessCard({
         </div>
       )}
 
-      <div className="flex gap-2 pt-1">
-        <button
-          type="button"
-          onClick={() => onRequestStop(process)}
-          disabled={isBusy || !isAlive || stopRequested}
-          title="No start tool exists — cks-mcp cannot spawn a new OS process (ADR-016 §4); restarting is an operational action outside this panel's scope."
-          className="text-xs bg-red-900 hover:bg-red-800 text-red-200 px-2 py-1 rounded disabled:opacity-40 disabled:cursor-not-allowed"
-        >
-          {isBusy ? '…' : stopRequested ? 'Stop requested' : 'Request Stop'}
-        </button>
+      {/* mt-auto прижимает футер карточки (кнопка + заметка) книзу, так
+       *  что кнопки Request Stop выравниваются по одной линии по всей
+       *  строке грида независимо от того, сколько строк занял
+       *  current_task_id/actionError у соседних карточек. */}
+      <div className="mt-auto space-y-1.5 pt-2 border-t border-border-subtle/60">
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => onRequestStop(process)}
+            disabled={isBusy || !isAlive || stopRequested}
+            title="No start tool exists — cks-mcp cannot spawn a new OS process (ADR-016 §4); restarting is an operational action outside this panel's scope."
+            className="text-xs bg-red-900 hover:bg-red-800 text-red-200 px-2 py-1 rounded disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            {isBusy ? '…' : stopRequested ? 'Stop requested' : 'Request Stop'}
+          </button>
+        </div>
+        {/* Явно поясняем происхождение процесса: в отличие от Agent-карточек
+         *  выше (start_agent/stop_agent из этого же UI), standalone-процессы
+         *  стартуют как отдельные OS-процессы вне студии — без этой
+         *  заметки было неочевидно, почему тут нет кнопки Start. */}
+        <p className="text-[11px] text-text-tertiary italic">
+          Started manually as a separate OS process — not managed from this UI.
+        </p>
       </div>
     </div>
   )
@@ -444,7 +457,7 @@ export function AgentPanel() {
             </p>
           )}
 
-          <div className="p-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="p-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 items-stretch">
             {processes.map((process) => (
               <ProcessCard
                 key={process.instance_id}

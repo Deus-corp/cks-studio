@@ -35,6 +35,17 @@ export const NODE_TYPE_COLORS: Record<string, string> = {
   Sweeper: '#eab308',
   Task: '#ef4444',
   Relation: '#64748b',
+  // Типы, встречающиеся в графе экосистемы (cks-ecosystem) поверх типов
+  // Reasoning Objects (ADR-001 cks-core) и pipeline-узлов cks-mcp: ранее
+  // у них не было ни цвета, ни иконки, и они рендерились серым "?".
+  ReasoningNode: '#a78bfa',
+  Entity: '#3b82f6',
+  Axiom: '#f472b6',
+  Lemma: '#38bdf8',
+  Theorem: '#fbbf24',
+  Proof: '#34d399',
+  InferenceStep: '#c084fc',
+  VerificationRecord: '#06b6d4',
 }
 
 /** Цвет для CKS-типов, которых нет в NODE_TYPE_COLORS. */
@@ -58,6 +69,14 @@ export const NODE_TYPE_ICONS: Record<string, string> = {
   Sweeper: '🧹',
   Task: '☑️',
   Relation: '↔️',
+  ReasoningNode: '🧠',
+  Entity: '🏷️',
+  Axiom: '⚛️',
+  Lemma: '🔹',
+  Theorem: '📐',
+  Proof: '✅',
+  InferenceStep: '🔗',
+  VerificationRecord: '🛡️',
 }
 
 export const DEFAULT_NODE_TYPE_ICON = '?'

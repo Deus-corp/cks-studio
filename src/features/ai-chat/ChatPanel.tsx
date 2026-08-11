@@ -271,6 +271,26 @@ export function ChatPanel() {
     send(text)
   }
 
+  // Enter отправляет, Shift+Enter вставляет перенос строки — textarea по
+  // умолчанию не отправляет форму по Enter, form onSubmit сюда не
+  // достучится без явного keydown-хендлера.
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault()
+      handleSubmit(e)
+    }
+  }
+
+  // Автоматически расширяет textarea под содержимое (до max-h-40 из
+  // className, дальше появляется собственный скролл) -- сбрасываем
+  // высоту перед measurement, иначе scrollHeight никогда не уменьшится
+  // при удалении текста.
+  const handleInput = (e: React.FormEvent<HTMLTextAreaElement>) => {
+    const el = e.currentTarget
+    el.style.height = 'auto'
+    el.style.height = `${el.scrollHeight}px`
+  }
+
   // The top banner already tells the user "no provider configured, go to
   // Settings" whenever get_llm_status confirms provider === 'none'. If
   // send() then fails for that exact reason, showing the identical
@@ -328,7 +348,7 @@ export function ChatPanel() {
         // where you type". A surface-1 backing plus more padding gives
         // the whole form a floor to sit on, distinct from both the
         // scrollback above and the page behind it.
-        className="flex items-center gap-2 border-t border-border bg-surface-1 px-4 py-4"
+        className="flex items-end gap-2 border-t border-border bg-surface-1 px-4 py-4"
       >
         <div className="relative flex-1">
           <svg
@@ -337,7 +357,7 @@ export function ChatPanel() {
             viewBox="0 0 24 24"
             fill="none"
             aria-hidden="true"
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-text-tertiary pointer-events-none"
+            className="absolute left-3 top-3 text-text-tertiary pointer-events-none"
           >
             <path
               d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"
@@ -347,13 +367,15 @@ export function ChatPanel() {
               strokeLinejoin="round"
             />
           </svg>
-          <input
-            type="text"
+          <textarea
+            rows={2}
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Ask cks-mcp to look up, add, or connect something…"
+            onInput={handleInput}
+            onKeyDown={handleKeyDown}
+            placeholder="Ask cks-mcp to look up, add, or connect something… (Enter to send, Shift+Enter for a new line)"
             disabled={isSending}
-            className="w-full bg-surface-2 border border-border rounded pl-8 pr-3 py-2.5 text-sm text-text-primary placeholder-text-tertiary focus:outline-none focus:border-accent disabled:opacity-50"
+            className="w-full bg-surface-2 border border-border rounded pl-8 pr-3 py-2.5 text-sm text-text-primary placeholder-text-tertiary focus:outline-none focus:border-accent disabled:opacity-50 resize-none max-h-40 overflow-y-auto leading-normal"
           />
         </div>
         <button
