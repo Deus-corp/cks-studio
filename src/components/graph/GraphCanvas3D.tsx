@@ -135,7 +135,10 @@ const USE_CARD_NODES = true
  *  card (220x60) so the two views read as the same visual language. The
  *  canvas is rendered at CARD_TEXTURE_SCALE× this for crisp text at
  *  typical zoom levels, then the resulting sprite is scaled back down
- *  into 3D-world units via CARD_WORLD_SCALE. */
+ *  into 3D-world units via CARD_WORLD_SCALE. These are the dimensions
+ *  for an *average*-degree node -- see cardScaleForDegree, which grows
+ *  or shrinks around this baseline per node so hub nodes (e.g. cks-core)
+ *  read as visually more important than a leaf node (e.g. diagnostics). */
 const CARD_WIDTH_PX = 220
 const CARD_HEIGHT_PX = 60
 const CARD_TEXTURE_SCALE = 3
@@ -143,23 +146,61 @@ const CARD_WORLD_SCALE = 0.12
 const CARD_ACCENT_HEIGHT_PX = 3
 const CARD_CORNER_RADIUS_PX = 8
 
+// Degree-based sizing multipliers applied to CARD_WIDTH_PX/HEIGHT_PX.
+// sqrt (not linear) so one enormous hub doesn't shrink every other card
+// into insignificance by comparison -- growth tapers off instead of
+// compounding, mirroring the old sphere radius formula below
+// (`2.4 + sqrt(degree) * 1.3`).
+const CARD_MIN_SCALE = 0.72
+const CARD_MAX_SCALE = 1.85
+const CARD_DEGREE_GROWTH = 0.17
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, value))
+}
+
+/** Size multiplier for a node with the given degree (number of incident
+ *  edges). Both width and height scale together so the card's
+ *  proportions -- and the font-size ratio derived from them in
+ *  drawNodeCardCanvas -- stay constant regardless of size. */
+function cardScaleForDegree(degree: number): number {
+  return clamp(
+    1 + Math.sqrt(degree) * CARD_DEGREE_GROWTH,
+    CARD_MIN_SCALE,
+    CARD_MAX_SCALE,
+  )
+}
+
 /** Draws a single node "card" -- dark rounded-rect background, a
- *  type-colored accent strip along the top edge, a type emoji, and the
- *  node's name -- onto an offscreen canvas, matching the 2D GraphCanvas
- *  node look (see CksNode: `borderTop: 3px solid <nodeTypeColor>`,
- *  surface-2 background, Manrope label) so switching between 2D/3D
- *  views doesn't feel like switching apps. Returns the canvas for use as
+ *  type-colored accent strip along the top edge, a type emoji, the
+ *  node's name, and (for connected nodes) a small degree badge -- onto
+ *  an offscreen canvas, matching the 2D GraphCanvas node look (see
+ *  CksNode: `borderTop: 3px solid <nodeTypeColor>`, surface-2
+ *  background, Manrope label) so switching between 2D/3D views doesn't
+ *  feel like switching apps. `width`/`height` are this specific card's
+ *  target CSS-px size (see cardScaleForDegree) -- font sizes, accent
+ *  thickness and corner radius all scale proportionally from those so a
+ *  bigger hub card reads as "the same card, drawn bigger" rather than a
+ *  stretched-out version of a small one. Returns the canvas for use as
  *  a THREE.CanvasTexture. */
 function drawNodeCardCanvas(
   name: string,
   icon: string,
   accentColor: string,
   hovered: boolean,
+  width: number = CARD_WIDTH_PX,
+  height: number = CARD_HEIGHT_PX,
+  degree = 0,
 ): HTMLCanvasElement {
-  const w = CARD_WIDTH_PX * CARD_TEXTURE_SCALE
-  const h = CARD_HEIGHT_PX * CARD_TEXTURE_SCALE
-  const r = CARD_CORNER_RADIUS_PX * CARD_TEXTURE_SCALE
-  const accentH = CARD_ACCENT_HEIGHT_PX * CARD_TEXTURE_SCALE
+  // How far this card's height has scaled from the CARD_HEIGHT_PX
+  // baseline -- drives font/accent/corner scaling below so a bigger hub
+  // card doesn't render with the same size text as a small leaf card.
+  const sizeRatio = height / CARD_HEIGHT_PX
+
+  const w = width * CARD_TEXTURE_SCALE
+  const h = height * CARD_TEXTURE_SCALE
+  const r = CARD_CORNER_RADIUS_PX * sizeRatio * CARD_TEXTURE_SCALE
+  const accentH = CARD_ACCENT_HEIGHT_PX * sizeRatio * CARD_TEXTURE_SCALE
 
   const canvas = document.createElement('canvas')
   canvas.width = w
@@ -211,16 +252,16 @@ function drawNodeCardCanvas(
   const contentTop = accentH
   const contentH = h - accentH
   const midY = contentTop + contentH / 2
-  const paddingX = 14 * CARD_TEXTURE_SCALE
+  const paddingX = 14 * sizeRatio * CARD_TEXTURE_SCALE
 
   ctx.textBaseline = 'middle'
-  ctx.font = `${20 * CARD_TEXTURE_SCALE}px "Manrope", "Segoe UI Emoji", sans-serif`
+  ctx.font = `${20 * sizeRatio * CARD_TEXTURE_SCALE}px "Manrope", "Segoe UI Emoji", sans-serif`
   ctx.fillText(icon, paddingX, midY)
   const iconWidth = ctx.measureText(icon).width
 
   ctx.fillStyle = '#e5e7eb'
-  ctx.font = `600 ${14 * CARD_TEXTURE_SCALE}px "Manrope", sans-serif`
-  const nameX = paddingX + iconWidth + 8 * CARD_TEXTURE_SCALE
+  ctx.font = `600 ${14 * sizeRatio * CARD_TEXTURE_SCALE}px "Manrope", sans-serif`
+  const nameX = paddingX + iconWidth + 8 * sizeRatio * CARD_TEXTURE_SCALE
   const maxNameWidth = w - nameX - paddingX
   let displayName = name
   while (
@@ -231,6 +272,41 @@ function drawNodeCardCanvas(
   }
   ctx.fillText(displayName, nameX, midY)
 
+  // Degree badge -- small pill in the bottom-right corner showing the
+  // connection count, so "this card is big" reads as "...because it has
+  // 14 connections" rather than requiring a separate hover/click to
+  // find out why. Skipped for isolated nodes (degree 0) where a "0"
+  // badge would just be clutter.
+  if (degree > 0) {
+    const badgeText = degree > 99 ? '99+' : String(degree)
+    const badgeFontSize = 10 * sizeRatio * CARD_TEXTURE_SCALE
+    ctx.font = `700 ${badgeFontSize}px "Manrope", sans-serif`
+    const textWidth = ctx.measureText(badgeText).width
+    const badgePadX = 6 * sizeRatio * CARD_TEXTURE_SCALE
+    const badgeH = badgeFontSize + 6 * sizeRatio * CARD_TEXTURE_SCALE
+    const badgeW = textWidth + badgePadX * 2
+    const badgeMargin = 6 * sizeRatio * CARD_TEXTURE_SCALE
+    const bx = w - badgeW - badgeMargin
+    const by = h - badgeH - badgeMargin
+    const br = badgeH / 2
+
+    ctx.beginPath()
+    ctx.moveTo(bx + br, by)
+    ctx.arcTo(bx + badgeW, by, bx + badgeW, by + badgeH, br)
+    ctx.arcTo(bx + badgeW, by + badgeH, bx, by + badgeH, br)
+    ctx.arcTo(bx, by + badgeH, bx, by, br)
+    ctx.arcTo(bx, by, bx + badgeW, by, br)
+    ctx.closePath()
+    ctx.fillStyle = 'rgba(15, 23, 42, 0.72)'
+    ctx.fill()
+
+    ctx.fillStyle = '#94a3b8'
+    ctx.textBaseline = 'middle'
+    ctx.textAlign = 'center'
+    ctx.fillText(badgeText, bx + badgeW / 2, by + badgeH / 2 + 0.5)
+    ctx.textAlign = 'left'
+  }
+
   return canvas
 }
 
@@ -238,14 +314,29 @@ function drawNodeCardCanvas(
  *  than a PlaneGeometry mesh with a manual lookAt-camera update) always
  *  faces the camera for free, which is the "sprite-like plane" fallback
  *  called out in the task -- avoids fighting 3d-force-graph's own
- *  render loop to keep a plane's rotation in sync every frame. */
+ *  render loop to keep a plane's rotation in sync every frame. Card
+ *  dimensions come from cardScaleForDegree so hub nodes render bigger;
+ *  the resolved px size is stashed in userData so onNodeHover's hover
+ *  redraw/rescale can reuse it instead of recomputing degree scaling. */
 function buildNodeCardSprite(
   name: string,
   icon: string,
   accentColor: string,
   hovered: boolean,
+  degree: number,
 ): THREE.Sprite {
-  const canvas = drawNodeCardCanvas(name, icon, accentColor, hovered)
+  const scale = cardScaleForDegree(degree)
+  const widthPx = CARD_WIDTH_PX * scale
+  const heightPx = CARD_HEIGHT_PX * scale
+  const canvas = drawNodeCardCanvas(
+    name,
+    icon,
+    accentColor,
+    hovered,
+    widthPx,
+    heightPx,
+    degree,
+  )
   const texture = new THREE.CanvasTexture(canvas)
   texture.needsUpdate = true
   const material = new THREE.SpriteMaterial({
@@ -254,12 +345,11 @@ function buildNodeCardSprite(
     depthWrite: false,
   })
   const sprite = new THREE.Sprite(material)
-  sprite.scale.set(
-    CARD_WIDTH_PX * CARD_WORLD_SCALE,
-    CARD_HEIGHT_PX * CARD_WORLD_SCALE,
-    1,
-  )
+  sprite.scale.set(widthPx * CARD_WORLD_SCALE, heightPx * CARD_WORLD_SCALE, 1)
   sprite.userData.isCard = true
+  sprite.userData.widthPx = widthPx
+  sprite.userData.heightPx = heightPx
+  sprite.userData.degree = degree
   return sprite
 }
 
@@ -422,10 +512,13 @@ export function GraphCanvas3D({
             nodeTypeIcon(n.cksType),
             n.color,
             false,
+            n.degree,
           )
           group.add(card)
 
-          const cardHalfHeight = (CARD_HEIGHT_PX * CARD_WORLD_SCALE) / 2
+          const cardWidthPx = card.userData.widthPx as number
+          const cardHeightPx = card.userData.heightPx as number
+          const cardHalfHeight = (cardHeightPx * CARD_WORLD_SCALE) / 2
           if (participantIndex !== -1) {
             const ring = new THREE.Mesh(
               new THREE.RingGeometry(
@@ -448,7 +541,7 @@ export function GraphCanvas3D({
             badge.padding = 1
             badge.borderRadius = 6
             badge.position.set(
-              CARD_WIDTH_PX * CARD_WORLD_SCALE * 0.42,
+              cardWidthPx * CARD_WORLD_SCALE * 0.42,
               cardHalfHeight,
               0.2,
             )
@@ -544,12 +637,19 @@ export function GraphCanvas3D({
             // the old dim-non-neighbors behavior.
             const material = card.material as THREE.SpriteMaterial
             const texture = material.map as THREE.CanvasTexture | null
+            const cardWidthPx =
+              (card.userData.widthPx as number) ?? CARD_WIDTH_PX
+            const cardHeightPx =
+              (card.userData.heightPx as number) ?? CARD_HEIGHT_PX
             if (texture && isHoveredNode !== (card.userData.hovered ?? false)) {
               const canvas = drawNodeCardCanvas(
                 gn.name,
                 nodeTypeIcon(gn.cksType),
                 gn.color,
                 isHoveredNode,
+                cardWidthPx,
+                cardHeightPx,
+                (card.userData.degree as number) ?? gn.degree,
               )
               texture.image = canvas
               texture.needsUpdate = true
@@ -558,8 +658,8 @@ export function GraphCanvas3D({
             material.opacity = dim ? 0.2 : 1
             const scale = isHoveredNode ? 1.08 : 1
             card.scale.set(
-              CARD_WIDTH_PX * CARD_WORLD_SCALE * scale,
-              CARD_HEIGHT_PX * CARD_WORLD_SCALE * scale,
+              cardWidthPx * CARD_WORLD_SCALE * scale,
+              cardHeightPx * CARD_WORLD_SCALE * scale,
               1,
             )
           }

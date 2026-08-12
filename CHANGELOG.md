@@ -6,6 +6,14 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 
 ---
 
+## [0.6.9] - 2026-08-12
+
+### Changed
+- **3D card sizing by node importance** – card dimensions in 3D mode now scale with node degree (number of incident edges). Hub nodes (e.g. `cks-core`) render larger than leaf nodes (e.g. `diagnostics`), making structure importance visible at a glance.
+- **Degree badge on 3D cards** – each connected card shows a small pill with its connection count in the bottom-right corner (hidden for isolated nodes).
+
+---
+
 ## [0.6.8] - 2026-08-12
 
 ### Added
