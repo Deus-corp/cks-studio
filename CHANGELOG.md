@@ -6,6 +6,16 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 
 ---
 
+## [0.6.8] - 2026-08-12
+
+### Added
+- **3D card rendering** – nodes in the 3D graph now render as flat, billboard-style cards matching the 2D node design (type-colored accent strip, icon, name). Hovered cards brighten and show a colored outline; non-neighbor cards dim. Relation-draft participants get numbered badges.
+
+### Changed
+- Kept the original sphere rendering behind a `USE_CARD_NODES` toggle for easy fallback.
+
+---
+
 ## [0.6.7] - 2026-08-12
 
 ### Changed

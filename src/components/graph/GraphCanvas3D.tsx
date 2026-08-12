@@ -32,7 +32,7 @@ import { GraphSearchPalette3D } from '@/components/graph/GraphSearchPalette3D'
 import { GraphSkeleton } from '@/components/graph/GraphSkeleton'
 import type { GraphState } from '@/features/graph-explorer/graphExplorerStore'
 import { useGraphStore } from '@/features/graph-explorer/graphExplorerStore'
-import { nodeTypeColor } from '@/shared/constants/nodeTypes'
+import { nodeTypeColor, nodeTypeIcon } from '@/shared/constants/nodeTypes'
 import type { SubgraphResult } from '@/shared/types/graph'
 import {
   cksToReactFlow,
@@ -121,6 +121,146 @@ function computeClusters(nodes: Node[], edges: Edge[]): Map<string, string> {
     }
   }
   return clusterOf
+}
+
+/** Switches nodeThreeObject between the new flat "card" rendering
+ *  (PlaneGeometry-esque billboard built from a canvas texture, mirroring
+ *  CksNode's 2D look) and the old sphere+SpriteText rendering. Left as a
+ *  toggle rather than deleting the sphere path outright, per the "keep
+ *  the old code as a fallback" requirement -- flip to false to go back
+ *  to spheres without reverting this file. */
+const USE_CARD_NODES = true
+
+/** On-screen size (px) the card is designed at, matching CksNode's 2D
+ *  card (220x60) so the two views read as the same visual language. The
+ *  canvas is rendered at CARD_TEXTURE_SCALE× this for crisp text at
+ *  typical zoom levels, then the resulting sprite is scaled back down
+ *  into 3D-world units via CARD_WORLD_SCALE. */
+const CARD_WIDTH_PX = 220
+const CARD_HEIGHT_PX = 60
+const CARD_TEXTURE_SCALE = 3
+const CARD_WORLD_SCALE = 0.12
+const CARD_ACCENT_HEIGHT_PX = 3
+const CARD_CORNER_RADIUS_PX = 8
+
+/** Draws a single node "card" -- dark rounded-rect background, a
+ *  type-colored accent strip along the top edge, a type emoji, and the
+ *  node's name -- onto an offscreen canvas, matching the 2D GraphCanvas
+ *  node look (see CksNode: `borderTop: 3px solid <nodeTypeColor>`,
+ *  surface-2 background, Manrope label) so switching between 2D/3D
+ *  views doesn't feel like switching apps. Returns the canvas for use as
+ *  a THREE.CanvasTexture. */
+function drawNodeCardCanvas(
+  name: string,
+  icon: string,
+  accentColor: string,
+  hovered: boolean,
+): HTMLCanvasElement {
+  const w = CARD_WIDTH_PX * CARD_TEXTURE_SCALE
+  const h = CARD_HEIGHT_PX * CARD_TEXTURE_SCALE
+  const r = CARD_CORNER_RADIUS_PX * CARD_TEXTURE_SCALE
+  const accentH = CARD_ACCENT_HEIGHT_PX * CARD_TEXTURE_SCALE
+
+  const canvas = document.createElement('canvas')
+  canvas.width = w
+  canvas.height = h
+  const ctx = canvas.getContext('2d')
+  if (!ctx) return canvas
+
+  // Rounded-rect clip so the accent strip and background never bleed
+  // past the card's corners.
+  ctx.beginPath()
+  ctx.moveTo(r, 0)
+  ctx.arcTo(w, 0, w, h, r)
+  ctx.arcTo(w, h, 0, h, r)
+  ctx.arcTo(0, h, 0, 0, r)
+  ctx.arcTo(0, 0, w, 0, r)
+  ctx.closePath()
+  ctx.save()
+  ctx.clip()
+
+  // Background -- brightens slightly on hover instead of the flat 3D
+  // "dim inactive nodes" opacity trick, since a Sprite's own material
+  // opacity is already used for that dimming (see onNodeHover below).
+  ctx.fillStyle = hovered ? '#242b38' : '#1b212c'
+  ctx.fillRect(0, 0, w, h)
+
+  // Top accent strip, same idea as CksNode's `borderTop: 3px solid`.
+  ctx.fillStyle = accentColor
+  ctx.fillRect(0, 0, w, accentH)
+
+  ctx.restore()
+
+  if (hovered) {
+    // Subtle outline instead of a heavier glow -- reads clearly against
+    // the dark background without washing out the accent strip.
+    ctx.strokeStyle = accentColor
+    ctx.lineWidth = 2 * CARD_TEXTURE_SCALE
+    ctx.beginPath()
+    ctx.moveTo(r, ctx.lineWidth / 2)
+    ctx.arcTo(w, 0, w, h, r)
+    ctx.arcTo(w, h, 0, h, r)
+    ctx.arcTo(0, h, 0, 0, r)
+    ctx.arcTo(0, 0, w, 0, r)
+    ctx.closePath()
+    ctx.stroke()
+  }
+
+  // Icon + name, vertically centered in the space below the accent
+  // strip (mirrors CksNode's flex row of icon + label).
+  const contentTop = accentH
+  const contentH = h - accentH
+  const midY = contentTop + contentH / 2
+  const paddingX = 14 * CARD_TEXTURE_SCALE
+
+  ctx.textBaseline = 'middle'
+  ctx.font = `${20 * CARD_TEXTURE_SCALE}px "Manrope", "Segoe UI Emoji", sans-serif`
+  ctx.fillText(icon, paddingX, midY)
+  const iconWidth = ctx.measureText(icon).width
+
+  ctx.fillStyle = '#e5e7eb'
+  ctx.font = `600 ${14 * CARD_TEXTURE_SCALE}px "Manrope", sans-serif`
+  const nameX = paddingX + iconWidth + 8 * CARD_TEXTURE_SCALE
+  const maxNameWidth = w - nameX - paddingX
+  let displayName = name
+  while (
+    ctx.measureText(displayName).width > maxNameWidth &&
+    displayName.length > 1
+  ) {
+    displayName = `${displayName.slice(0, -2)}…`
+  }
+  ctx.fillText(displayName, nameX, midY)
+
+  return canvas
+}
+
+/** Builds the billboard Sprite for one node's card. A Sprite (rather
+ *  than a PlaneGeometry mesh with a manual lookAt-camera update) always
+ *  faces the camera for free, which is the "sprite-like plane" fallback
+ *  called out in the task -- avoids fighting 3d-force-graph's own
+ *  render loop to keep a plane's rotation in sync every frame. */
+function buildNodeCardSprite(
+  name: string,
+  icon: string,
+  accentColor: string,
+  hovered: boolean,
+): THREE.Sprite {
+  const canvas = drawNodeCardCanvas(name, icon, accentColor, hovered)
+  const texture = new THREE.CanvasTexture(canvas)
+  texture.needsUpdate = true
+  const material = new THREE.SpriteMaterial({
+    map: texture,
+    transparent: true,
+    depthWrite: false,
+  })
+  const sprite = new THREE.Sprite(material)
+  sprite.scale.set(
+    CARD_WIDTH_PX * CARD_WORLD_SCALE,
+    CARD_HEIGHT_PX * CARD_WORLD_SCALE,
+    1,
+  )
+  sprite.userData.isCard = true
+  return sprite
 }
 
 /** Custom d3-force pulling each clustered node toward its cluster's
@@ -266,6 +406,63 @@ export function GraphCanvas3D({
         const n = node as Graph3DNode
         const group = new THREE.Group()
 
+        const participantIndex = relationDraftRef.current.active
+          ? relationDraftRef.current.participantIds.indexOf(n.id)
+          : -1
+
+        if (USE_CARD_NODES) {
+          // Flat, always-camera-facing card -- replaces the old
+          // sphere-plus-floating-label combo (see below) so a dense
+          // graph reads as readable name-tags instead of merged dots
+          // with text hanging in space. onNodeHover finds this sprite
+          // via userData.isCard to redraw it on hover and to dim it
+          // when a *different* node is hovered.
+          const card = buildNodeCardSprite(
+            n.name,
+            nodeTypeIcon(n.cksType),
+            n.color,
+            false,
+          )
+          group.add(card)
+
+          const cardHalfHeight = (CARD_HEIGHT_PX * CARD_WORLD_SCALE) / 2
+          if (participantIndex !== -1) {
+            const ring = new THREE.Mesh(
+              new THREE.RingGeometry(
+                cardHalfHeight * 1.3,
+                cardHalfHeight * 1.5,
+                24,
+              ),
+              new THREE.MeshBasicMaterial({
+                color: '#fbbf24',
+                side: THREE.DoubleSide,
+                transparent: true,
+              }),
+            )
+            ring.position.set(0, 0, 0.1)
+            group.add(ring)
+            const badge = new SpriteText(String(participantIndex + 1))
+            badge.color = '#0f172a'
+            badge.backgroundColor = '#fbbf24'
+            badge.textHeight = 2.6
+            badge.padding = 1
+            badge.borderRadius = 6
+            badge.position.set(
+              CARD_WIDTH_PX * CARD_WORLD_SCALE * 0.42,
+              cardHalfHeight,
+              0.2,
+            )
+            group.add(badge)
+          }
+
+          return group
+        }
+
+        // --- Fallback: original sphere + floating SpriteText label. ---
+        // Kept working (not deleted) behind USE_CARD_NODES so the card
+        // rendering above can be toggled off without reverting this
+        // file, per the task's "don't remove the old sphere code"
+        // constraint.
         const radius = 2.4 + Math.sqrt(n.degree) * 1.3
         const sphere = new THREE.Mesh(
           new THREE.SphereGeometry(radius, 16, 16),
@@ -279,9 +476,6 @@ export function GraphCanvas3D({
 
         // relation-draft: a thin ring showing which participant slot
         // (1st/2nd) this node occupies, matching CksNode's badge in 2D.
-        const participantIndex = relationDraftRef.current.active
-          ? relationDraftRef.current.participantIds.indexOf(n.id)
-          : -1
         if (participantIndex !== -1) {
           const ring = new THREE.Mesh(
             new THREE.TorusGeometry(radius + 1.8, 0.5, 8, 32),
@@ -337,13 +531,48 @@ export function GraphCanvas3D({
             hoveredId !== null &&
             gn.id !== hoveredId &&
             !neighborIds?.has(gn.id)
+          const isHoveredNode = hoveredId !== null && gn.id === hoveredId
+
+          const card = gn.__threeObj?.children.find(
+            (c): c is THREE.Sprite =>
+              c instanceof THREE.Sprite && c.userData.isCard === true,
+          )
+          if (card) {
+            // The hovered card itself gets redrawn with the brighter
+            // background + outline treatment (see drawNodeCardCanvas);
+            // everything else just fades via material opacity, same as
+            // the old dim-non-neighbors behavior.
+            const material = card.material as THREE.SpriteMaterial
+            const texture = material.map as THREE.CanvasTexture | null
+            if (texture && isHoveredNode !== (card.userData.hovered ?? false)) {
+              const canvas = drawNodeCardCanvas(
+                gn.name,
+                nodeTypeIcon(gn.cksType),
+                gn.color,
+                isHoveredNode,
+              )
+              texture.image = canvas
+              texture.needsUpdate = true
+              card.userData.hovered = isHoveredNode
+            }
+            material.opacity = dim ? 0.2 : 1
+            const scale = isHoveredNode ? 1.08 : 1
+            card.scale.set(
+              CARD_WIDTH_PX * CARD_WORLD_SCALE * scale,
+              CARD_HEIGHT_PX * CARD_WORLD_SCALE * scale,
+              1,
+            )
+          }
+
+          // Fallback path (USE_CARD_NODES = false): dim the sphere +
+          // label the same way the card branch above dims the card.
           const sphere = gn.__threeObj?.children.find(
             (c): c is THREE.Mesh => c instanceof THREE.Mesh,
           )
-          const material = sphere?.material as
+          const sphereMaterial = sphere?.material as
             | THREE.MeshLambertMaterial
             | undefined
-          if (material) material.opacity = dim ? 0.15 : 0.92
+          if (sphereMaterial) sphereMaterial.opacity = dim ? 0.15 : 0.92
           const sprite = gn.__threeObj?.children.find(
             (c): c is SpriteText => c instanceof SpriteText,
           )
