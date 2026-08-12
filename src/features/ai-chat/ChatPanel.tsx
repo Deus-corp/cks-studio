@@ -348,7 +348,14 @@ export function ChatPanel() {
         // where you type". A surface-1 backing plus more padding gives
         // the whole form a floor to sit on, distinct from both the
         // scrollback above and the page behind it.
-        className="flex items-end gap-2 border-t border-border bg-surface-1 px-4 py-4"
+        //
+        // items-center (not items-end): the textarea defaults to 2 rows
+        // while the Send button is single-line height, so bottom-aligning
+        // left the button riding low against the textarea's baseline
+        // instead of sitting level with it. Centering keeps the button
+        // level with the input at rest and still reads fine once the
+        // textarea grows with handleInput's auto-resize.
+        className="flex items-center gap-2 border-t border-border bg-surface-1 px-4 py-4"
       >
         <div className="relative flex-1">
           <svg

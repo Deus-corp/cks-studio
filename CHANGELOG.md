@@ -6,6 +6,17 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 
 ---
 
+## [0.6.11] - 2026-08-12
+
+### Added
+- **Per-route nav tints** – top navigation destinations now have distinct hues (Graph, Pipeline, Gallery, Diff, Agents, Chat, Settings) instead of one shared accent, with theme-aware active/hover background washes and underlines.
+- **Full studio menu in static demo** – the demo now shows all seven navigation entries. Non-graph sections render a clear “available in full version” placeholder, so the demo communicates the full studio surface without requiring a live server.
+
+### Fixed
+- **Chat send button alignment** – the input form now uses vertical centering, keeping the Send button level with the initial textarea height instead of riding low against the bottom.
+
+---
+
 ## [0.6.10] - 2026-08-12
 
 ### Changed

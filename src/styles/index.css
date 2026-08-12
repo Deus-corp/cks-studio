@@ -56,6 +56,21 @@
   --color-danger: #ef4444;
   --color-warning: #f59e0b;
 
+  /* Per-route nav tints (Task: distinguish top-nav destinations). Each
+     link gets its own hue instead of the single shared --color-accent,
+     so the bar reads as seven distinct destinations at a glance rather
+     than one repeated highlight. Deliberately separate from the
+     semantic success/danger/warning/brand tokens above — these carry no
+     meaning beyond "which page", so reusing e.g. --color-success for
+     Pipeline would incorrectly imply a status. */
+  --color-nav-graph: #5b8cff;
+  --color-nav-pipeline: #34d399;
+  --color-nav-gallery: #c084fc;
+  --color-nav-diff: #2dd4bf;
+  --color-nav-agents: #f0993d;
+  --color-nav-chat: #f472b6;
+  --color-nav-settings: #9aa3b2;
+
   /* Edge highlight for "trace inference"/path-highlighting (see
      GraphCanvas.tsx styledEdges). Kept separate from --color-warning
      even though they start at the same hex, because the light-theme
@@ -197,6 +212,63 @@ body {
      the light/cream canvas background. */
   --color-graph-edge: #6b7280;
   --color-graph-node: #94a3b8;
+
+  /* Per-route nav tints, deepened/more saturated versions of the dark-
+     theme set above so text and the active-state tint wash stay legible
+     on the cream/white nav bar instead of washing out. */
+  --color-nav-graph: #3b64e0;
+  --color-nav-pipeline: #16a34a;
+  --color-nav-gallery: #9333ea;
+  --color-nav-diff: #0d9488;
+  --color-nav-agents: #c2650a;
+  --color-nav-chat: #db2777;
+  --color-nav-settings: #5b6270;
+}
+
+/*
+ * Nav tint wiring (Task: distinct per-route colors in the top nav). Each
+ * link carries a data-nav="<route>" attribute (see App.tsx); this maps it
+ * to one of the tokens above via a local --nav-tint custom property, then
+ * uses that for the active/hover color, background wash, and active
+ * underline. Kept as attribute selectors here (rather than inline styles
+ * in the component) so light/dark just falls out of the token blocks
+ * above with no JS branching.
+ */
+nav [data-nav] {
+  --nav-tint: var(--color-accent);
+}
+nav [data-nav="graph"] {
+  --nav-tint: var(--color-nav-graph);
+}
+nav [data-nav="pipeline"] {
+  --nav-tint: var(--color-nav-pipeline);
+}
+nav [data-nav="gallery"] {
+  --nav-tint: var(--color-nav-gallery);
+}
+nav [data-nav="diff"] {
+  --nav-tint: var(--color-nav-diff);
+}
+nav [data-nav="agents"] {
+  --nav-tint: var(--color-nav-agents);
+}
+nav [data-nav="chat"] {
+  --nav-tint: var(--color-nav-chat);
+}
+nav [data-nav="settings"] {
+  --nav-tint: var(--color-nav-settings);
+}
+
+nav [data-nav][aria-current="page"] {
+  color: var(--nav-tint);
+  background-color: color-mix(in srgb, var(--nav-tint) 14%, transparent);
+}
+nav [data-nav]:hover:not([aria-current="page"]) {
+  color: var(--nav-tint);
+  background-color: color-mix(in srgb, var(--nav-tint) 8%, transparent);
+}
+nav [data-nav][aria-current="page"] .nav-underline {
+  background-color: var(--nav-tint);
 }
 
 [data-theme="light"] body {

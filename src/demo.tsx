@@ -10,12 +10,13 @@
  *    ever leaves the browser);
  *  - sessionStore is preloaded with a fixed demo session so pages render
  *    immediately instead of showing an empty "connect" state;
- *  - the nav only exposes Graph / Gallery / Pipeline -- Chat, Agents,
- *    Evolve and Diff all require a live cks-mcp server and are hidden;
+ *  - the nav shows the full studio menu -- Graph, Pipeline, Gallery,
+ *    Diff, Agents, Chat and Settings all appear so the demo reads as the
+ *    real app, but everything except Graph needs a live cks-mcp server
+ *    and renders a static "available in full version" placeholder
+ *    instead of an empty/broken page;
  *  - a banner explains this is a static demo;
- *  - a floating "Back to Docs" link returns to the cks-website docs site;
- *  - Gallery and Pipeline, which need a live cks-mcp server for real data,
- *    show a static placeholder instead of an empty/broken page.
+ *  - a floating "Back to Docs" link returns to the cks-website docs site.
  */
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
@@ -67,9 +68,13 @@ useSessionStore.setState({
 })
 
 const DEMO_NAV_LINKS = [
-  { to: '/', label: 'Graph' },
-  { to: '/gallery', label: 'Gallery' },
-  { to: '/pipeline', label: 'Pipeline' },
+  { to: '/', label: 'Graph', nav: 'graph' },
+  { to: '/pipeline', label: 'Pipeline', nav: 'pipeline' },
+  { to: '/gallery', label: 'Gallery', nav: 'gallery' },
+  { to: '/diff', label: 'Diff', nav: 'diff' },
+  { to: '/agents', label: 'Agents', nav: 'agents' },
+  { to: '/chat', label: 'Chat', nav: 'chat' },
+  { to: '/settings', label: 'Settings', nav: 'settings' },
 ]
 
 // Where the docs site is mounted (see astro.config.mjs `base`). The demo
@@ -100,7 +105,7 @@ function UnavailableInDemo({ title }: { title: string }) {
     <div className="h-full flex items-center justify-center px-6">
       <div className="max-w-sm text-center">
         <h2 className="text-text-primary font-display font-semibold text-sm mb-2">
-          {title}
+          {title} -- available in full version
         </h2>
         <p className="text-text-secondary text-xs leading-relaxed">
           This section is not available in the static demo. Run cks-mcp locally
@@ -114,8 +119,9 @@ function UnavailableInDemo({ title }: { title: string }) {
 function DemoBanner() {
   return (
     <div className="bg-accent/10 border-b border-accent/30 text-text-primary text-xs px-4 py-2 text-center">
-      This is a static demo of CKS Studio, showing the cks-ecosystem graph only.
-      AI Chat, Agents and Evolve need a running server.{' '}
+      This is a static demo of CKS Studio, showing the cks-ecosystem graph. The
+      full menu is here so you can see what's included, but Pipeline, Gallery,
+      Diff, Agents, Chat and Settings need a running server for real data.{' '}
       <a
         href="https://github.com/Deus-corp/cks-studio"
         className="underline hover:text-accent-strong"
@@ -140,21 +146,26 @@ function DemoNavBar() {
         CKS Studio -- Demo
       </Link>
       <div className="flex items-center gap-0.5">
-        {DEMO_NAV_LINKS.map(({ to, label }) => {
+        {DEMO_NAV_LINKS.map(({ to, label, nav }) => {
           const isActive =
             to === '/' ? pathname === '/' : pathname.startsWith(to)
           return (
             <Link
               key={to}
               to={to}
+              data-nav={nav}
               aria-current={isActive ? 'page' : undefined}
+              // Same per-route tint tokens as the real App.tsx nav (see
+              // styles/index.css) -- the demo should look like the actual
+              // studio menu, not a cut-down preview with a single accent.
               className={`relative text-xs px-2.5 py-1.5 rounded-md transition-colors ${
-                isActive
-                  ? 'text-text-primary bg-surface-2'
-                  : 'text-text-secondary hover:text-text-primary hover:bg-surface-2/60'
+                isActive ? 'text-text-primary' : 'text-text-secondary'
               }`}
             >
               {label}
+              {isActive && (
+                <span className="nav-underline absolute left-2.5 right-2.5 -bottom-[9px] h-0.5 rounded-full" />
+              )}
             </Link>
           )
         })}
@@ -178,12 +189,28 @@ function DemoApp() {
             <Routes>
               <Route path="/" element={<GraphPage />} />
               <Route
+                path="/pipeline"
+                element={<UnavailableInDemo title="Pipeline Monitor" />}
+              />
+              <Route
                 path="/gallery"
                 element={<UnavailableInDemo title="Graph Gallery" />}
               />
               <Route
-                path="/pipeline"
-                element={<UnavailableInDemo title="Pipeline Monitor" />}
+                path="/diff"
+                element={<UnavailableInDemo title="Version Diff" />}
+              />
+              <Route
+                path="/agents"
+                element={<UnavailableInDemo title="Agents" />}
+              />
+              <Route
+                path="/chat"
+                element={<UnavailableInDemo title="AI Chat" />}
+              />
+              <Route
+                path="/settings"
+                element={<UnavailableInDemo title="Settings" />}
               />
             </Routes>
           </ErrorBoundary>

@@ -16,13 +16,13 @@ import { PipelinePage } from './pages/PipelinePage'
 import { SettingsPage } from './pages/SettingsPage'
 
 const NAV_LINKS = [
-  { to: '/', label: 'Graph' },
-  { to: '/pipeline', label: 'Pipeline' },
-  { to: '/gallery', label: 'Gallery' },
-  { to: '/diff', label: 'Diff' },
-  { to: '/agents', label: 'Agents' },
-  { to: '/chat', label: 'Chat' },
-  { to: '/settings', label: 'Settings' },
+  { to: '/', label: 'Graph', nav: 'graph' },
+  { to: '/pipeline', label: 'Pipeline', nav: 'pipeline' },
+  { to: '/gallery', label: 'Gallery', nav: 'gallery' },
+  { to: '/diff', label: 'Diff', nav: 'diff' },
+  { to: '/agents', label: 'Agents', nav: 'agents' },
+  { to: '/chat', label: 'Chat', nav: 'chat' },
+  { to: '/settings', label: 'Settings', nav: 'settings' },
 ]
 
 /** Небольшая метка-«граф» слева от вордмарка — единственный декоративный
@@ -90,23 +90,26 @@ function NavBar() {
       </Link>
 
       <div className="flex items-center gap-0.5">
-        {NAV_LINKS.map(({ to, label }) => {
+        {NAV_LINKS.map(({ to, label, nav }) => {
           const isActive =
             to === '/' ? pathname === '/' : pathname.startsWith(to)
           return (
             <Link
               key={to}
               to={to}
+              data-nav={nav}
               aria-current={isActive ? 'page' : undefined}
+              // Color/background for the active and hover states come
+              // from the --nav-tint custom property set per data-nav
+              // value in styles/index.css, so each destination gets its
+              // own hue instead of one repeated accent (bg-surface-2).
               className={`relative text-xs px-2.5 py-1.5 rounded-md transition-colors ${
-                isActive
-                  ? 'text-text-primary bg-surface-2'
-                  : 'text-text-secondary hover:text-text-primary hover:bg-surface-2/60'
+                isActive ? 'text-text-primary' : 'text-text-secondary'
               }`}
             >
               {label}
               {isActive && (
-                <span className="absolute left-2.5 right-2.5 -bottom-[9px] h-0.5 rounded-full bg-accent" />
+                <span className="nav-underline absolute left-2.5 right-2.5 -bottom-[9px] h-0.5 rounded-full" />
               )}
             </Link>
           )
