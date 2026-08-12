@@ -91,7 +91,7 @@ function AgentCard({
           type="button"
           onClick={() => onStart(agent.agent_id)}
           disabled={isBusy || agent.running}
-          className="text-xs bg-green-900 hover:bg-green-800 text-green-200 px-2 py-1 rounded disabled:opacity-40 disabled:cursor-not-allowed"
+          className="text-xs bg-brand hover:bg-brand-strong text-brand-text px-2 py-1 rounded disabled:opacity-40 disabled:cursor-not-allowed"
         >
           {isBusy ? '…' : 'Start'}
         </button>

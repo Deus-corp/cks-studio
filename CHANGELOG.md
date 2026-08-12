@@ -6,6 +6,16 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 
 ---
 
+## [0.6.7] - 2026-08-12
+
+### Changed
+- **Design sync with cks-website** – dark‑theme palette (surface, border, text) now matches the docs site’s graphite tones.
+- **Logo recoloured** from violet to the brand amber (`#e8a33d`) used on the website.
+- **Buttons toned down** – primary actions use muted brand amber instead of bright emerald/blue; secondary actions use `surface-3`.
+- **Light‑theme brand tokens** added for consistency with the dark theme.
+
+---
+
 ## [0.6.6] - 2026-08-11
 
 ### Added

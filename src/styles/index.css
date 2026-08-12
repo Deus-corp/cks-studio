@@ -16,19 +16,25 @@
 @theme {
   --color-gray-950: #0a0a0a;
 
-  /* Elevation: 0 = page background, 3 = topmost hover/active surface. */
-  --color-surface-0: #09090b;
-  --color-surface-1: #111318;
-  --color-surface-2: #16181e;
-  --color-surface-3: #1e2129;
+  /* Elevation: 0 = page background, 3 = topmost hover/active surface.
+     Ladder pulled from cks-website's graphite palette (--cks-ink /
+     --cks-ink-raised / --sl-color-gray-5 / --sl-color-hairline) so the
+     studio and the docs site read as the same product in dark mode,
+     rather than two different shades of near-black. */
+  --color-surface-0: #0b0e14;
+  --color-surface-1: #12161f;
+  --color-surface-2: #1b212c;
+  --color-surface-3: #232a37;
 
-  --color-border-subtle: #1f222a;
-  --color-border: #292d37;
-  --color-border-strong: #383d4a;
+  --color-border-subtle: #1b212c;
+  --color-border: #232a37;
+  --color-border-strong: #333c4b;
 
-  --color-text-primary: #e8e9ec;
-  --color-text-secondary: #9aa0ac;
-  --color-text-tertiary: #656b78;
+  /* Slightly warmed off-white/grey, matching the softened body-text pass
+     on cks-website (see custom.css) instead of a clinical pure-white. */
+  --color-text-primary: #e9e7e2;
+  --color-text-secondary: #a29c92;
+  --color-text-tertiary: #726c62;
 
   /* Single accent, used deliberately (see frontend-design guidance on
      spending boldness in one place) — active nav state, primary actions,
@@ -37,6 +43,14 @@
   --color-accent: #5b8cff;
   --color-accent-strong: #82a6ff;
   --color-accent-muted: #5b8cff26;
+
+  /* Brand mark — the amber "seal" from cks-website (--cks-seal /
+     --cks-seal-dim). Kept separate from --color-accent (still blue,
+     used for focus/selection/nav) so this is a deliberate second, more
+     restrained accent: the wordmark and primary CTA buttons only. */
+  --color-brand: #a66f1f;
+  --color-brand-strong: #e8a33d;
+  --color-brand-text: #0b0e14;
 
   --color-success: #22c55e;
   --color-danger: #ef4444;
@@ -166,6 +180,12 @@ body {
   --color-accent: #3b64e0;
   --color-accent-strong: #2a4fc4;
   --color-accent-muted: #3b64e01a;
+
+  /* Same brand mark as dark theme, dimmed slightly less since it now
+     sits on a light ground. */
+  --color-brand: #a66f1f;
+  --color-brand-strong: #c98a2e;
+  --color-brand-text: #ffffff;
 
   /* Trace Inference on light theme: switched from amber/orange (which
      blended into the cream background) to a light green so it reads

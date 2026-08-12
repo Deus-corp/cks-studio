@@ -292,7 +292,7 @@ export function GraphPage() {
                 setCreateMode((m) => (m === 'node' ? 'none' : 'node'))
               }
               disabled={!sessionId.trim()}
-              className="w-full rounded bg-emerald-700 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full rounded bg-brand px-4 py-2 text-sm font-medium text-brand-text hover:bg-brand-strong disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {createMode === 'node' ? 'Close' : 'New object'}
             </button>
@@ -307,7 +307,7 @@ export function GraphPage() {
                   ? 'Need at least two objects on the canvas'
                   : undefined
               }
-              className="w-full rounded bg-emerald-800 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full rounded bg-surface-3 px-4 py-2 text-sm font-medium text-text-primary hover:bg-border disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {createMode === 'relation' ? 'Close' : 'New relation'}
             </button>
@@ -315,11 +315,11 @@ export function GraphPage() {
               type="button"
               onClick={handleExplore}
               disabled={!selectedNodeId || isLoading}
-              className="w-full rounded bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="w-full rounded bg-surface-3 px-4 py-2 text-sm font-medium text-text-primary hover:bg-border disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {isLoading ? (
                 <>
-                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-text-primary border-t-transparent" />
                   Loading...
                 </>
               ) : (
@@ -333,7 +333,7 @@ export function GraphPage() {
               type="button"
               onClick={handleTrace}
               disabled={!selectedNodeId}
-              className="w-full rounded bg-amber-600 px-4 py-2 text-sm font-medium text-white hover:bg-amber-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full rounded bg-surface-3 px-4 py-2 text-sm font-medium text-text-primary hover:bg-border disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Trace Inference
             </button>
