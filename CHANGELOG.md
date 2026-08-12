@@ -6,6 +6,13 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 
 ---
 
+## [0.6.10] - 2026-08-12
+
+### Changed
+- **2D node sizing by importance** – `CksNode` and `useGraphLayout` now scale node cards, fonts, and layout dimensions with connection degree (incident edge count), using sqrt-tapered growth to keep the dagre layout stable. Hub nodes (e.g. `cks-core`) render larger than leaf nodes, and each connected node shows a small degree badge.
+
+---
+
 ## [0.6.9] - 2026-08-12
 
 ### Changed
