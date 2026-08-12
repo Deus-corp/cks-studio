@@ -1,6 +1,7 @@
 # ADR-001: AI Assistant Chat Panel
 
-**Status:** Proposed
+**Status:** Implemented — see `src/features/ai-chat/`, shipped v0.5.4–v0.5.5
+(onboarding/error states, model selector).
 **Related:** cks-mcp ADR-007 (CKSAgentOrchestrator — a different, longer-running
 multi-agent pipeline; this ADR is a single interactive chat turn, not that
 pipeline), cks-mcp ADR-009/ADR-010 (Sweeper/Process Control Tools — the

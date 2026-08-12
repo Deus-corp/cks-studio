@@ -8,6 +8,8 @@
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Status](https://img.shields.io/badge/status-v0.6.6-orange)
 
+> 🚀 **[Live demo →](https://deus-corp.github.io/cks-website/demo/demo.html)** — explore the CKS ecosystem graph directly in your browser, no server required.
+
 **CKS Studio** is the graphical interface of the CKS ecosystem — a
 single-page application where you can **explore knowledge graphs**,
 **inspect inference chains**, **review CRDT forks**, **monitor agent
@@ -33,6 +35,9 @@ CKS Studio completes the CKS toolchain:
 | **cks-mcp** | MCP server – exposes CKS to LLMs and agents. | [Deus-corp/cks-mcp](https://github.com/Deus-corp/cks-mcp) |
 | **cks-studio** | Visual workspace – explore, monitor, and manage graphs. | [Deus-corp/cks-studio](https://github.com/Deus-corp/cks-studio) |
 | **cks-website** | Documentation & demo site. | [Deus-corp/cks-website](https://github.com/Deus-corp/cks-website) |
+
+📖 **Full documentation, case studies, and an interactive demo**
+are available at the **[CKS Documentation Site](https://deus-corp.github.io/cks-website/)**.
 
 ---
 
@@ -110,7 +115,7 @@ configuration on the frontend side.
 
 # Why CKS Studio?
 
-`cks-mcp` already gives LLMs 61+ tools to create, validate, evolve, and
+`cks-mcp` already gives LLMs 63 tools to create, validate, evolve, and
 query knowledge structures. But humans and operators also need to see
 what the agents are doing — to inspect a graph visually, to compare
 forked versions of an object, or to watch a multi-step reasoning
@@ -120,6 +125,10 @@ CKS Studio is that human window:
 
 - **Interactive graph exploration** — zoom, pan, and drill down by
   clicking on nodes, with automatic Dagre layout.
+- **2D / 3D graph views** — toggle to a force-directed 3D canvas
+  (Three.js) for wide graphs with many same-rank nodes; path
+  highlighting, drag-and-drop import, and Cmd/Ctrl+K search all work
+  in both modes.
 - **Cmd/Ctrl+K quick jump** — fuzzy search across every node on the
   canvas by name or id, keyboard-navigable, centres the viewport on the
   match. No more scrolling a large graph to find one node.
@@ -149,6 +158,9 @@ CKS Studio is that human window:
   evolve the knowledge graph. Works with **any** OpenAI‑compatible provider
   (OpenAI, Anthropic, Groq, Together AI, OpenRouter) and even with
   **free models** like `poolside/laguna-xs-2.1` via OpenRouter.
+- **Standalone static demo** — the full CKS ecosystem graph rendered
+  entirely in-browser (`demo.html`), no `cks-mcp` server required;
+  used for the live demo linked at the top of this README.
 
 ---
 
@@ -196,13 +208,13 @@ in the backend; the studio only reads and sends commands through MCP.
 | Styling | Tailwind CSS v4 |
 | Testing | Vitest + React Testing Library |
 | Linting / formatting | Biome |
-| MCP transport | `@modelcontextprotocol/sdk` (HTTP + stdio) |
+| MCP transport | Hand-rolled JSON-RPC over `fetch` (`@modelcontextprotocol/sdk` is a listed dependency but unused by the browser client) |
 
 ---
 
 # Project Status
 
-CKS Studio is in **active development**, currently at **v0.5.1**. All
+CKS Studio is in **active development**, currently at **v0.6.6**. All
 core exploration, review, and monitoring surfaces are implemented and
 connected to live `cks-mcp` tools.
 
@@ -213,6 +225,7 @@ connected to live `cks-mcp` tools.
 | Cmd/Ctrl+K node search | ✅ Complete |
 | Type filter (legend checkboxes) | ✅ Complete |
 | Graph empty state & skeleton loading | ✅ Complete |
+| 2D / 3D graph view toggle | ✅ Complete |
 | Inference chain inspector | ✅ Complete |
 | CRDT fork diff view | ✅ Complete |
 | Pipeline monitor | ✅ Complete |
@@ -221,11 +234,16 @@ connected to live `cks-mcp` tools.
 | Agent control panel (start/stop/request-stop) | ✅ Complete |
 | Dark / light theme | ✅ Complete |
 | AI Chat panel | ✅ Complete |
+| Standalone static demo (`demo.html`) | ✅ Complete |
+| PWA / installable desktop app | ✅ Complete |
+| Real MCP session presence (WebSocket/SSE, live updates) | 🔲 Planned |
 | Real-time gossip visualiser | 🔲 Planned |
 | Graph gallery clone-into-session | 🔲 Planned |
 
-See [ROADMAP.md](ROADMAP.md) for what's next, and
-[CHANGELOG.md](CHANGELOG.md) for the full release history.
+See [ROADMAP.md](ROADMAP.md) for what's next,
+[docs/architecture.md](docs/architecture.md) for how the frontend is
+structured, [docs/adr/](docs/adr/) for design decisions behind specific
+features, and [CHANGELOG.md](CHANGELOG.md) for the full release history.
 
 ---
 
