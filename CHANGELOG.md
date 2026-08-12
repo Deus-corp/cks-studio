@@ -6,6 +6,19 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 
 ---
 
+## [0.6.12] - 2026-08-12
+
+### Added
+- **Expanded static demo** – Gallery, Agents, Chat, and Settings now have dedicated mock pages in the static demo. Gallery shows illustrative graphs with the bundled cks-ecosystem openable; Agents displays seven in-process sweepers and four standalone processes; Chat presents a sample ai_chat conversation; Settings offers a working theme selector, component versions read from the bundled graph, and a copyable Ollama setup snippet.
+- **Demo theme switching** – the demo now respects the active theme store and provides an icon-based light/dark toggle in the nav, in addition to the theme selector on Settings.
+- **Demo toast system** – non-functional demo interactions (e.g. opening a gallery card without data) now show a lightweight toast instead of failing silently.
+
+### Changed
+- **SettingsPage ThemeToggle exported** – reused by the demo nav and settings pages.
+- **mockClient** now exports `listComponentVersions()` and `DEMO_GRAPH_OBJECT_COUNT` from the bundled ecosystem graph for demo pages.
+
+---
+
 ## [0.6.11] - 2026-08-12
 
 ### Added

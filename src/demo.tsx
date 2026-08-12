@@ -22,6 +22,12 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { HashRouter, Link, Route, Routes, useLocation } from 'react-router-dom'
 import { ErrorBoundary } from '@/components/common/ErrorBoundary'
+import { useThemeStore } from '@/shared/stores/themeStore'
+import { DemoAgentsPage } from './demo/DemoAgentsPage'
+import { DemoChatPage } from './demo/DemoChatPage'
+import { DemoGalleryPage } from './demo/DemoGalleryPage'
+import { DemoSettingsPage } from './demo/DemoSettingsPage'
+import { DemoToastProvider } from './demo/DemoToast'
 import { GraphPage } from './pages/GraphPage'
 import { setDemoCallTool } from './services/mcpClient'
 import { DEMO_SESSION, callTool as mockCallTool } from './services/mockClient'
@@ -119,9 +125,9 @@ function UnavailableInDemo({ title }: { title: string }) {
 function DemoBanner() {
   return (
     <div className="bg-accent/10 border-b border-accent/30 text-text-primary text-xs px-4 py-2 text-center">
-      This is a static demo of CKS Studio, showing the cks-ecosystem graph. The
-      full menu is here so you can see what's included, but Pipeline, Gallery,
-      Diff, Agents, Chat and Settings need a running server for real data.{' '}
+      This is a static demo of CKS Studio, showing the cks-ecosystem graph.
+      Gallery, Agents, Chat and Settings show mock/sample data so you can see
+      what's included; Pipeline and Diff need a running server for real data.{' '}
       <a
         href="https://github.com/Deus-corp/cks-studio"
         className="underline hover:text-accent-strong"
@@ -132,6 +138,61 @@ function DemoBanner() {
       </a>{' '}
       for full functionality.
     </div>
+  )
+}
+
+/** Compact icon-only theme toggle for the nav bar, backed by the same
+ *  themeStore the Settings page's own selector uses -- switching here or
+ *  there stays in sync since both just reflect the one store. Icon-only
+ *  (rather than reusing the Settings page's labelled ThemeToggle) so it
+ *  fits the nav bar's height without pushing the route links around. */
+function NavThemeToggle() {
+  const theme = useThemeStore((s) => s.theme)
+  const toggleTheme = useThemeStore((s) => s.toggleTheme)
+  const isDark = theme === 'dark'
+
+  return (
+    <button
+      type="button"
+      onClick={toggleTheme}
+      aria-label={isDark ? 'Switch to light theme' : 'Switch to dark theme'}
+      title={isDark ? 'Switch to light theme' : 'Switch to dark theme'}
+      className="ml-auto flex items-center justify-center w-7 h-7 rounded-md text-text-secondary hover:text-text-primary hover:bg-surface-2 transition-colors flex-shrink-0"
+    >
+      {isDark ? (
+        <svg
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          aria-hidden="true"
+        >
+          <circle cx="12" cy="12" r="4" stroke="currentColor" strokeWidth="2" />
+          <path
+            d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+          />
+        </svg>
+      ) : (
+        <svg
+          width="14"
+          height="14"
+          viewBox="0 0 24 24"
+          fill="none"
+          aria-hidden="true"
+        >
+          <path
+            d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      )}
+    </button>
   )
 }
 
@@ -170,6 +231,7 @@ function DemoNavBar() {
           )
         })}
       </div>
+      <NavThemeToggle />
     </nav>
   )
 }
@@ -180,42 +242,32 @@ function DemoNavBar() {
 function DemoApp() {
   return (
     <HashRouter>
-      <div className="h-screen flex flex-col">
-        <BackToDocsLink />
-        <DemoBanner />
-        <DemoNavBar />
-        <div className="flex-1 min-h-0">
-          <ErrorBoundary>
-            <Routes>
-              <Route path="/" element={<GraphPage />} />
-              <Route
-                path="/pipeline"
-                element={<UnavailableInDemo title="Pipeline Monitor" />}
-              />
-              <Route
-                path="/gallery"
-                element={<UnavailableInDemo title="Graph Gallery" />}
-              />
-              <Route
-                path="/diff"
-                element={<UnavailableInDemo title="Version Diff" />}
-              />
-              <Route
-                path="/agents"
-                element={<UnavailableInDemo title="Agents" />}
-              />
-              <Route
-                path="/chat"
-                element={<UnavailableInDemo title="AI Chat" />}
-              />
-              <Route
-                path="/settings"
-                element={<UnavailableInDemo title="Settings" />}
-              />
-            </Routes>
-          </ErrorBoundary>
+      <DemoToastProvider>
+        <div className="h-screen flex flex-col">
+          <BackToDocsLink />
+          <DemoBanner />
+          <DemoNavBar />
+          <div className="flex-1 min-h-0">
+            <ErrorBoundary>
+              <Routes>
+                <Route path="/" element={<GraphPage />} />
+                <Route
+                  path="/pipeline"
+                  element={<UnavailableInDemo title="Pipeline Monitor" />}
+                />
+                <Route path="/gallery" element={<DemoGalleryPage />} />
+                <Route
+                  path="/diff"
+                  element={<UnavailableInDemo title="Version Diff" />}
+                />
+                <Route path="/agents" element={<DemoAgentsPage />} />
+                <Route path="/chat" element={<DemoChatPage />} />
+                <Route path="/settings" element={<DemoSettingsPage />} />
+              </Routes>
+            </ErrorBoundary>
+          </div>
         </div>
-      </div>
+      </DemoToastProvider>
     </HashRouter>
   )
 }

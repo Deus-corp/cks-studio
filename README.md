@@ -4,9 +4,9 @@
 
 ![TypeScript](https://img.shields.io/badge/typescript-5.7%2B-blue)
 ![React](https://img.shields.io/badge/react-19-61DAFB)
-![Tests](https://img.shields.io/badge/tests-81%20passed-brightgreen)
+![Tests](https://img.shields.io/badge/tests-88%20passed-brightgreen)
 ![License](https://img.shields.io/badge/license-MIT-green)
-![Status](https://img.shields.io/badge/status-v0.6.11-orange)
+![Status](https://img.shields.io/badge/status-v0.6.12-orange)
 
 > 🚀 **[Live demo →](https://deus-corp.github.io/cks-website/demo/demo.html)** — explore the CKS ecosystem graph directly in your browser, no server required.
 
@@ -254,7 +254,7 @@ npm run test   # vitest
 npm run ci     # biome + tsc --noEmit + vitest, same as CI
 ```
 
-81+ tests, all passing.
+88+ tests, all passing.
 
 ---
 

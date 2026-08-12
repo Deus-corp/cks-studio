@@ -2,7 +2,7 @@ import { useLLMStatus } from '@/features/llm-status/useLLMStatus'
 import type { LLMStatus } from '@/services/mcpTools'
 import { useThemeStore } from '@/shared/stores/themeStore'
 
-function ThemeToggle() {
+export function ThemeToggle() {
   const theme = useThemeStore((s) => s.theme)
   const setTheme = useThemeStore((s) => s.setTheme)
 

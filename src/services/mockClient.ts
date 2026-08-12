@@ -151,3 +151,32 @@ export const DEMO_SESSION = {
   serverUrl: 'demo://static',
   sessionId: DEMO_SESSION_ID,
 }
+
+export const DEMO_GRAPH_OBJECT_COUNT = GRAPH.objects.length
+
+/** Component objects (identity.type === 'Component') from the bundled
+ *  cks-ecosystem graph, e.g. cks-core / cks-runtime / cks-mcp / cks-studio
+ *  with their declared version -- used by the demo Settings page so the
+ *  "component versions" block shows real data pulled from the graph
+ *  instead of hand-maintained numbers that would drift from it. */
+export interface DemoComponentVersion {
+  id: string
+  name: string
+  description: string | null
+  version: string | null
+}
+
+export function listComponentVersions(): DemoComponentVersion[] {
+  return GRAPH.objects
+    .filter((obj) => obj.identity.type === 'Component')
+    .map((obj) => {
+      const s = obj.structure as Record<string, unknown>
+      return {
+        id: obj.identity.id,
+        name: obj.identity.name,
+        description: typeof s.description === 'string' ? s.description : null,
+        version: typeof s.version === 'string' ? s.version : null,
+      }
+    })
+    .filter((c) => c.version !== null)
+}
