@@ -45,6 +45,11 @@ function CksNode({ data }: NodeProps) {
     | number
     | undefined
   const isRelationSelected = relationSelectedIndex !== undefined
+  // Pipeline multi-select ring (see GraphCanvas's handleNodeClick /
+  // graphExplorerStore's multiSelectedIds) -- teal so it reads distinctly
+  // from the amber relation-draft ring above and doesn't get confused
+  // with it if both happen to be active on different nodes at once.
+  const isMultiSelected = Boolean(data._multiSelected)
   // Populated by useGraphLayout from live edge data -- undefined for any
   // node reached via a path that skips the layout hook (shouldn't
   // normally happen, but degree-based styling should no-op rather than
@@ -63,14 +68,20 @@ function CksNode({ data }: NodeProps) {
         // card to read as a distinct shape against the canvas.
         backgroundColor: 'var(--color-surface-3)',
         border: `1px solid ${
-          isRelationSelected ? '#f59e0b' : 'var(--color-border-strong)'
+          isRelationSelected
+            ? '#f59e0b'
+            : isMultiSelected
+              ? '#2dd4bf'
+              : 'var(--color-border-strong)'
         }`,
         borderTop: `${Math.round(3 * scale)}px solid ${isRelationSelected ? '#f59e0b' : color}`,
         borderRadius: '8px',
         opacity: isPending ? 0.65 : 1,
         boxShadow: isRelationSelected
           ? '0 0 0 2px rgba(245, 158, 11, 0.35), 0 6px 16px rgba(0, 0, 0, 0.35)'
-          : '0 1px 2px rgba(0, 0, 0, 0.2), 0 8px 20px -8px rgba(0, 0, 0, 0.4)',
+          : isMultiSelected
+            ? '0 0 0 2px rgba(45, 212, 191, 0.45), 0 6px 16px rgba(0, 0, 0, 0.35)'
+            : '0 1px 2px rgba(0, 0, 0, 0.2), 0 8px 20px -8px rgba(0, 0, 0, 0.4)',
       }}
     >
       <Handle type="target" position={Position.Top} />

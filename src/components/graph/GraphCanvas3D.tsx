@@ -472,6 +472,12 @@ export function GraphCanvas3D({
   const toggleRelationParticipant = useGraphStore(
     (s: GraphState) => s.toggleRelationParticipant,
   )
+  const multiSelectedIds = useGraphStore((s: GraphState) => s.multiSelectedIds)
+  const toggleMultiSelect = useGraphStore(
+    (s: GraphState) => s.toggleMultiSelect,
+  )
+  const setMultiSelect = useGraphStore((s: GraphState) => s.setMultiSelect)
+  const clearMultiSelect = useGraphStore((s: GraphState) => s.clearMultiSelect)
 
   const [pathStartId, setPathStartId] = useState<string | null>(null)
   const [isSearchOpen, setIsSearchOpen] = useState(false)
@@ -507,6 +513,11 @@ export function GraphCanvas3D({
   pathStartIdRef.current = pathStartId
   const relationDraftRef = useRef(relationDraft)
   relationDraftRef.current = relationDraft
+  // Ctrl/Cmd+click multi-select (Start Pipeline) -- same ref-mirror
+  // pattern as relationDraftRef above, read inside nodeThreeObject's
+  // closure and onNodeClick without forcing a scene teardown.
+  const multiSelectedRef = useRef(multiSelectedIds)
+  multiSelectedRef.current = multiSelectedIds
   // Adjacency built alongside graphData in the data effect below, read
   // by onNodeHover in the mount effect. A ref (not state) because hover
   // firing on every mouse-move must never trigger a React re-render.
@@ -876,6 +887,28 @@ export function GraphCanvas3D({
             group.add(ring)
           }
 
+          // Pipeline multi-select ring -- teal, distinct from both the
+          // amber relation-draft ring and the cyan focus ring above so
+          // all three read unambiguously if they ever overlap on the
+          // same node.
+          if (multiSelectedRef.current.has(n.id)) {
+            const ring = new THREE.Mesh(
+              new THREE.RingGeometry(
+                cardHalfHeight * 1.2,
+                cardHalfHeight * 1.32,
+                24,
+              ),
+              new THREE.MeshBasicMaterial({
+                color: '#2dd4bf',
+                side: THREE.DoubleSide,
+                transparent: true,
+                opacity: 0.9,
+              }),
+            )
+            ring.position.set(0, 0, 0.05)
+            group.add(ring)
+          }
+
           return group
         }
 
@@ -958,6 +991,15 @@ export function GraphCanvas3D({
           return
         }
 
+        // Ctrl/Cmd+click toggles this node in the pipeline multi-select
+        // set without changing focus mode -- lets you build up a
+        // selection across the cluster you're currently focused on
+        // instead of every click re-targeting focus.
+        if (event.ctrlKey || event.metaKey) {
+          toggleMultiSelect(n.id)
+          return
+        }
+
         // Shift+click twice: highlight the shortest path between the
         // two clicked nodes, same as GraphCanvas's Shift+click.
         if (event.shiftKey) {
@@ -990,6 +1032,7 @@ export function GraphCanvas3D({
         }
 
         selectNode(n.id)
+        setMultiSelect([n.id])
         const fullNode = nodesRef.current.find((rn) => rn.id === n.id)
         if (fullNode) onNodeSelect?.(fullNode)
         // Recenter the camera on the clicked node, same distance out, so
@@ -1003,6 +1046,7 @@ export function GraphCanvas3D({
       .onBackgroundClick(() => {
         selectNode(null)
         setPathStartId(null)
+        clearMultiSelect()
         exitFocus()
       })
 
@@ -1098,6 +1142,9 @@ export function GraphCanvas3D({
     selectNode,
     setHighlightedEdges,
     toggleRelationParticipant,
+    toggleMultiSelect,
+    setMultiSelect,
+    clearMultiSelect,
     focusNode,
     enterFocus,
     exitFocus,
@@ -1202,6 +1249,16 @@ export function GraphCanvas3D({
     if (!graph) return
     graph.nodeThreeObject(graph.nodeThreeObject())
   }, [relationDraft])
+
+  // Same refresh trick for the pipeline multi-select ring, which is also
+  // only drawn inside nodeThreeObject's per-node factory (see
+  // multiSelectedRef above).
+  // biome-ignore lint/correctness/useExhaustiveDependencies: multiSelectedIds is read via multiSelectedRef inside nodeThreeObject's closure; listed here purely to re-trigger the refresh call below when it changes.
+  useEffect(() => {
+    const graph = graphRef.current
+    if (!graph) return
+    graph.nodeThreeObject(graph.nodeThreeObject())
+  }, [multiSelectedIds])
 
   const handleDragOver = useCallback((event: React.DragEvent) => {
     event.preventDefault()

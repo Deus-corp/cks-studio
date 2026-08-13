@@ -47,6 +47,16 @@ export interface GraphState {
    *  bushier than it is deep. */
   layoutDirection: 'TB' | 'LR'
   setLayoutDirection: (dir: 'TB' | 'LR') => void
+  /** Multi-node selection (2D: Ctrl/Cmd+click toggles, plain click
+   *  replaces with just that node; 3D: same via GraphCanvas3D's
+   *  onNodeClick). Separate from `selectedNodeId` -- that one drives the
+   *  single-node SidePanel and is left alone by multi-select toggling so
+   *  the detail panel doesn't flicker between nodes as you Ctrl-click
+   *  around. Used to gather object_ids for the "Start Pipeline" action. */
+  multiSelectedIds: Set<string>
+  toggleMultiSelect: (id: string) => void
+  setMultiSelect: (ids: string[] | Set<string>) => void
+  clearMultiSelect: () => void
 }
 
 export const useGraphStore = create<GraphState>((set) => ({
@@ -164,4 +174,18 @@ export const useGraphStore = create<GraphState>((set) => ({
 
   layoutDirection: 'TB',
   setLayoutDirection: (dir) => set({ layoutDirection: dir }),
+
+  multiSelectedIds: new Set(),
+  toggleMultiSelect: (id) =>
+    set((state) => {
+      const next = new Set(state.multiSelectedIds)
+      if (next.has(id)) {
+        next.delete(id)
+      } else {
+        next.add(id)
+      }
+      return { multiSelectedIds: next }
+    }),
+  setMultiSelect: (ids) => set({ multiSelectedIds: new Set(ids) }),
+  clearMultiSelect: () => set({ multiSelectedIds: new Set() }),
 }))

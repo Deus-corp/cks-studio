@@ -61,6 +61,12 @@ export function GraphCanvas({
   const setLayoutDirection = useGraphStore(
     (s: GraphState) => s.setLayoutDirection,
   )
+  const multiSelectedIds = useGraphStore((s: GraphState) => s.multiSelectedIds)
+  const toggleMultiSelect = useGraphStore(
+    (s: GraphState) => s.toggleMultiSelect,
+  )
+  const setMultiSelect = useGraphStore((s: GraphState) => s.setMultiSelect)
+  const clearMultiSelect = useGraphStore((s: GraphState) => s.clearMultiSelect)
 
   const [isDragOver, setIsDragOver] = useState(false)
   const [dropError, setDropError] = useState<string | null>(null)
@@ -111,6 +117,19 @@ export function GraphCanvas({
       })
     : layoutedNodes
 
+  // Multi-select ring (Start Pipeline selection) -- layered on top of the
+  // relation-draft mapping above rather than folded into it, since the
+  // two selections are independent (a node can be mid relation-draft and
+  // also part of the pipeline multi-select at the same time).
+  const displayNodesWithSelection =
+    multiSelectedIds.size === 0
+      ? displayNodes
+      : displayNodes.map((node) =>
+          multiSelectedIds.has(node.id)
+            ? { ...node, data: { ...node.data, _multiSelected: true } }
+            : node,
+        )
+
   const styledEdges = layoutedEdges.map((edge) => {
     const isHighlighted = highlightedEdgeIds.has(edge.id)
     // var(...) resolves fine inside an inline SVG style/attribute, and
@@ -156,7 +175,15 @@ export function GraphCanvas({
         setPathStartId(null)
         return
       }
+      // Ctrl/Cmd+click toggles this node in the multi-select set (used by
+      // "Start Pipeline") without touching the single-node selection that
+      // drives the side panel.
+      if (event.ctrlKey || event.metaKey) {
+        toggleMultiSelect(node.id)
+        return
+      }
       selectNode(node.id)
+      setMultiSelect([node.id])
       onNodeSelect?.(node)
     },
     [
@@ -167,13 +194,16 @@ export function GraphCanvas({
       setHighlightedEdges,
       relationDraft.active,
       toggleRelationParticipant,
+      toggleMultiSelect,
+      setMultiSelect,
     ],
   )
 
   const handlePaneClick = useCallback(() => {
     selectNode(null)
     setPathStartId(null)
-  }, [selectNode])
+    clearMultiSelect()
+  }, [selectNode, clearMultiSelect])
 
   const handleDragOver = useCallback((event: React.DragEvent) => {
     event.preventDefault()
@@ -231,7 +261,7 @@ export function GraphCanvas({
       onDrop={handleDrop}
     >
       <ReactFlow
-        nodes={displayNodes}
+        nodes={displayNodesWithSelection}
         edges={styledEdges}
         nodeTypes={nodeTypes}
         onNodeClick={handleNodeClick}
@@ -243,8 +273,16 @@ export function GraphCanvas({
          *  is where TypeLegend (see GraphPage) lives, and an expanded
          *  legend was covering the zoom/fullscreen controls entirely.
          *  top-right is otherwise unused (search/layout Panel above is
-         *  top-left, MiniMap keeps its bottom-right default). */}
-        <Controls position="top-right">
+         *  top-left, MiniMap keeps its bottom-right default).
+         *
+         *  Pushed down via `top` (rather than left at the panel default)
+         *  because ExportControls renders its own top-right Panel just
+         *  above this one (refresh/PNG/SVG buttons) -- two top-right
+         *  panels stack at the same offset otherwise, so the zoom/
+         *  fullscreen controls end up hidden underneath the export
+         *  buttons. 64px clears that button row (~28px tall) plus its
+         *  own panel padding with room to spare. */}
+        <Controls position="top-right" style={{ top: 64 }}>
           <ControlButton
             onClick={toggleFullscreen}
             title={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}

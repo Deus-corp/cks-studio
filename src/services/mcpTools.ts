@@ -409,6 +409,30 @@ export function addRelationOperation(
 }
 
 // ---------------------------------------------------------------------------
+// start_pipeline (cks-mcp ADR-007 agent pipeline) -- kicked off from the
+// graph view's multi-select ("Start Pipeline" toolbar button, see
+// GraphPage/PipelineStartButton).
+// ---------------------------------------------------------------------------
+
+export interface StartPipelineResult {
+  run_id: string
+  status: string
+}
+
+export async function startPipeline(
+  sessionId: string,
+  objectIds: string[],
+  mode?: string,
+): Promise<StartPipelineResult> {
+  const result = await callTool('start_pipeline', {
+    session_id: sessionId,
+    object_ids: objectIds,
+    ...(mode ? { mode } : {}),
+  })
+  return result as unknown as StartPipelineResult
+}
+
+// ---------------------------------------------------------------------------
 // ai_chat (cks-mcp ADR-011 / cks-studio ADR-001)
 // ---------------------------------------------------------------------------
 
