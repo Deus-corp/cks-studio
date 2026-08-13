@@ -69,6 +69,7 @@
   --color-nav-diff: #2dd4bf;
   --color-nav-agents: #f0993d;
   --color-nav-chat: #f472b6;
+  --color-nav-dead-letter: #e0577a;
   --color-nav-settings: #9aa3b2;
 
   /* Edge highlight for "trace inference"/path-highlighting (see
@@ -222,6 +223,7 @@ body {
   --color-nav-diff: #0d9488;
   --color-nav-agents: #c2650a;
   --color-nav-chat: #db2777;
+  --color-nav-dead-letter: #c23d63;
   --color-nav-settings: #5b6270;
 }
 
@@ -254,6 +256,9 @@ nav [data-nav="agents"] {
 }
 nav [data-nav="chat"] {
   --nav-tint: var(--color-nav-chat);
+}
+nav [data-nav="dead-letter"] {
+  --nav-tint: var(--color-nav-dead-letter);
 }
 nav [data-nav="settings"] {
   --nav-tint: var(--color-nav-settings);

@@ -6,6 +6,19 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 
 ---
 
+## [0.6.16] - 2026-08-13
+
+### Added
+- **Start Pipeline button** – select one or more nodes in the 2D/3D graph (Ctrl/Cmd+click for multi-select) and start a pipeline run directly from the graph toolbar. Calls the new `start_pipeline` MCP tool with the current session and selected object IDs.
+- **Dead Letter inbox** – new Dead Letter page for reviewing and resolving dead-lettered conflict tasks. Lists tasks via `list_dead_lettered_conflicts`, shows proposed resolutions via `review_dead_letter`, and supports approve/reject actions (`approve_resolution` / `reject_resolution`) with automatic list refresh.
+- **Multi-select rings** – selected nodes in both 2D and 3D get a distinct ring indicator, making multi-selection visually clear.
+
+### Changed
+- **2D graph controls** – zoom/fullscreen controls positioned so they no longer overlap the Export SVG button.
+- **Navigation** – added Dead Letter page to the main nav with its own per-route tint color.
+
+---
+
 ## [0.6.15] - 2026-08-13
 
 ### Fixed
