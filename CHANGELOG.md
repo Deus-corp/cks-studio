@@ -6,6 +6,22 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 
 ---
 
+## [0.6.17] - 2026-08-13
+
+### Added
+- **Auto theme option** – real Settings now offers Light, Dark, and Auto. Auto resolves the current system theme and is visually selected.
+- **Stop pipeline button** – Start Pipeline toolbar now includes a Stop Pipeline control that calls `request_process_stop` for the pipeline process.
+- **3D focus mode toggle** – 3D focus mode is no longer auto-triggered on node click. A top-right toggle enables focus mode; when off, clicking a node keeps the old select/zoom behavior.
+- **2D focus mode** – added a focus mode toggle to the 2D graph. When enabled, clicking a node highlights it and its neighbors while dimming the rest.
+- **Additional tests** – added coverage for StartPipelineButton (stop and truncation), ThemeToggle auto behavior, and 2D focus mode.
+
+### Fixed
+- **Start Pipeline message overflow** – long run IDs now wrap/truncate inside the message container instead of overflowing.
+- **3D performance** – multi-select/focus updates now manipulate existing three.js objects directly instead of rebuilding all node sprites, reducing lag on larger graphs.
+- **3D card theme** – cards now adapt to light/dark theme using the same token palette as 2D nodes.
+
+---
+
 ## [0.6.16] - 2026-08-13
 
 ### Added

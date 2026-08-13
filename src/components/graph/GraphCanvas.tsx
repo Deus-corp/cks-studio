@@ -72,6 +72,12 @@ export function GraphCanvas({
   const [dropError, setDropError] = useState<string | null>(null)
   const [pathStartId, setPathStartId] = useState<string | null>(null)
   const [isSearchOpen, setIsSearchOpen] = useState(false)
+  // 2D focus mode (mirrors the 3D toggle in GraphCanvas3D) -- opt-in via
+  // the toolbar button; when on, clicking a node highlights it + its
+  // direct neighbors and dims everything else until the user clicks the
+  // same node again, clicks empty space, or turns the toggle off.
+  const [isFocusModeEnabled, setIsFocusModeEnabled] = useState(false)
+  const [focusedNodeId, setFocusedNodeId] = useState<string | null>(null)
 
   // Fullscreen target is the outer wrapper div below (not the ReactFlow
   // pane itself), so overlays like TypeLegend and the drag/drop error
@@ -130,8 +136,36 @@ export function GraphCanvas({
             : node,
         )
 
+  // Focus neighborhood -- recomputed from the live edge list each render
+  // rather than cached, since it's cheap (single pass) and needs to stay
+  // in sync if the graph changes while a focus is active.
+  const focusNeighborIds = focusedNodeId
+    ? new Set(
+        edges
+          .filter(
+            (edge) =>
+              edge.source === focusedNodeId || edge.target === focusedNodeId,
+          )
+          .map((edge) =>
+            edge.source === focusedNodeId ? edge.target : edge.source,
+          ),
+      )
+    : null
+
+  const displayNodesWithFocus = focusedNodeId
+    ? displayNodesWithSelection.map((node) =>
+        node.id === focusedNodeId || focusNeighborIds?.has(node.id)
+          ? node
+          : { ...node, data: { ...node.data, _focusDimmed: true } },
+      )
+    : displayNodesWithSelection
+
   const styledEdges = layoutedEdges.map((edge) => {
     const isHighlighted = highlightedEdgeIds.has(edge.id)
+    const isFocusRelated =
+      !focusedNodeId ||
+      edge.source === focusedNodeId ||
+      edge.target === focusedNodeId
     // var(...) resolves fine inside an inline SVG style/attribute, and
     // picks up whichever theme's --color-trace-highlight/--color-graph-edge
     // is active (see styles/index.css) without this component needing to
@@ -150,7 +184,12 @@ export function GraphCanvas({
       // lost in a dense tangle of crossing edges, so it needs its own
       // visual layer to stand out rather than just being "more green".
       className: isHighlighted ? 'trace-highlight-edge' : undefined,
-      style: { stroke, strokeWidth: isHighlighted ? 3 : 1 },
+      style: {
+        stroke,
+        strokeWidth: isHighlighted ? 3 : 1,
+        opacity: isFocusRelated ? 1 : 0.15,
+        transition: 'opacity 150ms ease',
+      },
       markerEnd:
         typeof edge.markerEnd === 'object'
           ? { ...edge.markerEnd, color: stroke }
@@ -182,6 +221,12 @@ export function GraphCanvas({
         toggleMultiSelect(node.id)
         return
       }
+      if (isFocusModeEnabled) {
+        // Clicking the already-focused node exits focus (same toggle
+        // behavior as the 3D focus mode); clicking a different node
+        // moves focus to it.
+        setFocusedNodeId((current) => (current === node.id ? null : node.id))
+      }
       selectNode(node.id)
       setMultiSelect([node.id])
       onNodeSelect?.(node)
@@ -196,6 +241,7 @@ export function GraphCanvas({
       toggleRelationParticipant,
       toggleMultiSelect,
       setMultiSelect,
+      isFocusModeEnabled,
     ],
   )
 
@@ -203,6 +249,7 @@ export function GraphCanvas({
     selectNode(null)
     setPathStartId(null)
     clearMultiSelect()
+    setFocusedNodeId(null)
   }, [selectNode, clearMultiSelect])
 
   const handleDragOver = useCallback((event: React.DragEvent) => {
@@ -261,7 +308,7 @@ export function GraphCanvas({
       onDrop={handleDrop}
     >
       <ReactFlow
-        nodes={displayNodesWithSelection}
+        nodes={displayNodesWithFocus}
         edges={styledEdges}
         nodeTypes={nodeTypes}
         onNodeClick={handleNodeClick}
@@ -290,6 +337,55 @@ export function GraphCanvas({
             <FullscreenIcon isFullscreen={isFullscreen} />
           </ControlButton>
         </Controls>
+        {/* Stacked below the fullscreen Controls (top: 64, ~36px tall) so
+         *  it doesn't overlap ExportControls' own top-right Panel, which
+         *  sits at the default (unstyled) top-right offset. */}
+        <Panel position="top-right" style={{ top: 108 }}>
+          <button
+            type="button"
+            onClick={() => {
+              const next = !isFocusModeEnabled
+              setIsFocusModeEnabled(next)
+              // Turning the toggle off should release any active focus
+              // immediately, same as the 3D toggle.
+              if (!next) setFocusedNodeId(null)
+            }}
+            aria-pressed={isFocusModeEnabled}
+            title={
+              isFocusModeEnabled
+                ? 'Focus mode on — click a node to isolate its neighborhood'
+                : 'Focus mode off — click a node to select it normally'
+            }
+            className={`flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium backdrop-blur-sm border shadow-lg transition-colors ${
+              isFocusModeEnabled
+                ? 'bg-cyan-950/90 border-cyan-800 text-cyan-100'
+                : 'bg-surface-1/95 border-border-subtle text-text-secondary hover:text-text-primary hover:border-border'
+            }`}
+          >
+            <svg
+              width="13"
+              height="13"
+              viewBox="0 0 24 24"
+              fill="none"
+              aria-hidden="true"
+            >
+              <circle
+                cx="12"
+                cy="12"
+                r="3"
+                stroke="currentColor"
+                strokeWidth="2"
+              />
+              <path
+                d="M12 3v3M12 18v3M3 12h3M18 12h3"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+              />
+            </svg>
+            Focus
+          </button>
+        </Panel>
         <MiniMap
           nodeStrokeWidth={3}
           nodeStrokeColor="var(--color-border-strong)"
