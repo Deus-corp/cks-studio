@@ -178,7 +178,7 @@ function clamp(value: number, min: number, max: number): number {
  *  computed-style lookups inside a hot per-node draw path would be far
  *  slower than a plain object lookup, and these two themes are the only
  *  ones the store supports (see themeStore.ts). */
-const CARD_THEME_COLORS = {
+export const CARD_THEME_COLORS = {
   dark: {
     background: '#1b212c',
     backgroundHovered: '#242b38',
@@ -219,7 +219,7 @@ function cardScaleForDegree(degree: number): number {
  *  bigger hub card reads as "the same card, drawn bigger" rather than a
  *  stretched-out version of a small one. Returns the canvas for use as
  *  a THREE.CanvasTexture. */
-function drawNodeCardCanvas(
+export function drawNodeCardCanvas(
   name: string,
   icon: string,
   accentColor: string,
@@ -572,6 +572,13 @@ export function GraphCanvas3D({
   const dimRefreshRef = useRef<((hoveredId: string | null) => void) | null>(
     null,
   )
+  // Set inside the mount effect to a function that redraws every
+  // existing card's THREE.CanvasTexture in place with the current
+  // theme's colors (see CARD_THEME_COLORS) -- lets the theme-toggle
+  // effect below update colors without rebuilding/replacing any
+  // sprites, materials, or textures (see that effect's comment for why
+  // that matters).
+  const themeRefreshRef = useRef<(() => void) | null>(null)
   // Mirrors focusStateRef.current.active into React state purely so the
   // "exit focus" affordance in the toolbar can re-render; the ref
   // remains the source of truth read by simulation/click code.
@@ -838,6 +845,53 @@ export function GraphCanvas3D({
       }
     }
     dimRefreshRef.current = applyNodeVisualState
+
+    /** Redraws every existing card's canvas texture in place with the
+     *  current theme's colors, without creating any new THREE.Sprite,
+     *  SpriteMaterial, or CanvasTexture -- unlike the
+     *  `nodeThreeObject(nodeThreeObject())` re-invoke trick used
+     *  elsewhere in this file (enterFocus/exitFocus/relationDraft/
+     *  multi-select), which replaces every node's three.js object and
+     *  leaves the old sprite/material/texture for the GC to (eventually,
+     *  maybe never, on some drivers) reclaim. Doing that on every theme
+     *  toggle was the source of the progressive slowdown -- repeated
+     *  toggling piled up orphaned GPU textures until a reload cleared
+     *  them. Reusing the same texture and just swapping its backing
+     *  canvas + flagging needsUpdate re-uploads the same GL texture
+     *  object instead of allocating a new one. */
+    const refreshCardTextures = () => {
+      const g = graphRef.current
+      if (!g) return
+      const { nodes: currentNodes } = g.graphData() as {
+        nodes: Graph3DNode[]
+      }
+      for (const gn of currentNodes) {
+        const card = gn.__threeObj?.children.find(
+          (c): c is THREE.Sprite =>
+            c instanceof THREE.Sprite && c.userData.isCard === true,
+        )
+        if (!card) continue
+        const material = card.material as THREE.SpriteMaterial
+        const texture = material.map as THREE.CanvasTexture | null
+        if (!texture) continue
+        const cardWidthPx = (card.userData.widthPx as number) ?? CARD_WIDTH_PX
+        const cardHeightPx =
+          (card.userData.heightPx as number) ?? CARD_HEIGHT_PX
+        const canvas = drawNodeCardCanvas(
+          gn.name,
+          nodeTypeIcon(gn.cksType),
+          gn.color,
+          Boolean(card.userData.hovered),
+          cardWidthPx,
+          cardHeightPx,
+          (card.userData.degree as number) ?? gn.degree,
+          themeRef.current,
+        )
+        texture.image = canvas
+        texture.needsUpdate = true
+      }
+    }
+    themeRefreshRef.current = refreshCardTextures
 
     const graph = new ForceGraph3DTyped(containerRef.current)
       .backgroundColor('rgba(0,0,0,0)')
@@ -1376,18 +1430,18 @@ export function GraphCanvas3D({
     }
   }, [multiSelectedIds])
 
-  // Rebuild every card's texture when the theme toggles (Settings ->
-  // Light/Dark/Auto) so 3D cards don't stay stuck with dark-theme colors
-  // while the rest of the app has switched to light. This is a full
-  // nodeThreeObject re-invoke (unlike the multi-select ring diffing
-  // above) because every card's background/text color genuinely needs
-  // to change here, not just a handful of nodes -- but it only runs on
-  // the rare theme-toggle action, not on every click, so the cost is
-  // acceptable.
+  // Refresh every card's texture colors when the theme toggles (Settings
+  // -> Light/Dark/Auto) so 3D cards don't stay stuck with the other
+  // theme's colors. Deliberately *not* the
+  // `nodeThreeObject(nodeThreeObject())` re-invoke used elsewhere in
+  // this file -- that replaces every node's three.js object (new
+  // sprite/material/texture per node) without disposing the old ones,
+  // which is exactly what caused theme toggling to progressively lag
+  // the graph. refreshCardTextures instead updates each existing
+  // texture's pixels in place, so repeated toggling stays cheap and
+  // doesn't leak GPU memory.
   useEffect(() => {
-    const graph = graphRef.current
-    if (!graph) return
-    graph.nodeThreeObject(graph.nodeThreeObject())
+    themeRefreshRef.current?.()
     dimRefreshRef.current?.(null)
   }, [])
 

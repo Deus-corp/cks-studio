@@ -6,6 +6,23 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 
 ---
 
+## [0.6.18] - 2026-08-13
+
+### Fixed
+- **3D theme switching performance** – theme toggling now refreshes existing card textures in place instead of rebuilding all node sprites and materials, preventing GPU memory leaks and progressive lag after repeated light/dark switches.
+- **3D card light theme** – cards now use a near-opaque light-theme background and readable text, matching 2D node styling.
+- **2D focus dimming** – nodes outside the focused cluster are now strongly dimmed, while the focused node and its direct neighbors stay fully visible.
+- **2D selected node persistence** – selected/focused node keeps the brightened hover appearance after the pointer leaves.
+
+### Added
+- **3D card theme tests** – regression test confirming theme colors differ and light theme uses an opaque background.
+- **2D focus mode tests** – coverage for dimming behavior and selected-node persistence.
+
+### Changed
+- Exported `drawNodeCardCanvas` and `CARD_THEME_COLORS` from `GraphCanvas3D` for testability.
+
+---
+
 ## [0.6.17] - 2026-08-13
 
 ### Added

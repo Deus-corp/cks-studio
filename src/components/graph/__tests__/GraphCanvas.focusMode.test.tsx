@@ -65,4 +65,35 @@ describe('GraphCanvas — 2D focus mode toggle', () => {
     fireEvent.click(toggle)
     expect(toggle).toHaveAttribute('aria-pressed', 'false')
   })
+
+  it('dims non-related nodes and keeps the focused node + neighbors at full opacity', () => {
+    render(<GraphCanvas />)
+
+    fireEvent.click(screen.getByRole('button', { name: /focus/i }))
+    fireEvent.click(screen.getByText('A'))
+
+    // 'a' is the focused node, 'b' is its direct neighbor (a-b edge) --
+    // neither should be dimmed. 'c' has no edge to 'a' and should be.
+    const nodeA = screen.getByText('A').closest('.react-flow__node')
+    const nodeB = screen.getByText('B').closest('.react-flow__node')
+    const nodeC = screen.getByText('C').closest('.react-flow__node')
+
+    expect(nodeA?.querySelector('div')).not.toHaveStyle({ opacity: '0.25' })
+    expect(nodeB?.querySelector('div')).not.toHaveStyle({ opacity: '0.25' })
+    expect(nodeC?.querySelector('div')).toHaveStyle({ opacity: '0.25' })
+  })
+
+  it('keeps the selected node highlighted after it is no longer hovered', () => {
+    render(<GraphCanvas />)
+
+    fireEvent.click(screen.getByText('A'))
+
+    expect(useGraphStore.getState().selectedNodeId).toBe('a')
+    const nodeA = screen.getByText('A').closest('.react-flow__node')
+    // The persistent-highlight brightness filter (see CksNode) is applied
+    // via inline style regardless of :hover/mouse position.
+    expect(nodeA?.querySelector('div')).toHaveStyle({
+      filter: 'brightness(1.08)',
+    })
+  })
 })

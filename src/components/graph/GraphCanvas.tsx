@@ -47,6 +47,7 @@ export function GraphCanvas({
     (s: GraphState) => s.highlightedEdgeIds,
   )
   const selectNode = useGraphStore((s: GraphState) => s.selectNode)
+  const selectedNodeId = useGraphStore((s: GraphState) => s.selectedNodeId)
   const setNodes = useGraphStore((s: GraphState) => s.setNodes)
   const setEdges = useGraphStore((s: GraphState) => s.setEdges)
   const setHighlightedEdges = useGraphStore(
@@ -159,6 +160,22 @@ export function GraphCanvas({
           : { ...node, data: { ...node.data, _focusDimmed: true } },
       )
     : displayNodesWithSelection
+
+  // Persistent highlight for the selected/focused node -- keeps the same
+  // brightened look CksNode applies on :hover even after the pointer
+  // leaves, so clicking a node doesn't visually "lose" it the moment the
+  // mouse moves away. Applied after focus-dimming so the selected node
+  // itself is never simultaneously flagged as dimmed.
+  const displayNodesWithSelectedHighlight = selectedNodeId
+    ? displayNodesWithFocus.map((node) =>
+        node.id === selectedNodeId
+          ? {
+              ...node,
+              data: { ...node.data, _selected: true, _focusDimmed: false },
+            }
+          : node,
+      )
+    : displayNodesWithFocus
 
   const styledEdges = layoutedEdges.map((edge) => {
     const isHighlighted = highlightedEdgeIds.has(edge.id)
@@ -308,7 +325,7 @@ export function GraphCanvas({
       onDrop={handleDrop}
     >
       <ReactFlow
-        nodes={displayNodesWithFocus}
+        nodes={displayNodesWithSelectedHighlight}
         edges={styledEdges}
         nodeTypes={nodeTypes}
         onNodeClick={handleNodeClick}

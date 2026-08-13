@@ -50,6 +50,13 @@ function CksNode({ data }: NodeProps) {
   // from the amber relation-draft ring above and doesn't get confused
   // with it if both happen to be active on different nodes at once.
   const isMultiSelected = Boolean(data._multiSelected)
+  // Focus mode (see GraphCanvas's displayNodesWithFocus): true for every
+  // node outside the focused node + its direct neighbors.
+  const isFocusDimmed = Boolean(data._focusDimmed)
+  // Persistent selected/focused highlight (see GraphCanvas's
+  // displayNodesWithSelectedHighlight) -- keeps the same brightened look
+  // :hover gives in graph.css even after the pointer leaves.
+  const isSelected = Boolean(data._selected)
   // Populated by useGraphLayout from live edge data -- undefined for any
   // node reached via a path that skips the layout hook (shouldn't
   // normally happen, but degree-based styling should no-op rather than
@@ -76,12 +83,23 @@ function CksNode({ data }: NodeProps) {
         }`,
         borderTop: `${Math.round(3 * scale)}px solid ${isRelationSelected ? '#f59e0b' : color}`,
         borderRadius: '8px',
-        opacity: isPending ? 0.65 : 1,
+        // Focus mode dims everything outside the focused cluster; the
+        // selected/focused node itself is never dimmed (GraphCanvas
+        // clears _focusDimmed for it), so these two conditions never
+        // fight over the same node.
+        opacity: isPending ? 0.65 : isFocusDimmed ? 0.25 : 1,
+        // Selected node keeps the same brightness bump CksNode gets on
+        // :hover (see graph.css's .react-flow__node:hover) so it doesn't
+        // visually "reset" the moment the pointer leaves.
+        filter: isSelected ? 'brightness(1.08)' : undefined,
         boxShadow: isRelationSelected
           ? '0 0 0 2px rgba(245, 158, 11, 0.35), 0 6px 16px rgba(0, 0, 0, 0.35)'
           : isMultiSelected
             ? '0 0 0 2px rgba(45, 212, 191, 0.45), 0 6px 16px rgba(0, 0, 0, 0.35)'
-            : '0 1px 2px rgba(0, 0, 0, 0.2), 0 8px 20px -8px rgba(0, 0, 0, 0.4)',
+            : isSelected
+              ? '0 0 0 2px rgba(96, 165, 250, 0.45), 0 6px 16px rgba(0, 0, 0, 0.35)'
+              : '0 1px 2px rgba(0, 0, 0, 0.2), 0 8px 20px -8px rgba(0, 0, 0, 0.4)',
+        transition: 'opacity 150ms ease, filter 150ms ease',
       }}
     >
       <Handle type="target" position={Position.Top} />
