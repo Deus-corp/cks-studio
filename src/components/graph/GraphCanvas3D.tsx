@@ -35,6 +35,7 @@ import type { GraphState } from '@/features/graph-explorer/graphExplorerStore'
 import { useGraphStore } from '@/features/graph-explorer/graphExplorerStore'
 import { nodeTypeColor, nodeTypeIcon } from '@/shared/constants/nodeTypes'
 import { useFullscreen } from '@/shared/hooks/useFullscreen'
+import { useThemeStore } from '@/shared/stores/themeStore'
 import type { SubgraphResult } from '@/shared/types/graph'
 import {
   cksToReactFlow,
@@ -170,6 +171,30 @@ function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value))
 }
 
+/** Card colors per theme, mirroring the same design tokens the 2D
+ *  CksNode/CSS use (see styles/index.css's `[data-theme="light"]` block
+ *  for `--color-surface-1/2` and `--color-text-primary`). Drawn onto an
+ *  offscreen canvas rather than read live from CSS custom properties --
+ *  computed-style lookups inside a hot per-node draw path would be far
+ *  slower than a plain object lookup, and these two themes are the only
+ *  ones the store supports (see themeStore.ts). */
+const CARD_THEME_COLORS = {
+  dark: {
+    background: '#1b212c',
+    backgroundHovered: '#242b38',
+    text: '#e5e7eb',
+    badgeBg: 'rgba(15, 23, 42, 0.72)',
+    badgeText: '#94a3b8',
+  },
+  light: {
+    background: '#ffffff',
+    backgroundHovered: '#f0f1f4',
+    text: '#16181d',
+    badgeBg: 'rgba(226, 229, 235, 0.9)',
+    badgeText: '#404550',
+  },
+} as const
+
 /** Size multiplier for a node with the given degree (number of incident
  *  edges). Both width and height scale together so the card's
  *  proportions -- and the font-size ratio derived from them in
@@ -202,7 +227,9 @@ function drawNodeCardCanvas(
   width: number = CARD_WIDTH_PX,
   height: number = CARD_HEIGHT_PX,
   degree = 0,
+  theme: 'dark' | 'light' = 'dark',
 ): HTMLCanvasElement {
+  const palette = CARD_THEME_COLORS[theme]
   // How far this card's height has scaled from the CARD_HEIGHT_PX
   // baseline -- drives font/accent/corner scaling below so a bigger hub
   // card doesn't render with the same size text as a small leaf card.
@@ -234,7 +261,7 @@ function drawNodeCardCanvas(
   // Background -- brightens slightly on hover instead of the flat 3D
   // "dim inactive nodes" opacity trick, since a Sprite's own material
   // opacity is already used for that dimming (see onNodeHover below).
-  ctx.fillStyle = hovered ? '#242b38' : '#1b212c'
+  ctx.fillStyle = hovered ? palette.backgroundHovered : palette.background
   ctx.fillRect(0, 0, w, h)
 
   // Top accent strip, same idea as CksNode's `borderTop: 3px solid`.
@@ -270,7 +297,7 @@ function drawNodeCardCanvas(
   ctx.fillText(icon, paddingX, midY)
   const iconWidth = ctx.measureText(icon).width
 
-  ctx.fillStyle = '#e5e7eb'
+  ctx.fillStyle = palette.text
   ctx.font = `600 ${14 * sizeRatio * CARD_TEXTURE_SCALE}px "Manrope", sans-serif`
   const nameX = paddingX + iconWidth + 8 * sizeRatio * CARD_TEXTURE_SCALE
   const maxNameWidth = w - nameX - paddingX
@@ -308,10 +335,10 @@ function drawNodeCardCanvas(
     ctx.arcTo(bx, by + badgeH, bx, by, br)
     ctx.arcTo(bx, by, bx + badgeW, by, br)
     ctx.closePath()
-    ctx.fillStyle = 'rgba(15, 23, 42, 0.72)'
+    ctx.fillStyle = palette.badgeBg
     ctx.fill()
 
-    ctx.fillStyle = '#94a3b8'
+    ctx.fillStyle = palette.badgeText
     ctx.textBaseline = 'middle'
     ctx.textAlign = 'center'
     ctx.fillText(badgeText, bx + badgeW / 2, by + badgeH / 2 + 0.5)
@@ -335,6 +362,7 @@ function buildNodeCardSprite(
   accentColor: string,
   hovered: boolean,
   degree: number,
+  theme: 'dark' | 'light' = 'dark',
 ): THREE.Sprite {
   const scale = cardScaleForDegree(degree)
   const widthPx = CARD_WIDTH_PX * scale
@@ -347,6 +375,7 @@ function buildNodeCardSprite(
     widthPx,
     heightPx,
     degree,
+    theme,
   )
   const texture = new THREE.CanvasTexture(canvas)
   texture.needsUpdate = true
@@ -518,6 +547,13 @@ export function GraphCanvas3D({
   // closure and onNodeClick without forcing a scene teardown.
   const multiSelectedRef = useRef(multiSelectedIds)
   multiSelectedRef.current = multiSelectedIds
+  // Current theme, read the same ref-mirror way as the other closures
+  // above so nodeThreeObject/applyNodeVisualState can pick light vs dark
+  // card colors (see CARD_THEME_COLORS) without the mount effect
+  // depending on theme and tearing down the WebGL scene on toggle.
+  const theme = useThemeStore((s) => s.theme)
+  const themeRef = useRef(theme)
+  themeRef.current = theme
   // Adjacency built alongside graphData in the data effect below, read
   // by onNodeHover in the mount effect. A ref (not state) because hover
   // firing on every mouse-move must never trigger a React re-render.
@@ -540,6 +576,16 @@ export function GraphCanvas3D({
   // "exit focus" affordance in the toolbar can re-render; the ref
   // remains the source of truth read by simulation/click code.
   const [isFocusActive, setIsFocusActive] = useState(false)
+  // Whether focus mode is armed at all (the "Focus" toggle button in the
+  // top-right toolbar, next to fullscreen). Focus mode used to activate
+  // automatically on every node click; now clicking a node only pins +
+  // isolates its neighborhood when this is on -- otherwise a click just
+  // selects the node and moves the camera toward it (the old plain
+  // focusNode behavior). A ref mirror so onNodeClick's closure (captured
+  // once in the mount effect) always reads the latest value.
+  const [isFocusModeEnabled, setIsFocusModeEnabled] = useState(false)
+  const isFocusModeEnabledRef = useRef(isFocusModeEnabled)
+  isFocusModeEnabledRef.current = isFocusModeEnabled
 
   /** Pin the clicked node + its direct neighbors in place (fx/fy/fz) so
    *  they read as a stable, static figure, release any previously
@@ -729,6 +775,7 @@ export function GraphCanvas3D({
               cardWidthPx,
               cardHeightPx,
               (card.userData.degree as number) ?? gn.degree,
+              themeRef.current,
             )
             texture.image = canvas
             texture.needsUpdate = true
@@ -824,6 +871,7 @@ export function GraphCanvas3D({
             n.color,
             false,
             n.degree,
+            themeRef.current,
           )
           group.add(card)
 
@@ -1017,11 +1065,26 @@ export function GraphCanvas3D({
           return
         }
 
-        // Click-to-focus: clicking the already-focused node exits focus
-        // mode (reversible, per the task); clicking any other node
-        // enters/re-targets focus onto it, pinning it + its direct
-        // neighbors and pushing the rest of the graph aside (see
-        // enterFocus/exitFocus and makeFocusRepelForce above).
+        selectNode(n.id)
+        setMultiSelect([n.id])
+        const fullNode = nodesRef.current.find((rn) => rn.id === n.id)
+        if (fullNode) onNodeSelect?.(fullNode)
+
+        // Focus mode is opt-in via the toolbar toggle (see
+        // isFocusModeEnabledRef) -- when it's off, a click just selects
+        // the node and moves the camera toward it, same as before focus
+        // mode existed. When it's on, clicking behaves as before:
+        // clicking the already-focused node exits focus (reversible);
+        // clicking any other node enters/re-targets focus onto it,
+        // pinning it + its direct neighbors and pushing the rest of the
+        // graph aside (see enterFocus/exitFocus and makeFocusRepelForce
+        // above).
+        if (!isFocusModeEnabledRef.current) {
+          if (focusStateRef.current.active) exitFocus()
+          focusNode(n.id)
+          return
+        }
+
         const wasFocusedOnThisNode =
           focusStateRef.current.active &&
           focusStateRef.current.primaryId === n.id
@@ -1030,11 +1093,6 @@ export function GraphCanvas3D({
         } else {
           enterFocus(n.id)
         }
-
-        selectNode(n.id)
-        setMultiSelect([n.id])
-        const fullNode = nodesRef.current.find((rn) => rn.id === n.id)
-        if (fullNode) onNodeSelect?.(fullNode)
         // Recenter the camera on the clicked node, same distance out, so
         // clicking through a cluster feels like navigating rather than
         // just re-coloring a dot buried in the point cloud. Skipped when
@@ -1250,15 +1308,88 @@ export function GraphCanvas3D({
     graph.nodeThreeObject(graph.nodeThreeObject())
   }, [relationDraft])
 
-  // Same refresh trick for the pipeline multi-select ring, which is also
-  // only drawn inside nodeThreeObject's per-node factory (see
-  // multiSelectedRef above).
-  // biome-ignore lint/correctness/useExhaustiveDependencies: multiSelectedIds is read via multiSelectedRef inside nodeThreeObject's closure; listed here purely to re-trigger the refresh call below when it changes.
+  // Multi-select ring updates used to call `graph.nodeThreeObject(graph
+  // .nodeThreeObject())`, same as the relationDraft refresh above -- but
+  // that re-invokes the per-node factory for *every* node in the graph,
+  // which means redrawing the offscreen canvas + rebuilding the
+  // CanvasTexture for every single card (an expensive synchronous
+  // operation) just to add/remove a ring on the handful of nodes whose
+  // selection state actually changed. Multi-select toggles happen on
+  // every Ctrl/Cmd+click, so on a few-hundred-node graph this was the
+  // main source of click-to-click lag. Instead, diff the previous and
+  // next selection sets and mutate only the affected nodes' existing
+  // __threeObj groups directly -- no texture redraws, no factory re-run.
+  const prevMultiSelectedRef = useRef<Set<string>>(new Set())
+  useEffect(() => {
+    const graph = graphRef.current
+    if (!graph) return
+    const prev = prevMultiSelectedRef.current
+    const next = multiSelectedIds
+    const changed = new Set<string>()
+    for (const id of next) if (!prev.has(id)) changed.add(id)
+    for (const id of prev) if (!next.has(id)) changed.add(id)
+    prevMultiSelectedRef.current = new Set(next)
+    if (changed.size === 0) return
+
+    const { nodes: currentNodes } = graph.graphData() as {
+      nodes: Graph3DNode[]
+    }
+    const RING_NAME = 'multiSelectRing'
+    for (const gn of currentNodes) {
+      if (!changed.has(gn.id)) continue
+      const group = gn.__threeObj
+      if (!group) continue
+      const existingRing = group.children.find((c) => c.name === RING_NAME) as
+        | THREE.Mesh
+        | undefined
+
+      if (next.has(gn.id)) {
+        if (existingRing) continue
+        const card = group.children.find(
+          (c): c is THREE.Sprite =>
+            c instanceof THREE.Sprite && c.userData.isCard === true,
+        )
+        const cardHeightPx =
+          (card?.userData.heightPx as number) ?? CARD_HEIGHT_PX
+        const cardHalfHeight = (cardHeightPx * CARD_WORLD_SCALE) / 2
+        const ring = new THREE.Mesh(
+          new THREE.RingGeometry(
+            cardHalfHeight * 1.2,
+            cardHalfHeight * 1.32,
+            24,
+          ),
+          new THREE.MeshBasicMaterial({
+            color: '#2dd4bf',
+            side: THREE.DoubleSide,
+            transparent: true,
+            opacity: 0.9,
+          }),
+        )
+        ring.name = RING_NAME
+        ring.position.set(0, 0, 0.05)
+        group.add(ring)
+      } else if (existingRing) {
+        group.remove(existingRing)
+        existingRing.geometry.dispose()
+        ;(existingRing.material as THREE.Material).dispose()
+      }
+    }
+  }, [multiSelectedIds])
+
+  // Rebuild every card's texture when the theme toggles (Settings ->
+  // Light/Dark/Auto) so 3D cards don't stay stuck with dark-theme colors
+  // while the rest of the app has switched to light. This is a full
+  // nodeThreeObject re-invoke (unlike the multi-select ring diffing
+  // above) because every card's background/text color genuinely needs
+  // to change here, not just a handful of nodes -- but it only runs on
+  // the rare theme-toggle action, not on every click, so the cost is
+  // acceptable.
   useEffect(() => {
     const graph = graphRef.current
     if (!graph) return
     graph.nodeThreeObject(graph.nodeThreeObject())
-  }, [multiSelectedIds])
+    dimRefreshRef.current?.(null)
+  }, [])
 
   const handleDragOver = useCallback((event: React.DragEvent) => {
     event.preventDefault()
@@ -1319,7 +1450,54 @@ export function GraphCanvas3D({
     >
       <div ref={containerRef} className="w-full h-full overflow-hidden" />
 
-      <div className="absolute top-3 right-3 z-10">
+      <div className="absolute top-3 right-3 z-10 flex items-center gap-2">
+        <button
+          type="button"
+          onClick={() => {
+            const next = !isFocusModeEnabled
+            setIsFocusModeEnabled(next)
+            // Turning the toggle off while a focus is active should
+            // release it immediately rather than leaving a pinned/dimmed
+            // cluster on screen with no way to re-enter focus mode to
+            // exit it.
+            if (!next && focusStateRef.current.active) exitFocus()
+          }}
+          aria-pressed={isFocusModeEnabled}
+          title={
+            isFocusModeEnabled
+              ? 'Focus mode on — click a node to isolate its neighborhood'
+              : 'Focus mode off — click a node to select and center it'
+          }
+          className={`flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium backdrop-blur-sm border shadow-lg transition-colors ${
+            isFocusModeEnabled
+              ? 'bg-cyan-950/90 border-cyan-800 text-cyan-100'
+              : 'bg-surface-1/95 border-border-subtle text-text-secondary hover:text-text-primary hover:border-border'
+          }`}
+        >
+          <svg
+            width="13"
+            height="13"
+            viewBox="0 0 24 24"
+            fill="none"
+            aria-hidden="true"
+          >
+            <circle
+              cx="12"
+              cy="12"
+              r="3"
+              stroke="currentColor"
+              strokeWidth="2"
+            />
+            <path
+              d="M3 9V6a3 3 0 013-3h3M15 3h3a3 3 0 013 3v3M21 15v3a3 3 0 01-3 3h-3M9 21H6a3 3 0 01-3-3v-3"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+          Focus
+        </button>
         <button
           type="button"
           onClick={toggleFullscreen}

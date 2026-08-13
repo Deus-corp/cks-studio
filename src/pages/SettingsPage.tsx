@@ -1,21 +1,42 @@
+import { useState } from 'react'
 import { useLLMStatus } from '@/features/llm-status/useLLMStatus'
 import type { LLMStatus } from '@/services/mcpTools'
-import { useThemeStore } from '@/shared/stores/themeStore'
+import { type Theme, useThemeStore } from '@/shared/stores/themeStore'
+
+/** 'auto' isn't a real ThemeState value (the store only ever holds the
+ *  resolved 'dark' | 'light', matching data-theme) -- it's a third,
+ *  UI-only selector option that re-reads prefers-color-scheme and hands
+ *  the resolved value to setTheme, mirroring the demo Settings page and
+ *  the store's own initial-load fallback. */
+type ThemeChoice = Theme | 'auto'
+
+function resolveAutoTheme(): Theme {
+  if (typeof window === 'undefined') return 'dark'
+  return window.matchMedia?.('(prefers-color-scheme: light)').matches
+    ? 'light'
+    : 'dark'
+}
 
 export function ThemeToggle() {
   const theme = useThemeStore((s) => s.theme)
   const setTheme = useThemeStore((s) => s.setTheme)
+  const [choice, setChoice] = useState<ThemeChoice>(theme)
+
+  const handleSelect = (option: ThemeChoice) => {
+    setChoice(option)
+    setTheme(option === 'auto' ? resolveAutoTheme() : option)
+  }
 
   return (
     <div className="flex items-center gap-2 bg-surface-2 border border-border-subtle rounded-lg p-1">
-      {(['dark', 'light'] as const).map((option) => (
+      {(['dark', 'light', 'auto'] as const).map((option) => (
         <button
           key={option}
           type="button"
-          onClick={() => setTheme(option)}
-          aria-pressed={theme === option}
+          onClick={() => handleSelect(option)}
+          aria-pressed={choice === option}
           className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium capitalize transition-colors ${
-            theme === option
+            choice === option
               ? 'bg-surface-1 text-text-primary shadow-sm'
               : 'text-text-secondary hover:text-text-primary'
           }`}
@@ -36,7 +57,7 @@ export function ThemeToggle() {
                 strokeLinejoin="round"
               />
             </svg>
-          ) : (
+          ) : option === 'light' ? (
             <svg
               width="13"
               height="13"
@@ -53,6 +74,30 @@ export function ThemeToggle() {
               />
               <path
                 d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+              />
+            </svg>
+          ) : (
+            <svg
+              width="13"
+              height="13"
+              viewBox="0 0 24 24"
+              fill="none"
+              aria-hidden="true"
+            >
+              <rect
+                x="2"
+                y="4"
+                width="20"
+                height="14"
+                rx="2"
+                stroke="currentColor"
+                strokeWidth="2"
+              />
+              <path
+                d="M8 21h8M12 18v3"
                 stroke="currentColor"
                 strokeWidth="2"
                 strokeLinecap="round"
