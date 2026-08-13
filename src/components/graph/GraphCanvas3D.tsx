@@ -62,6 +62,15 @@ interface Graph3DNode {
   vx?: number
   vy?: number
   vz?: number
+  // Pinning a node's position for the d3 simulation: d3-force(-3d)
+  // treats a node with fx/fy/fz set as fixed and skips it entirely when
+  // integrating velocity, which is how focus mode (see enterFocus)
+  // "stabilizes" the selected node and its neighbors in place. Cleared
+  // (set back to undefined) on exitFocus to release the node back into
+  // the normal simulation.
+  fx?: number
+  fy?: number
+  fz?: number
   // Attached by 3d-force-graph itself once a custom nodeThreeObject has
   // been rendered for this datum -- used from onNodeHover to dim/reset
   // sibling nodes' materials directly without forcing a full data
@@ -389,6 +398,55 @@ function makeClusterForce(getNodes: () => Graph3DNode[]) {
   }
 }
 
+/** Click-to-focus state: which node was clicked (`primaryId`), the set
+ *  of node ids that should stay pinned/highlighted (the clicked node
+ *  plus its direct neighbors), and the centroid those nodes occupied at
+ *  the moment focus was entered -- used as the point non-focus nodes
+ *  get pushed away from (see makeFocusRepelForce) so the repulsion
+ *  direction doesn't need recomputing every tick. */
+interface FocusState {
+  active: boolean
+  primaryId: string | null
+  focusIds: Set<string>
+  centroid: { x: number; y: number; z: number }
+}
+
+const INITIAL_FOCUS_STATE: FocusState = {
+  active: false,
+  primaryId: null,
+  focusIds: new Set(),
+  centroid: { x: 0, y: 0, z: 0 },
+}
+
+/** Custom d3-force that, while focus mode is active, gently pushes every
+ *  *non*-focus node away from the focused cluster's centroid (radially,
+ *  scaled by alpha like any other d3-force). Focus/neighbor nodes don't
+ *  need an equivalent pull -- they're pinned in place via fx/fy/fz by
+ *  enterFocus, so d3-force already skips them when integrating.
+ *  Reads live state through the ref so it keeps working across
+ *  graphData() swaps without needing to be re-registered. */
+function makeFocusRepelForce(
+  getNodes: () => Graph3DNode[],
+  focusStateRef: { current: FocusState },
+) {
+  const strength = 6
+  return (alpha: number) => {
+    const state = focusStateRef.current
+    if (!state.active) return
+    for (const n of getNodes()) {
+      if (state.focusIds.has(n.id)) continue
+      const dx = (n.x ?? 0) - state.centroid.x
+      const dy = (n.y ?? 0) - state.centroid.y
+      const dz = (n.z ?? 0) - state.centroid.z
+      const dist = Math.hypot(dx, dy, dz) || 1
+      const push = strength * alpha
+      n.vx = (n.vx ?? 0) + (dx / dist) * push
+      n.vy = (n.vy ?? 0) + (dy / dist) * push
+      n.vz = (n.vz ?? 0) + (dz / dist) * push
+    }
+  }
+}
+
 export function GraphCanvas3D({
   onNodeSelect,
   isLoading,
@@ -444,6 +502,116 @@ export function GraphCanvas3D({
   // by onNodeHover in the mount effect. A ref (not state) because hover
   // firing on every mouse-move must never trigger a React re-render.
   const neighborsRef = useRef<Map<string, Set<string>>>(new Map())
+  // Click-to-focus state (Task 2 in the graph-view improvements): which
+  // node is focused, its neighbor set, and their centroid at focus-time.
+  // A ref (not state) so makeFocusRepelForce and onNodeClick's closures
+  // read the latest value every simulation tick / click without forcing
+  // a WebGL scene teardown -- same pattern as the other *Ref mirrors
+  // above.
+  const focusStateRef = useRef<FocusState>(INITIAL_FOCUS_STATE)
+  // Set inside the mount effect to the current applyNodeVisualState
+  // closure (see there) -- lets enterFocus/exitFocus immediately
+  // refresh dimming/opacity without duplicating that logic or waiting
+  // for the next hover event.
+  const dimRefreshRef = useRef<((hoveredId: string | null) => void) | null>(
+    null,
+  )
+  // Mirrors focusStateRef.current.active into React state purely so the
+  // "exit focus" affordance in the toolbar can re-render; the ref
+  // remains the source of truth read by simulation/click code.
+  const [isFocusActive, setIsFocusActive] = useState(false)
+
+  /** Pin the clicked node + its direct neighbors in place (fx/fy/fz) so
+   *  they read as a stable, static figure, release any previously
+   *  focused nodes back into the simulation, and reheat so the
+   *  focus-repel force (registered at mount) pushes everything else
+   *  aside. Visuals (focus ring, non-focus dimming) are refreshed by
+   *  re-invoking nodeThreeObject/onNodeHover's dimming pass below. */
+  const enterFocus = useCallback((nodeId: string) => {
+    const graph = graphRef.current
+    if (!graph) return
+    const { nodes: currentNodes } = graph.graphData() as {
+      nodes: Graph3DNode[]
+    }
+    const neighborIds = neighborsRef.current.get(nodeId) ?? new Set<string>()
+    const focusIds = new Set<string>([nodeId, ...neighborIds])
+
+    let cx = 0
+    let cy = 0
+    let cz = 0
+    let count = 0
+    for (const gn of currentNodes) {
+      if (focusIds.has(gn.id)) {
+        // Pin at the node's current simulated position -- freezing it
+        // where it already is (rather than snapping elsewhere) is what
+        // makes the transition read as "this cluster held still while
+        // everything else moved away" instead of a jump-cut.
+        gn.fx = gn.x
+        gn.fy = gn.y
+        gn.fz = gn.z
+        cx += gn.x ?? 0
+        cy += gn.y ?? 0
+        cz += gn.z ?? 0
+        count += 1
+      } else if (
+        gn.fx !== undefined ||
+        gn.fy !== undefined ||
+        gn.fz !== undefined
+      ) {
+        // Release anything pinned by a previous focus that isn't part
+        // of this one.
+        gn.fx = undefined
+        gn.fy = undefined
+        gn.fz = undefined
+      }
+    }
+
+    focusStateRef.current = {
+      active: true,
+      primaryId: nodeId,
+      focusIds,
+      centroid:
+        count > 0
+          ? { x: cx / count, y: cy / count, z: cz / count }
+          : { x: 0, y: 0, z: 0 },
+    }
+    setIsFocusActive(true)
+    // Re-invoking nodeThreeObject with itself is 3d-force-graph's
+    // documented way to force every node's three.js object to be
+    // rebuilt (same trick used for relationDraft above) -- needed here
+    // so the focus ring (added in nodeThreeObject below) appears
+    // immediately rather than on the next unrelated re-render.
+    graph.nodeThreeObject(graph.nodeThreeObject())
+    dimRefreshRef.current?.(null)
+    graph.d3ReheatSimulation()
+    // Frame the whole focused cluster (not just the clicked node) so
+    // the "figure" the isolated neighborhood forms is fully visible in
+    // one look, rather than requiring the person to scroll/orbit to see
+    // neighbors that ended up outside the default focusNode distance.
+    // The focus/neighbor nodes are already pinned above, so their
+    // positions won't shift while the camera eases into place.
+    graph.zoomToFit(700, 80, (gn) => focusIds.has(gn.id))
+  }, [])
+
+  /** Release all pinned nodes and clear focus state, restoring normal
+   *  force-directed behavior. Safe to call even if focus isn't active. */
+  const exitFocus = useCallback(() => {
+    const graph = graphRef.current
+    if (!graph) return
+    const { nodes: currentNodes } = graph.graphData() as {
+      nodes: Graph3DNode[]
+    }
+    for (const gn of currentNodes) {
+      gn.fx = undefined
+      gn.fy = undefined
+      gn.fz = undefined
+    }
+    focusStateRef.current = INITIAL_FOCUS_STATE
+    setIsFocusActive(false)
+    graph.nodeThreeObject(graph.nodeThreeObject())
+    dimRefreshRef.current?.(null)
+    graph.d3ReheatSimulation()
+  }, [])
 
   const focusNode = useCallback((nodeId: string) => {
     const graph = graphRef.current
@@ -480,6 +648,117 @@ export function GraphCanvas3D({
     const ForceGraph3DTyped = ForceGraph3D as unknown as new (
       element: HTMLElement,
     ) => ForceGraph3DInstance<Graph3DNode, Graph3DLink>
+
+    /** Dims non-relevant nodes/links and (un)highlights the hovered one.
+     *  Relevance is hover-driven when something is hovered (unchanged
+     *  from the original behavior); when nothing is hovered but focus
+     *  mode is active, non-focus nodes/links stay dimmed instead of
+     *  resetting to full opacity, so "everything but the focused
+     *  cluster" reads as backgrounded the whole time focus is on, not
+     *  just transiently on hover. Called both from onNodeHover (with
+     *  the live hovered id) and from enterFocus/exitFocus (with null,
+     *  i.e. "as if nothing were hovered") via dimRefreshRef so toggling
+     *  focus mode updates opacities immediately rather than waiting for
+     *  the next mouse-move. */
+    const applyNodeVisualState = (hoveredId: string | null) => {
+      const neighborIds = hoveredId
+        ? (neighborsRef.current.get(hoveredId) ?? new Set())
+        : null
+      const focus = focusStateRef.current
+      const { nodes: currentNodes, links: currentLinks } = graph.graphData()
+
+      for (const gn of currentNodes as Graph3DNode[]) {
+        const dim =
+          hoveredId !== null
+            ? gn.id !== hoveredId && !neighborIds?.has(gn.id)
+            : focus.active && !focus.focusIds.has(gn.id)
+        const isHoveredNode = hoveredId !== null && gn.id === hoveredId
+
+        const card = gn.__threeObj?.children.find(
+          (c): c is THREE.Sprite =>
+            c instanceof THREE.Sprite && c.userData.isCard === true,
+        )
+        if (card) {
+          // The hovered card itself gets redrawn with the brighter
+          // background + outline treatment (see drawNodeCardCanvas);
+          // everything else just fades via material opacity, same as
+          // the old dim-non-neighbors behavior.
+          const material = card.material as THREE.SpriteMaterial
+          const texture = material.map as THREE.CanvasTexture | null
+          const cardWidthPx = (card.userData.widthPx as number) ?? CARD_WIDTH_PX
+          const cardHeightPx =
+            (card.userData.heightPx as number) ?? CARD_HEIGHT_PX
+          if (texture && isHoveredNode !== (card.userData.hovered ?? false)) {
+            const canvas = drawNodeCardCanvas(
+              gn.name,
+              nodeTypeIcon(gn.cksType),
+              gn.color,
+              isHoveredNode,
+              cardWidthPx,
+              cardHeightPx,
+              (card.userData.degree as number) ?? gn.degree,
+            )
+            texture.image = canvas
+            texture.needsUpdate = true
+            card.userData.hovered = isHoveredNode
+          }
+          material.opacity = dim ? 0.2 : 1
+          const scale = isHoveredNode ? 1.08 : 1
+          card.scale.set(
+            cardWidthPx * CARD_WORLD_SCALE * scale,
+            cardHeightPx * CARD_WORLD_SCALE * scale,
+            1,
+          )
+        }
+
+        // Fallback path (USE_CARD_NODES = false): dim the sphere +
+        // label the same way the card branch above dims the card.
+        const sphere = gn.__threeObj?.children.find(
+          (c): c is THREE.Mesh => c instanceof THREE.Mesh,
+        )
+        const sphereMaterial = sphere?.material as
+          | THREE.MeshLambertMaterial
+          | undefined
+        if (sphereMaterial) sphereMaterial.opacity = dim ? 0.15 : 0.92
+        const sprite = gn.__threeObj?.children.find(
+          (c): c is SpriteText => c instanceof SpriteText,
+        )
+        if (sprite) sprite.material.opacity = dim ? 0.15 : 1
+      }
+
+      for (const gl of currentLinks as RuntimeGraph3DLink[]) {
+        const sourceId =
+          typeof gl.source === 'string' ? gl.source : gl.source.id
+        const targetId =
+          typeof gl.target === 'string' ? gl.target : gl.target.id
+        const touches =
+          hoveredId !== null &&
+          (sourceId === hoveredId || targetId === hoveredId)
+        const focusTouches =
+          hoveredId === null &&
+          focus.active &&
+          (focus.focusIds.has(sourceId) || focus.focusIds.has(targetId))
+        const isPathHighlighted = highlightedEdgeIdsRef.current.has(gl.id)
+        const lineMaterial = (gl.__lineObj as unknown as THREE.Line | undefined)
+          ?.material as THREE.LineBasicMaterial | undefined
+        if (lineMaterial) {
+          lineMaterial.transparent = true
+          lineMaterial.opacity =
+            hoveredId === null
+              ? focus.active
+                ? focusTouches
+                  ? 0.9
+                  : 0.06
+                : isPathHighlighted
+                  ? 0.95
+                  : 0.6
+              : touches
+                ? 0.9
+                : 0.06
+        }
+      }
+    }
+    dimRefreshRef.current = applyNodeVisualState
 
     const graph = new ForceGraph3DTyped(containerRef.current)
       .backgroundColor('rgba(0,0,0,0)')
@@ -548,6 +827,34 @@ export function GraphCanvas3D({
             group.add(badge)
           }
 
+          // Focus-mode visual cue: a ring around the clicked node
+          // (brighter) and its direct neighbors (dimmer), so the
+          // isolated cluster reads clearly against the nodes drifting
+          // away in the background. Drawn as a flat ring rather than
+          // reusing the participant ring above since both can't be
+          // active on the same node at once in practice (relation-draft
+          // and focus mode are separate interactions) but are kept
+          // visually distinct just in case.
+          const focus = focusStateRef.current
+          if (focus.active && focus.focusIds.has(n.id)) {
+            const isPrimary = focus.primaryId === n.id
+            const ring = new THREE.Mesh(
+              new THREE.RingGeometry(
+                cardHalfHeight * 1.35,
+                cardHalfHeight * (isPrimary ? 1.62 : 1.5),
+                32,
+              ),
+              new THREE.MeshBasicMaterial({
+                color: isPrimary ? '#22d3ee' : '#67e8f9',
+                side: THREE.DoubleSide,
+                transparent: true,
+                opacity: isPrimary ? 0.95 : 0.65,
+              }),
+            )
+            ring.position.set(0, 0, -0.1)
+            group.add(ring)
+          }
+
           return group
         }
 
@@ -614,96 +921,7 @@ export function GraphCanvas3D({
       .linkDirectionalArrowRelPos(1)
       .onNodeHover((node) => {
         const hoveredId = (node as Graph3DNode | null)?.id ?? null
-        const neighborIds = hoveredId
-          ? (neighborsRef.current.get(hoveredId) ?? new Set())
-          : null
-        const { nodes: currentNodes, links: currentLinks } = graph.graphData()
-
-        for (const gn of currentNodes as Graph3DNode[]) {
-          const dim =
-            hoveredId !== null &&
-            gn.id !== hoveredId &&
-            !neighborIds?.has(gn.id)
-          const isHoveredNode = hoveredId !== null && gn.id === hoveredId
-
-          const card = gn.__threeObj?.children.find(
-            (c): c is THREE.Sprite =>
-              c instanceof THREE.Sprite && c.userData.isCard === true,
-          )
-          if (card) {
-            // The hovered card itself gets redrawn with the brighter
-            // background + outline treatment (see drawNodeCardCanvas);
-            // everything else just fades via material opacity, same as
-            // the old dim-non-neighbors behavior.
-            const material = card.material as THREE.SpriteMaterial
-            const texture = material.map as THREE.CanvasTexture | null
-            const cardWidthPx =
-              (card.userData.widthPx as number) ?? CARD_WIDTH_PX
-            const cardHeightPx =
-              (card.userData.heightPx as number) ?? CARD_HEIGHT_PX
-            if (texture && isHoveredNode !== (card.userData.hovered ?? false)) {
-              const canvas = drawNodeCardCanvas(
-                gn.name,
-                nodeTypeIcon(gn.cksType),
-                gn.color,
-                isHoveredNode,
-                cardWidthPx,
-                cardHeightPx,
-                (card.userData.degree as number) ?? gn.degree,
-              )
-              texture.image = canvas
-              texture.needsUpdate = true
-              card.userData.hovered = isHoveredNode
-            }
-            material.opacity = dim ? 0.2 : 1
-            const scale = isHoveredNode ? 1.08 : 1
-            card.scale.set(
-              cardWidthPx * CARD_WORLD_SCALE * scale,
-              cardHeightPx * CARD_WORLD_SCALE * scale,
-              1,
-            )
-          }
-
-          // Fallback path (USE_CARD_NODES = false): dim the sphere +
-          // label the same way the card branch above dims the card.
-          const sphere = gn.__threeObj?.children.find(
-            (c): c is THREE.Mesh => c instanceof THREE.Mesh,
-          )
-          const sphereMaterial = sphere?.material as
-            | THREE.MeshLambertMaterial
-            | undefined
-          if (sphereMaterial) sphereMaterial.opacity = dim ? 0.15 : 0.92
-          const sprite = gn.__threeObj?.children.find(
-            (c): c is SpriteText => c instanceof SpriteText,
-          )
-          if (sprite) sprite.material.opacity = dim ? 0.15 : 1
-        }
-
-        for (const gl of currentLinks as RuntimeGraph3DLink[]) {
-          const sourceId =
-            typeof gl.source === 'string' ? gl.source : gl.source.id
-          const targetId =
-            typeof gl.target === 'string' ? gl.target : gl.target.id
-          const touches =
-            hoveredId !== null &&
-            (sourceId === hoveredId || targetId === hoveredId)
-          const isPathHighlighted = highlightedEdgeIdsRef.current.has(gl.id)
-          const lineMaterial = (
-            gl.__lineObj as unknown as THREE.Line | undefined
-          )?.material as THREE.LineBasicMaterial | undefined
-          if (lineMaterial) {
-            lineMaterial.transparent = true
-            lineMaterial.opacity =
-              hoveredId === null
-                ? isPathHighlighted
-                  ? 0.95
-                  : 0.6
-                : touches
-                  ? 0.9
-                  : 0.06
-          }
-        }
-
+        applyNodeVisualState(hoveredId)
         if (containerRef.current) {
           containerRef.current.style.cursor = hoveredId ? 'pointer' : 'default'
         }
@@ -736,17 +954,35 @@ export function GraphCanvas3D({
           return
         }
 
+        // Click-to-focus: clicking the already-focused node exits focus
+        // mode (reversible, per the task); clicking any other node
+        // enters/re-targets focus onto it, pinning it + its direct
+        // neighbors and pushing the rest of the graph aside (see
+        // enterFocus/exitFocus and makeFocusRepelForce above).
+        const wasFocusedOnThisNode =
+          focusStateRef.current.active &&
+          focusStateRef.current.primaryId === n.id
+        if (wasFocusedOnThisNode) {
+          exitFocus()
+        } else {
+          enterFocus(n.id)
+        }
+
         selectNode(n.id)
         const fullNode = nodesRef.current.find((rn) => rn.id === n.id)
         if (fullNode) onNodeSelect?.(fullNode)
         // Recenter the camera on the clicked node, same distance out, so
         // clicking through a cluster feels like navigating rather than
-        // just re-coloring a dot buried in the point cloud.
-        focusNode(n.id)
+        // just re-coloring a dot buried in the point cloud. Skipped when
+        // entering focus mode -- enterFocus already frames the whole
+        // focused cluster via zoomToFit, and running both would fight
+        // over the camera.
+        if (wasFocusedOnThisNode) focusNode(n.id)
       })
       .onBackgroundClick(() => {
         selectNode(null)
         setPathStartId(null)
+        exitFocus()
       })
 
     // Component-containment clustering: softly pulls Tools/ADRs/etc.
@@ -756,6 +992,27 @@ export function GraphCanvas3D({
     graph.d3Force(
       'cluster',
       makeClusterForce(() => graph.graphData().nodes as Graph3DNode[]),
+    )
+
+    // Roughly double the default node spacing (d3-force-3d's built-in
+    // 'link'/'charge' forces default to distance 30 / strength -30) so
+    // the graph reads as less compressed without spreading so far that
+    // the cluster/focus forces above lose their pull. Both need
+    // adjusting together -- link distance alone just stretches direct
+    // edges, while charge alone only pushes unconnected nodes apart.
+    graph.d3Force('link')?.distance(60)
+    graph.d3Force('charge')?.strength(-60)
+
+    // Focus-mode repulsion: pushes non-focus nodes away from the
+    // focused cluster's centroid while the focus/neighbor nodes stay
+    // pinned via fx/fy/fz (see enterFocus/exitFocus below). No-op when
+    // focus mode isn't active.
+    graph.d3Force(
+      'focusRepel',
+      makeFocusRepelForce(
+        () => graph.graphData().nodes as Graph3DNode[],
+        focusStateRef,
+      ),
     )
 
     // Ground grid + origin axes purely for spatial orientation while
@@ -773,6 +1030,24 @@ export function GraphCanvas3D({
     scene.add(grid)
     const axes = new THREE.AxesHelper(50)
     scene.add(axes)
+
+    // Small X/Y/Z labels at the tip of each axis -- the bare AxesHelper
+    // above (red/green/blue lines) tells you the three directions exist
+    // but not which is which once you've orbited away from the default
+    // view. Cheap orientation aid in lieu of porting the 2D minimap
+    // (see the file-level doc comment's "not yet ported" list).
+    const axisLabelSpecs: [string, string, [number, number, number]][] = [
+      ['X', '#f87171', [56, 0, 0]],
+      ['Y', '#4ade80', [0, 56, 0]],
+      ['Z', '#60a5fa', [0, 0, 56]],
+    ]
+    for (const [text, color, position] of axisLabelSpecs) {
+      const label = new SpriteText(text)
+      label.color = color
+      label.textHeight = 3
+      label.position.set(...position)
+      scene.add(label)
+    }
 
     graphRef.current = graph
 
@@ -803,6 +1078,8 @@ export function GraphCanvas3D({
     setHighlightedEdges,
     toggleRelationParticipant,
     focusNode,
+    enterFocus,
+    exitFocus,
   ])
 
   // highlightedEdgeIds needs to be readable from inside the mount
@@ -884,7 +1161,15 @@ export function GraphCanvas3D({
     })
 
     graph.graphData({ nodes: graph3DNodes, links: graph3DLinks })
-  }, [nodes, edges, hiddenTypes])
+
+    // A graphData() swap replaces every node object wholesale, so any
+    // fx/fy/fz pinning and focusIds set from a prior focus mode would
+    // otherwise point at now-discarded objects (silently doing nothing,
+    // and leaving the focus-repel force pushing against a "focus" that
+    // no longer exists in the data). Clear it defensively whenever the
+    // underlying node/edge set or filter changes.
+    if (focusStateRef.current.active) exitFocus()
+  }, [nodes, edges, hiddenTypes, exitFocus])
 
   // Re-render node visuals (participant rings) when relation-draft
   // selection changes -- nodeThreeObject only re-runs per node when
@@ -1002,6 +1287,19 @@ export function GraphCanvas3D({
       {pathStartId && (
         <div className="absolute top-3 left-1/2 -translate-x-1/2 z-10 bg-amber-900/90 border border-amber-700 text-amber-100 text-xs rounded px-3 py-1.5">
           Shift+click a second node to highlight the path to it
+        </div>
+      )}
+
+      {isFocusActive && (
+        <div className="absolute top-3 left-1/2 -translate-x-1/2 z-10 flex items-center gap-2 bg-cyan-950/90 border border-cyan-800 text-cyan-100 text-xs rounded px-3 py-1.5">
+          Focused on node neighborhood
+          <button
+            type="button"
+            onClick={exitFocus}
+            className="underline hover:text-white"
+          >
+            Exit focus
+          </button>
         </div>
       )}
 

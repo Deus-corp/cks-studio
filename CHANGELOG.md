@@ -6,6 +6,19 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 
 ---
 
+## [0.6.14] - 2026-08-13
+
+### Changed
+- **3D graph spacing** – default link distance and charge strength adjusted so nodes are roughly twice as far apart, making the 3D graph noticeably less compressed.
+- **3D click-to-focus mode** – clicking a node now pins it and its direct neighbors into a stable figure while non-focus nodes are repelled aside and dimmed. The focused cluster is framed automatically; clicking the same node again or the background exits focus mode.
+- **Collapsible node type legend** – the legend in the bottom-left can now be collapsed to a compact "Node types" button and expanded again on click.
+
+### Added
+- **3D focus ring indicator** – the focused node and its neighbors get a cyan ring (brighter for the primary node, dimmer for neighbors) for clear visual identification.
+- **3D axis labels** – X/Y/Z labels added at the axis tips for easier spatial orientation.
+
+---
+
 ## [0.6.13] - 2026-08-13
 
 ### Added

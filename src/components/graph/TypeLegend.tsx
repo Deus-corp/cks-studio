@@ -1,6 +1,6 @@
 // Copyright (c) 2025 Deus Corp. Licensed under MIT.
 
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { useGraphStore } from '@/features/graph-explorer/graphExplorerStore'
 import {
   DEFAULT_NODE_TYPE_COLOR,
@@ -25,6 +25,12 @@ export function TypeLegend() {
   const toggleTypeVisibility = useGraphStore((s) => s.toggleTypeVisibility)
   const showAllTypes = useGraphStore((s) => s.showAllTypes)
 
+  // Collapsed by default would hide the filter affordance the first
+  // time someone opens a graph, so start expanded (matching the legend's
+  // pre-existing always-shown look) and let the person collapse it once
+  // they know it's there.
+  const [isExpanded, setIsExpanded] = useState(true)
+
   const types = useMemo(() => {
     const set = new Set<string>()
     for (const node of nodes) {
@@ -35,12 +41,36 @@ export function TypeLegend() {
 
   if (types.length === 0) return null
 
+  if (!isExpanded) {
+    // Collapsed: just the small "Node types" label/button, compact
+    // enough to sit in the corner without obstructing the canvas.
+    return (
+      <div className="absolute bottom-3 left-3 z-10">
+        <button
+          type="button"
+          onClick={() => setIsExpanded(true)}
+          aria-expanded={false}
+          title="Show node type legend"
+          className="bg-surface-1/95 backdrop-blur-sm border border-border-subtle hover:border-border rounded-md px-3 py-2 text-[10px] font-display font-semibold uppercase tracking-wider text-text-tertiary hover:text-text-secondary shadow-lg transition-colors select-none"
+        >
+          Node types
+        </button>
+      </div>
+    )
+  }
+
   return (
     <div className="absolute bottom-3 left-3 z-10 bg-surface-1/95 backdrop-blur-sm border border-border-subtle rounded-md px-3 py-2 text-xs text-text-secondary space-y-1.5 select-none shadow-lg">
       <div className="flex items-center justify-between gap-3 pb-0.5">
-        <span className="font-display text-[10px] font-semibold uppercase tracking-wider text-text-tertiary">
+        <button
+          type="button"
+          onClick={() => setIsExpanded(false)}
+          aria-expanded={true}
+          title="Collapse node type legend"
+          className="font-display text-[10px] font-semibold uppercase tracking-wider text-text-tertiary hover:text-text-secondary"
+        >
           Node types
-        </span>
+        </button>
         {hiddenTypes.size > 0 && (
           <button
             type="button"
