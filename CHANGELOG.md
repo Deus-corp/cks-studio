@@ -6,6 +6,18 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 
 ---
 
+## [0.6.15] - 2026-08-13
+
+### Fixed
+- **3D focus camera** – entering focus mode no longer zooms the camera out. The cluster is pinned and non-focus nodes are pushed aside, but the camera stays exactly where the user left it. A new “Frame cluster” button in the focus banner lets users frame the focused neighborhood manually.
+- **2D controls overlap** – zoom and fullscreen controls moved from bottom-left to top-right in the 2D graph, so they no longer overlap the collapsible Node types legend.
+
+### Added
+- **3D fullscreen button** – the 3D graph now has a fullscreen toggle, using the same fullscreen icon and hook as the 2D graph.
+- **Shared fullscreen hook** – `useFullscreen` centralizes Fullscreen API handling and `FullscreenIcon` provides a consistent icon for both graph views.
+
+---
+
 ## [0.6.14] - 2026-08-13
 
 ### Changed

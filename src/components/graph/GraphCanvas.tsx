@@ -1,14 +1,16 @@
 import {
   Background,
+  ControlButton,
   Controls,
   MiniMap,
   type Node,
   Panel,
   ReactFlow,
 } from '@xyflow/react'
-import { useCallback, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import '@xyflow/react/dist/style.css'
 import { ExportControls } from '@/components/graph/ExportControls'
+import { FullscreenIcon } from '@/components/graph/FullscreenIcon'
 import { GraphEmptyState } from '@/components/graph/GraphEmptyState'
 import { GraphSearchPalette } from '@/components/graph/GraphSearchPalette'
 import { GraphSkeleton } from '@/components/graph/GraphSkeleton'
@@ -17,6 +19,7 @@ import type { GraphState } from '@/features/graph-explorer/graphExplorerStore'
 import { useGraphStore } from '@/features/graph-explorer/graphExplorerStore'
 import { useGraphLayout } from '@/features/graph-explorer/useGraphLayout'
 import { nodeTypeColor } from '@/shared/constants/nodeTypes'
+import { useFullscreen } from '@/shared/hooks/useFullscreen'
 import {
   cksToReactFlow,
   findPathBetweenNodes,
@@ -63,6 +66,12 @@ export function GraphCanvas({
   const [dropError, setDropError] = useState<string | null>(null)
   const [pathStartId, setPathStartId] = useState<string | null>(null)
   const [isSearchOpen, setIsSearchOpen] = useState(false)
+
+  // Fullscreen target is the outer wrapper div below (not the ReactFlow
+  // pane itself), so overlays like TypeLegend and the drag/drop error
+  // toast stay visible while fullscreen too.
+  const containerRef = useRef<HTMLDivElement>(null)
+  const { isFullscreen, toggleFullscreen } = useFullscreen(containerRef)
 
   // Type-filtered view of the graph — hidden types (toggled from
   // TypeLegend) are dropped before layout so dagre doesn't reserve space
@@ -214,6 +223,7 @@ export function GraphCanvas({
 
   return (
     <div
+      ref={containerRef}
       className="w-full h-full relative"
       role="application"
       onDragOver={handleDragOver}
@@ -229,7 +239,19 @@ export function GraphCanvas({
         fitView
       >
         <Background />
-        <Controls />
+        {/* top-right, not the react-flow default bottom-left: bottom-left
+         *  is where TypeLegend (see GraphPage) lives, and an expanded
+         *  legend was covering the zoom/fullscreen controls entirely.
+         *  top-right is otherwise unused (search/layout Panel above is
+         *  top-left, MiniMap keeps its bottom-right default). */}
+        <Controls position="top-right">
+          <ControlButton
+            onClick={toggleFullscreen}
+            title={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
+          >
+            <FullscreenIcon isFullscreen={isFullscreen} />
+          </ControlButton>
+        </Controls>
         <MiniMap
           nodeStrokeWidth={3}
           nodeStrokeColor="var(--color-border-strong)"

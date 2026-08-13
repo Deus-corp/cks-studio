@@ -27,12 +27,14 @@ import ForceGraph3D, { type ForceGraph3DInstance } from '3d-force-graph'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import * as THREE from 'three'
 import SpriteText from 'three-spritetext'
+import { FullscreenIcon } from '@/components/graph/FullscreenIcon'
 import { GraphEmptyState } from '@/components/graph/GraphEmptyState'
 import { GraphSearchPalette3D } from '@/components/graph/GraphSearchPalette3D'
 import { GraphSkeleton } from '@/components/graph/GraphSkeleton'
 import type { GraphState } from '@/features/graph-explorer/graphExplorerStore'
 import { useGraphStore } from '@/features/graph-explorer/graphExplorerStore'
 import { nodeTypeColor, nodeTypeIcon } from '@/shared/constants/nodeTypes'
+import { useFullscreen } from '@/shared/hooks/useFullscreen'
 import type { SubgraphResult } from '@/shared/types/graph'
 import {
   cksToReactFlow,
@@ -476,6 +478,13 @@ export function GraphCanvas3D({
   const [isDragOver, setIsDragOver] = useState(false)
   const [dropError, setDropError] = useState<string | null>(null)
 
+  // Fullscreen target is the outer wrapper (see the returned JSX below),
+  // not the three.js mount div itself -- same reasoning as GraphCanvas:
+  // keeps overlays (search button, focus banner, drag/drop toast) visible
+  // while fullscreen instead of only the raw WebGL canvas.
+  const wrapperRef = useRef<HTMLDivElement>(null)
+  const { isFullscreen, toggleFullscreen } = useFullscreen(wrapperRef)
+
   const containerRef = useRef<HTMLDivElement>(null)
   // ForceGraphInstance is mutable/imperative (three.js scene handle), not
   // React state -- re-rendering on every internal engine tick would defeat
@@ -584,13 +593,25 @@ export function GraphCanvas3D({
     graph.nodeThreeObject(graph.nodeThreeObject())
     dimRefreshRef.current?.(null)
     graph.d3ReheatSimulation()
-    // Frame the whole focused cluster (not just the clicked node) so
-    // the "figure" the isolated neighborhood forms is fully visible in
-    // one look, rather than requiring the person to scroll/orbit to see
-    // neighbors that ended up outside the default focusNode distance.
-    // The focus/neighbor nodes are already pinned above, so their
-    // positions won't shift while the camera eases into place.
-    graph.zoomToFit(700, 80, (gn) => focusIds.has(gn.id))
+    // Deliberately no camera movement here -- an earlier version called
+    // zoomToFit to auto-frame the cluster, but that produced a jarring
+    // zoom-out every time focus mode was entered. The camera now stays
+    // exactly where the person left it; frameFocusedCluster (wired to
+    // the "Frame cluster" button in the focus banner) does the same
+    // framing on demand instead.
+  }, [])
+
+  /** On-demand camera framing for the current focus cluster -- called
+   *  from the "Frame cluster" button in the focus banner (see render
+   *  below). Kept separate from enterFocus so entering focus mode never
+   *  moves the camera on its own (see the comment in enterFocus); this
+   *  gives the same "see the whole isolated neighborhood at once"
+   *  capability but only when the person explicitly asks for it. */
+  const frameFocusedCluster = useCallback(() => {
+    const graph = graphRef.current
+    const focus = focusStateRef.current
+    if (!graph || !focus.active) return
+    graph.zoomToFit(700, 80, (gn) => focus.focusIds.has(gn.id))
   }, [])
 
   /** Release all pinned nodes and clear focus state, restoring normal
@@ -1232,6 +1253,7 @@ export function GraphCanvas3D({
 
   return (
     <div
+      ref={wrapperRef}
       className="w-full h-full relative overflow-hidden"
       role="application"
       onDragOver={handleDragOver}
@@ -1239,6 +1261,17 @@ export function GraphCanvas3D({
       onDrop={handleDrop}
     >
       <div ref={containerRef} className="w-full h-full overflow-hidden" />
+
+      <div className="absolute top-3 right-3 z-10">
+        <button
+          type="button"
+          onClick={toggleFullscreen}
+          title={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
+          className="flex items-center justify-center bg-surface-1/95 backdrop-blur-sm border border-border-subtle hover:border-border rounded-md p-1.5 text-text-secondary hover:text-text-primary shadow-lg transition-colors"
+        >
+          <FullscreenIcon isFullscreen={isFullscreen} />
+        </button>
+      </div>
 
       {nodes.length > 0 && (
         <div className="absolute top-3 left-3 z-10">
@@ -1293,6 +1326,14 @@ export function GraphCanvas3D({
       {isFocusActive && (
         <div className="absolute top-3 left-1/2 -translate-x-1/2 z-10 flex items-center gap-2 bg-cyan-950/90 border border-cyan-800 text-cyan-100 text-xs rounded px-3 py-1.5">
           Focused on node neighborhood
+          <button
+            type="button"
+            onClick={frameFocusedCluster}
+            className="underline hover:text-white"
+            title="Move the camera to frame the focused node and its neighbors"
+          >
+            Frame cluster
+          </button>
           <button
             type="button"
             onClick={exitFocus}
