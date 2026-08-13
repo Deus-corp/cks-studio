@@ -1,0 +1,86 @@
+name: Publish demo to cks-website
+
+# Only fires on tags like v1.2.3 -- never on plain pushes to main, so this
+# doesn't interfere with the regular CI workflow (ci.yml).
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  publish-demo:
+    runs-on: ubuntu-latest
+    steps:
+      # --- Build the demo in cks-studio -------------------------------
+      - name: Checkout cks-studio
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          # cks-studio's package.json doesn't pin an "engines" field;
+          # ci.yml here tests against both 20 and 22, so 20 (the older,
+          # still-supported LTS of the two) is used as the safe default.
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build static demo
+        run: npx vite build
+
+      - name: Verify build output
+        # Fail fast, with a clear message, before we ever touch the
+        # website checkout, if the build didn't produce what we expect.
+        run: |
+          if [ ! -f dist/demo.html ]; then
+            echo "::error::dist/demo.html not found -- vite build did not produce the expected demo entry point."
+            exit 1
+          fi
+
+      # --- Check out cks-website alongside it --------------------------
+      - name: Checkout cks-website
+        uses: actions/checkout@v4
+        with:
+          repository: Deus-corp/cks-website
+          token: ${{ secrets.CKS_WEBSITE_PAT }}
+          path: cks-website
+
+      # --- Replace only public/demo, leaving the rest of public/ alone -
+      - name: Copy demo build into cks-website
+        run: |
+          set -euo pipefail
+
+          # Only remove and recreate public/demo -- never touch anything
+          # else under public/ (favicon.svg, og-card.png, etc).
+          rm -rf cks-website/public/demo
+          mkdir -p cks-website/public/demo
+          cp -r dist/* cks-website/public/demo/
+
+          # index.html and manifest.webmanifest belong to the full studio
+          # app, not the embedded static demo -- drop them so only
+          # demo.html and its assets ship on the website.
+          rm -f cks-website/public/demo/index.html
+          rm -f cks-website/public/demo/manifest.webmanifest
+
+      # --- Commit and push, but only if something actually changed -----
+      - name: Commit and push to cks-website
+        working-directory: cks-website
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add public/demo
+
+          if git diff --staged --quiet; then
+            echo "No changes to public/demo -- skipping commit."
+            exit 0
+          fi
+
+          git commit -m "chore: update demo from cks-studio release ${{ github.ref_name }}"
+          git push origin main

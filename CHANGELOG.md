@@ -6,6 +6,14 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 
 ---
 
+## [0.6.13] - 2026-08-13
+
+### Added
+- **Nightly ecosystem graph auto-update** – new GitHub Actions workflow (`update-ecosystem-graph.yml`) and `scripts/update_versions.py` that run nightly, fetch the latest component versions from PyPI/GitHub, and update `scripts/cks-ecosystem.json` with a minimal diff. Validates the graph with `cks validate` before committing.
+- **Automatic demo publishing** – new `publish-demo.yml` workflow builds the static demo from cks-studio and pushes it to `cks-website`'s `public/demo` whenever a `v*` tag is pushed. Other files in `public/` (favicon, og-card, etc.) are preserved.
+
+---
+
 ## [0.6.12] - 2026-08-12
 
 ### Added

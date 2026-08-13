@@ -1,0 +1,41 @@
+name: Update ecosystem graph versions
+
+on:
+  schedule:
+    # 03:00 UTC, nightly
+    - cron: "0 3 * * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: update-ecosystem-graph
+  cancel-in-progress: false
+
+jobs:
+  update-versions:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install cks-core
+        run: pip install --upgrade cks-core
+
+      - name: Update component versions
+        run: python scripts/update_versions.py
+
+      - name: Validate updated graph
+        run: cks validate scripts/cks-ecosystem.json
+
+      - name: Commit and push if changed
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "chore: update cks-ecosystem graph versions [skip ci]"
+          file_pattern: scripts/cks-ecosystem.json
