@@ -339,25 +339,17 @@ export function GraphCanvas({
          *  top-right is otherwise unused (search/layout Panel above is
          *  top-left, MiniMap keeps its bottom-right default).
          *
-         *  Pushed down via `top` (rather than left at the panel default)
-         *  because ExportControls renders its own top-right Panel just
-         *  above this one (refresh/PNG/SVG buttons) -- two top-right
-         *  panels stack at the same offset otherwise, so the zoom/
-         *  fullscreen controls end up hidden underneath the export
-         *  buttons. 64px clears that button row (~28px tall) plus its
-         *  own panel padding with room to spare. */}
-        <Controls position="top-right" style={{ top: 64 }}>
-          <ControlButton
-            onClick={toggleFullscreen}
-            title={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
-          >
-            <FullscreenIcon isFullscreen={isFullscreen} />
-          </ControlButton>
-        </Controls>
-        {/* Stacked below the fullscreen Controls (top: 64, ~36px tall) so
-         *  it doesn't overlap ExportControls' own top-right Panel, which
-         *  sits at the default (unstyled) top-right offset. */}
-        <Panel position="top-right" style={{ top: 108 }}>
+         *  Order top-to-bottom is: ExportControls' own top-right Panel
+         *  (refresh/PNG/SVG, default offset) -> this Focus toggle -> the
+         *  zoom/fullscreen Controls block. Focus used to be placed
+         *  *below* Controls's offset but visually landed *inside* it --
+         *  <Controls> here renders its 4 default buttons (zoom in/out,
+         *  fit view, interactive lock) plus the custom fullscreen button
+         *  below, a 5-button stack roughly 180px tall, so a small top
+         *  offset difference wasn't enough to clear it. Focus now sits
+         *  directly under the Export row instead, and Controls is pushed
+         *  down far enough to start below Focus with a clear gap. */}
+        <Panel position="top-right" style={{ top: 58 }}>
           <button
             type="button"
             onClick={() => {
@@ -403,6 +395,19 @@ export function GraphCanvas({
             Focus
           </button>
         </Panel>
+        {/* Zoom/fullscreen block, pushed down below the Focus toggle
+         *  above. 100px clears Export (~43px) + Focus (~36px) + gaps
+         *  with a few px to spare -- was `top: 64` before, i.e. this is
+         *  the "move it down" half of the fix, now measured against
+         *  Focus's real height instead of guessed. */}
+        <Controls position="top-right" style={{ top: 100 }}>
+          <ControlButton
+            onClick={toggleFullscreen}
+            title={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
+          >
+            <FullscreenIcon isFullscreen={isFullscreen} />
+          </ControlButton>
+        </Controls>
         <MiniMap
           nodeStrokeWidth={3}
           nodeStrokeColor="var(--color-border-strong)"

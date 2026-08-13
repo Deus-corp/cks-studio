@@ -1,7 +1,11 @@
 // Copyright (c) 2026 Deus Corp. Licensed under MIT.
 
-import { describe, expect, it } from 'vitest'
-import { CARD_THEME_COLORS, drawNodeCardCanvas } from '../GraphCanvas3D'
+import { describe, expect, it, vi } from 'vitest'
+import {
+  CARD_THEME_COLORS,
+  disposeNodeObject3D,
+  drawNodeCardCanvas,
+} from '../GraphCanvas3D'
 
 // Full theme-switch behavior (in-place texture refresh across the live
 // 3d-force-graph instance, see refreshCardTextures in GraphCanvas3D) isn't
@@ -48,5 +52,49 @@ describe('drawNodeCardCanvas theme colors', () => {
     expect(light.height).toBe(dark.height)
     expect(light.width).toBeGreaterThan(0)
     expect(light.height).toBeGreaterThan(0)
+  })
+})
+
+// Regression test for the leak fixed alongside enterFocus/exitFocus/
+// relationDraft: those call `nodeThreeObject(nodeThreeObject())` to force
+// 3d-force-graph to rebuild every node's three.js object, but the
+// library doesn't dispose the outgoing one -- disposeNodeObject3D must
+// be called manually first, or every focus/relation-draft toggle leaks
+// a texture+material per node (the actual cause of session-long lag,
+// not the theme toggle itself -- see GraphCanvas3D.tsx for the full
+// writeup).
+describe('disposeNodeObject3D', () => {
+  it('disposes every geometry, material, and texture in the object tree', async () => {
+    const THREE = await import('three')
+    const canvas = document.createElement('canvas')
+    canvas.width = 4
+    canvas.height = 4
+    const texture = new THREE.CanvasTexture(canvas)
+    const spriteMaterial = new THREE.SpriteMaterial({ map: texture })
+    const sprite = new THREE.Sprite(spriteMaterial)
+
+    const ringGeometry = new THREE.RingGeometry(1, 2, 8)
+    const ringMaterial = new THREE.MeshBasicMaterial()
+    const ring = new THREE.Mesh(ringGeometry, ringMaterial)
+
+    const group = new THREE.Group()
+    group.add(sprite)
+    group.add(ring)
+
+    const textureDispose = vi.spyOn(texture, 'dispose')
+    const spriteMaterialDispose = vi.spyOn(spriteMaterial, 'dispose')
+    const ringGeometryDispose = vi.spyOn(ringGeometry, 'dispose')
+    const ringMaterialDispose = vi.spyOn(ringMaterial, 'dispose')
+
+    disposeNodeObject3D(group)
+
+    expect(textureDispose).toHaveBeenCalledOnce()
+    expect(spriteMaterialDispose).toHaveBeenCalledOnce()
+    expect(ringGeometryDispose).toHaveBeenCalledOnce()
+    expect(ringMaterialDispose).toHaveBeenCalledOnce()
+  })
+
+  it('is a no-op for undefined (a node with no three.js object yet)', () => {
+    expect(() => disposeNodeObject3D(undefined)).not.toThrow()
   })
 })

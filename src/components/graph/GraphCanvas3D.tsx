@@ -187,10 +187,19 @@ export const CARD_THEME_COLORS = {
     badgeText: '#94a3b8',
   },
   light: {
-    background: '#ffffff',
-    backgroundHovered: '#f0f1f4',
+    // Was '#ffffff' -- CksNode/2D actually uses --color-surface-3
+    // (#e5e7ec), not pure white (see CksNode.tsx: "surface-2 sits too
+    // close to the page background... use surface-3"). The 3D canvas
+    // background is --color-surface-0 (#f5f4f0), so a white card had
+    // almost no contrast against it and read as washed-out/transparent
+    // even though the card itself is fully opaque. Matching 2D's
+    // surface-3 here fixes that without changing anything about opacity
+    // (background/backgroundHovered are always drawn as solid fills,
+    // never with alpha -- see drawNodeCardCanvas below).
+    background: '#e5e7ec',
+    backgroundHovered: '#eef0f4',
     text: '#16181d',
-    badgeBg: 'rgba(226, 229, 235, 0.9)',
+    badgeBg: 'rgba(203, 208, 217, 0.9)',
     badgeText: '#404550',
   },
 } as const
@@ -391,6 +400,45 @@ function buildNodeCardSprite(
   sprite.userData.heightPx = heightPx
   sprite.userData.degree = degree
   return sprite
+}
+
+/** Frees the GPU-side resources (geometries, materials, and any
+ *  CanvasTexture maps) owned by a node's three.js object tree. Needed
+ *  before every `nodeThreeObject(nodeThreeObject())` re-invoke
+ *  (enterFocus/exitFocus/relationDraft below) -- that's 3d-force-graph's
+ *  documented way to force nodeThreeObject to re-run for every node, but
+ *  it just discards the *old* group in favor of the newly-built one
+ *  without disposing it. Three.js doesn't garbage-collect GPU resources
+ *  on its own (only the JS-side objects get GC'd), so every focus-mode
+ *  toggle or relation-draft click was silently leaking one texture +
+ *  material per node -- the actual cause of the graph progressively
+ *  lagging the longer a session runs, independent of theme. Called once
+ *  per node right before the rebuild, walking every child (card sprite,
+ *  focus/participant/multi-select rings) rather than assuming a fixed
+ *  shape, so it stays correct if more decorations are added later. */
+export function disposeNodeObject3D(obj: THREE.Object3D | undefined): void {
+  if (!obj) return
+  obj.traverse((child) => {
+    const mesh = child as THREE.Mesh | THREE.Sprite
+    const geometry = (mesh as THREE.Mesh).geometry as
+      | THREE.BufferGeometry
+      | undefined
+    geometry?.dispose()
+    const material = mesh.material as
+      | THREE.Material
+      | THREE.Material[]
+      | undefined
+    const materials = Array.isArray(material)
+      ? material
+      : material
+        ? [material]
+        : []
+    for (const mat of materials) {
+      const map = (mat as THREE.SpriteMaterial | THREE.MeshBasicMaterial).map
+      map?.dispose()
+      mat.dispose()
+    }
+  })
 }
 
 /** Custom d3-force pulling each clustered node toward its cluster's
@@ -653,7 +701,11 @@ export function GraphCanvas3D({
     // documented way to force every node's three.js object to be
     // rebuilt (same trick used for relationDraft above) -- needed here
     // so the focus ring (added in nodeThreeObject below) appears
-    // immediately rather than on the next unrelated re-render.
+    // immediately rather than on the next unrelated re-render. Dispose
+    // the outgoing objects first (see disposeNodeObject3D) since the
+    // library itself doesn't -- without this, every focus-mode toggle
+    // leaked a texture+material per node.
+    for (const gn of currentNodes) disposeNodeObject3D(gn.__threeObj)
     graph.nodeThreeObject(graph.nodeThreeObject())
     dimRefreshRef.current?.(null)
     graph.d3ReheatSimulation()
@@ -693,6 +745,8 @@ export function GraphCanvas3D({
     }
     focusStateRef.current = INITIAL_FOCUS_STATE
     setIsFocusActive(false)
+    // See enterFocus's comment -- dispose before rebuilding.
+    for (const gn of currentNodes) disposeNodeObject3D(gn.__threeObj)
     graph.nodeThreeObject(graph.nodeThreeObject())
     dimRefreshRef.current?.(null)
     graph.d3ReheatSimulation()
@@ -1359,6 +1413,12 @@ export function GraphCanvas3D({
   useEffect(() => {
     const graph = graphRef.current
     if (!graph) return
+    // See enterFocus's comment on disposeNodeObject3D -- same rebuild
+    // trick, same need to dispose the outgoing objects first.
+    const { nodes: currentNodes } = graph.graphData() as {
+      nodes: Graph3DNode[]
+    }
+    for (const gn of currentNodes) disposeNodeObject3D(gn.__threeObj)
     graph.nodeThreeObject(graph.nodeThreeObject())
   }, [relationDraft])
 

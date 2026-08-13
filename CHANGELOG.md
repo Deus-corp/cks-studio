@@ -6,6 +6,18 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 
 ---
 
+## [0.6.19] - 2026-08-13
+
+### Fixed
+- **2D toolbar overlap** – repositioned the Focus toggle, zoom/fullscreen controls, and Export SVG buttons so they no longer overlap. The top-right controls now have explicit, non-colliding offsets.
+- **3D light-theme cards** – card background now uses the 2D surface-3 token (`#e5e7ec`) instead of pure white, improving contrast and readability against the light canvas.
+- **GPU resource leak** – added `disposeNodeObject3D` and call it before `nodeThreeObject` rebuilds in focus mode, exit focus, and relation-draft updates. This prevents leaking textures and materials on every rebuild, which was the real cause of progressive lag in long 3D sessions.
+
+### Added
+- **Regression tests** for GPU disposal (`disposeNodeObject3D`) and theme colors.
+
+---
+
 ## [0.6.18] - 2026-08-13
 
 ### Fixed
