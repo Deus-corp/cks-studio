@@ -9,6 +9,7 @@ import { ErrorBoundary } from '@/components/common/ErrorBoundary'
 import { ConnectionStatus } from '@/components/mcp/ConnectionStatus'
 import { AgentsPage } from './pages/AgentsPage'
 import { ChatsPage } from './pages/ChatsPage'
+import { DeadLetterPage } from './pages/DeadLetterPage'
 import { DiffPage } from './pages/DiffPage'
 import { GalleryPage } from './pages/GalleryPage'
 import { GraphPage } from './pages/GraphPage'
@@ -21,6 +22,7 @@ const NAV_LINKS = [
   { to: '/gallery', label: 'Gallery', nav: 'gallery' },
   { to: '/diff', label: 'Diff', nav: 'diff' },
   { to: '/agents', label: 'Agents', nav: 'agents' },
+  { to: '/dead-letter', label: 'Dead Letter', nav: 'dead-letter' },
   { to: '/chat', label: 'Chat', nav: 'chat' },
   { to: '/settings', label: 'Settings', nav: 'settings' },
 ]
@@ -137,6 +139,7 @@ export function App() {
               <Route path="/diff" element={<DiffPage />} />
               <Route path="/settings" element={<SettingsPage />} />
               <Route path="/agents" element={<AgentsPage />} />
+              <Route path="/dead-letter" element={<DeadLetterPage />} />
               <Route path="/chat" element={<ChatsPage />} />
             </Routes>
           </ErrorBoundary>

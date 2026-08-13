@@ -7,6 +7,7 @@ import { SidePanel } from '@/components/layout/SidePanel'
 import { CreateNodeForm } from '@/features/graph-explorer/CreateNodeForm'
 import { CreateRelationForm } from '@/features/graph-explorer/CreateRelationForm'
 import { useGraphStore } from '@/features/graph-explorer/graphExplorerStore'
+import { StartPipelineButton } from '@/features/graph-explorer/StartPipelineButton'
 import { getFullGraph, querySubgraph } from '@/services/mcpTools'
 import { useSessionStore } from '@/services/sessionStore'
 import { cksToReactFlow, traceInferenceChain } from '@/shared/utils/graphUtils'
@@ -337,6 +338,7 @@ export function GraphPage() {
             >
               Trace Inference
             </button>
+            <StartPipelineButton sessionId={sessionId} />
             <button
               type="button"
               onClick={clearHighlight}

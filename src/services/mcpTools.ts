@@ -433,6 +433,116 @@ export async function startPipeline(
 }
 
 // ---------------------------------------------------------------------------
+// Dead-letter inbox (list_dead_lettered_conflicts / review_dead_letter /
+// approve_resolution / reject_resolution, cks-mcp) -- surfaced in
+// cks-studio's Dead Letter page (see src/pages/DeadLetterPage.tsx) so a
+// human can review conflict tasks a Critic agent has permanently given up
+// on, instead of them just sitting in the outbox unseen.
+// ---------------------------------------------------------------------------
+
+export interface DeadLetterTask {
+  task_id: number
+  task_type: string
+  session_id: string
+  payload: Record<string, unknown>
+  retry_count: number
+}
+
+interface ListDeadLetteredConflictsResponse {
+  tasks: DeadLetterTask[]
+  count: number
+  /** false under a storage backend without outbox support (e.g. the
+   *  default in-memory backend) -- tasks is always [] in that case. */
+  supported: boolean
+}
+
+export async function listDeadLetteredConflicts(
+  taskType?: 'gossip_conflict' | 'inference_conflict',
+): Promise<ListDeadLetteredConflictsResponse> {
+  const result = await callTool('list_dead_lettered_conflicts', {
+    ...(taskType ? { task_type: taskType } : {}),
+  })
+  return result as unknown as ListDeadLetteredConflictsResponse
+}
+
+/** {'tool': <resolution tool name>, 'arguments': {...}} -- ready to pass
+ *  straight to approveResolution, optionally with manual edits. */
+export interface ProposedResolution {
+  tool: string
+  arguments: Record<string, unknown>
+  /** Set instead of tool/arguments when the payload didn't carry enough
+   *  information to propose a resolution (task_type-specific — see
+   *  cks-mcp review_dead_letter handler's _propose_* helpers). */
+  error?: string
+  message?: string
+}
+
+export interface ReviewDeadLetterResult {
+  task_id: number
+  task_type: string
+  session_id: string
+  payload: Record<string, unknown>
+  retry_count: number
+  last_error: string | null
+  proposed_resolution: ProposedResolution
+}
+
+/** Set when task_id isn't currently dead-lettered, or the backend has no
+ *  outbox support -- review_dead_letter returns this instead of throwing. */
+export interface DeadLetterReviewError {
+  error: string
+  message: string
+}
+
+export async function reviewDeadLetter(
+  taskId: number,
+): Promise<ReviewDeadLetterResult | DeadLetterReviewError> {
+  const result = await callTool('review_dead_letter', { task_id: taskId })
+  return result as unknown as ReviewDeadLetterResult | DeadLetterReviewError
+}
+
+export interface ApproveResolutionResult {
+  approved: boolean
+  task_id: number
+  resolution_result?: Record<string, unknown>
+  error?: string
+  message?: string
+}
+
+/** `resolution` is normally the `proposed_resolution` a prior
+ *  reviewDeadLetter() call returned for the same task_id, optionally with
+ *  manual edits (e.g. a different winner_id). */
+export async function approveResolution(
+  taskId: number,
+  resolution: { tool: string; arguments: Record<string, unknown> },
+): Promise<ApproveResolutionResult> {
+  const result = await callTool('approve_resolution', {
+    task_id: taskId,
+    resolution,
+  })
+  return result as unknown as ApproveResolutionResult
+}
+
+export interface RejectResolutionResult {
+  rejected: boolean
+  task_id: number
+  reason?: string
+  error?: string
+  message?: string
+}
+
+export async function rejectResolution(
+  taskId: number,
+  reason?: string,
+): Promise<RejectResolutionResult> {
+  const result = await callTool('reject_resolution', {
+    task_id: taskId,
+    ...(reason ? { reason } : {}),
+  })
+  return result as unknown as RejectResolutionResult
+}
+
+// ---------------------------------------------------------------------------
 // ai_chat (cks-mcp ADR-011 / cks-studio ADR-001)
 // ---------------------------------------------------------------------------
 
