@@ -1569,6 +1569,7 @@ export function GraphCanvas3D({
   const themeRefreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
     null,
   )
+  // biome-ignore lint/correctness/useExhaustiveDependencies: intentionally re-run on every `theme` change (see IMPORTANT comment above) -- this was previously `[]`, which is the exact bug this effect exists to fix: without `theme` here, the effect only fires once on mount and toggling afterward never schedules a refresh at all.
   useEffect(() => {
     if (themeRefreshTimerRef.current !== null) {
       clearTimeout(themeRefreshTimerRef.current)
@@ -1577,11 +1578,6 @@ export function GraphCanvas3D({
       themeRefreshTimerRef.current = null
       themeRefreshRef.current?.()
       dimRefreshRef.current?.(null)
-      // linkColor/linkWidth already read themeRef.current live (see the
-      // mount effect), but 3d-force-graph caches the per-link value it
-      // last computed rather than re-invoking the accessor every frame,
-      // so existing links need the same re-invoke nudge highlightedEdgeIds
-      // uses elsewhere in this file to actually pick up the new colors.
       const graph = graphRef.current
       if (graph) {
         graph.linkColor(graph.linkColor())
@@ -1593,7 +1589,7 @@ export function GraphCanvas3D({
         clearTimeout(themeRefreshTimerRef.current)
       }
     }
-  }, [])
+  }, [theme])
 
   const handleDragOver = useCallback((event: React.DragEvent) => {
     event.preventDefault()

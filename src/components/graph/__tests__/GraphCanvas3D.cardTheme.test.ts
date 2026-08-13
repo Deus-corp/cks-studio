@@ -7,6 +7,14 @@ import {
   drawNodeCardCanvas,
   LINK_THEME_COLORS,
 } from '../GraphCanvas3D'
+// Vite's `?raw` suffix imports the file as a plain string -- lets the
+// dependency-array test below assert against the actual source text
+// without needing @types/node (not installed in this project) for
+// node:fs/node:path. No project-wide `vite/client` ambient types are
+// referenced anywhere else in this repo, so declare this one specific
+// import's shape locally rather than adding a global types reference.
+// @ts-expect-error -- see comment above; no `vite/client` types in this project
+import componentSource from '../GraphCanvas3D.tsx?raw'
 
 // Full theme-switch behavior (in-place texture refresh across the live
 // 3d-force-graph instance, see refreshCardTextures in GraphCanvas3D) isn't
@@ -122,5 +130,30 @@ describe('theme-aware borders and link colors', () => {
       expect(LINK_THEME_COLORS[theme].normal.length).toBeGreaterThan(0)
       expect(LINK_THEME_COLORS[theme].highlighted.length).toBeGreaterThan(0)
     }
+  })
+})
+
+// Regression test for the *second* occurrence of the same dependency-array
+// bug: the mount effect that builds the scene was fixed to depend on
+// `theme` (see the test above / that effect's own comment), but the
+// separate debounced theme-refresh effect (themeRefreshTimerRef) was
+// later added with `[]` instead of `[theme]` -- so it scheduled its one
+// refresh on mount and then never again on any subsequent toggle. This
+// isn't reachable through drawNodeCardCanvas/CARD_THEME_COLORS directly
+// (both of those were correct), and the effect's own WebGL side effects
+// aren't unit-testable per the note above, so this asserts the dependency
+// array at the source level instead of leaving it to only a code comment,
+// which is what let it regress silently the first time.
+describe('theme-refresh debounce effect dependencies', () => {
+  it('the themeRefreshTimerRef effect depends on `theme`, not `[]`', () => {
+    const effectStart = componentSource.indexOf(
+      'themeRefreshTimerRef.current = setTimeout',
+    )
+    expect(effectStart).toBeGreaterThan(-1)
+    const effectEnd = componentSource.indexOf('\n  }, [', effectStart)
+    expect(effectEnd).toBeGreaterThan(-1)
+    const depsClose = componentSource.indexOf(')', effectEnd)
+    const depsArray = componentSource.slice(effectEnd + 6, depsClose + 1)
+    expect(depsArray).toBe('[theme])')
   })
 })

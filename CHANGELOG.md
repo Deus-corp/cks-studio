@@ -6,6 +6,13 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 
 ---
 
+## [0.6.21] - 2026-08-13
+
+### Fixed
+- **3D theme refresh effect** – the debounced theme-repaint effect now correctly depends on `theme`. It previously ran only once on mount, so later light/dark toggles did not repaint 3D cards and links. Added a regression test asserting the dependency array is `[theme]`.
+
+---
+
 ## [0.6.20] - 2026-08-13
 
 ### Fixed
