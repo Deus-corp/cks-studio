@@ -6,6 +6,18 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 
 ---
 
+## [0.6.20] - 2026-08-13
+
+### Fixed
+- **3D theme refresh dependency** – the theme-refresh effect now correctly depends on `theme`, so 3D cards and links repaint immediately when the theme toggles. Previously the effect only ran on mount, so theme changes had no effect on the 3D graph.
+- **3D link/border theme colors** – 3D links and card borders now use theme-aware colors, matching the light/dark palette and improving visibility.
+- **Debounced theme repaint** – rapid theme toggles no longer stack full-graph texture redraws; the repaint is debounced.
+
+### Added
+- **Regression tests** for theme-aware link colors and the dependency fix.
+
+---
+
 ## [0.6.19] - 2026-08-13
 
 ### Fixed

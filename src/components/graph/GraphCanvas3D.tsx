@@ -185,6 +185,11 @@ export const CARD_THEME_COLORS = {
     text: '#e5e7eb',
     badgeBg: 'rgba(15, 23, 42, 0.72)',
     badgeText: '#94a3b8',
+    // Matches --color-border-strong in the dark theme (styles/index.css)
+    // -- a subtle always-on outline (see drawNodeCardCanvas) so a card
+    // reads as a distinct shape against both the canvas background and
+    // any link line passing behind it, without needing to be hovered.
+    border: '#333c4b',
   },
   light: {
     // Was '#ffffff' -- CksNode/2D actually uses --color-surface-3
@@ -201,6 +206,32 @@ export const CARD_THEME_COLORS = {
     text: '#16181d',
     badgeBg: 'rgba(203, 208, 217, 0.9)',
     badgeText: '#404550',
+    // Matches --color-border-strong in the light theme.
+    border: '#c2c5cc',
+  },
+} as const
+
+/** Link (edge) colors per theme. Was a single fixed
+ *  `rgba(148, 163, 184, 0.55)` regardless of theme -- a mid-gray tuned
+ *  for the dark canvas (--color-surface-0 #0b0e14), where it reads
+ *  clearly. Against the light canvas (#f5f4f0) the same color has far
+ *  less contrast and links all but disappear. Read via themeRef inside
+ *  the linkColor/linkWidth closures below (see the mount effect) rather
+ *  than needing any rebuild -- 3d-force-graph calls those closures live
+ *  every time it needs a link's color, so switching theme is already
+ *  "free" here without the texture-refresh machinery cards need. */
+export const LINK_THEME_COLORS = {
+  dark: {
+    normal: 'rgba(148, 163, 184, 0.55)',
+    highlighted: '#22d3ee',
+  },
+  light: {
+    // Darker + more opaque than the dark-theme value so a thin edge line
+    // still reads clearly against the light canvas and light card
+    // borders, matching --color-graph-edge's light-theme value (see
+    // styles/index.css, used by 2D's GraphCanvas for the same reason).
+    normal: 'rgba(100, 110, 128, 0.75)',
+    highlighted: '#0e7490',
   },
 } as const
 
@@ -284,6 +315,22 @@ export function drawNodeCardCanvas(
     // the dark background without washing out the accent strip.
     ctx.strokeStyle = accentColor
     ctx.lineWidth = 2 * CARD_TEXTURE_SCALE
+    ctx.beginPath()
+    ctx.moveTo(r, ctx.lineWidth / 2)
+    ctx.arcTo(w, 0, w, h, r)
+    ctx.arcTo(w, h, 0, h, r)
+    ctx.arcTo(0, h, 0, 0, r)
+    ctx.arcTo(0, 0, w, 0, r)
+    ctx.closePath()
+    ctx.stroke()
+  } else {
+    // Always-on darker frame (not just on hover) so a card reads as a
+    // distinct shape against both the canvas and any link line crossing
+    // behind it -- cards themselves are opaque, but without this border
+    // a card and a same-brightness link passing under its edge could
+    // blend together at a glance.
+    ctx.strokeStyle = palette.border
+    ctx.lineWidth = 1 * CARD_TEXTURE_SCALE
     ctx.beginPath()
     ctx.moveTo(r, ctx.lineWidth / 2)
     ctx.arcTo(w, 0, w, h, r)
@@ -1120,8 +1167,8 @@ export function GraphCanvas3D({
       .linkLabel((link) => (link as Graph3DLink).label)
       .linkColor((link) =>
         highlightedEdgeIdsRef.current.has((link as Graph3DLink).id)
-          ? '#22d3ee'
-          : 'rgba(148, 163, 184, 0.55)',
+          ? LINK_THEME_COLORS[themeRef.current].highlighted
+          : LINK_THEME_COLORS[themeRef.current].normal,
       )
       .linkWidth((link) =>
         highlightedEdgeIdsRef.current.has((link as Graph3DLink).id) ? 2.5 : 0.6,
@@ -1500,9 +1547,52 @@ export function GraphCanvas3D({
   // the graph. refreshCardTextures instead updates each existing
   // texture's pixels in place, so repeated toggling stays cheap and
   // doesn't leak GPU memory.
+  //
+  // IMPORTANT: this must depend on `theme`. An earlier version of this
+  // fix left the dependency array empty, which meant the whole refresh
+  // only ever ran once on mount -- toggling the theme afterward didn't
+  // touch the cards through this path at all. That bug is also why
+  // debouncing below couldn't have been tested before: nothing was
+  // actually re-running per toggle to debounce.
+  //
+  // Debounced (not called synchronously): every card redraw is a canvas
+  // draw + measureText calls + a GPU texture re-upload for every node in
+  // the graph -- real work that scales with graph size and
+  // CARD_TEXTURE_SCALE. Toggling quickly several times in a row used to
+  // queue up one full pass per click; on a large graph or slower
+  // hardware those passes don't finish before the next one starts,
+  // which is what "gets progressively worse the faster you click"
+  // looks like even without an actual leak. Collapsing a burst of
+  // toggles into a single pass after things settle keeps a single
+  // toggle feeling instant while making rapid toggling no worse than
+  // one toggle.
+  const themeRefreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  )
   useEffect(() => {
-    themeRefreshRef.current?.()
-    dimRefreshRef.current?.(null)
+    if (themeRefreshTimerRef.current !== null) {
+      clearTimeout(themeRefreshTimerRef.current)
+    }
+    themeRefreshTimerRef.current = setTimeout(() => {
+      themeRefreshTimerRef.current = null
+      themeRefreshRef.current?.()
+      dimRefreshRef.current?.(null)
+      // linkColor/linkWidth already read themeRef.current live (see the
+      // mount effect), but 3d-force-graph caches the per-link value it
+      // last computed rather than re-invoking the accessor every frame,
+      // so existing links need the same re-invoke nudge highlightedEdgeIds
+      // uses elsewhere in this file to actually pick up the new colors.
+      const graph = graphRef.current
+      if (graph) {
+        graph.linkColor(graph.linkColor())
+        graph.linkWidth(graph.linkWidth())
+      }
+    }, 150)
+    return () => {
+      if (themeRefreshTimerRef.current !== null) {
+        clearTimeout(themeRefreshTimerRef.current)
+      }
+    }
   }, [])
 
   const handleDragOver = useCallback((event: React.DragEvent) => {

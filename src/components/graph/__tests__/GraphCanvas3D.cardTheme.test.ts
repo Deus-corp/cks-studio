@@ -5,6 +5,7 @@ import {
   CARD_THEME_COLORS,
   disposeNodeObject3D,
   drawNodeCardCanvas,
+  LINK_THEME_COLORS,
 } from '../GraphCanvas3D'
 
 // Full theme-switch behavior (in-place texture refresh across the live
@@ -96,5 +97,30 @@ describe('disposeNodeObject3D', () => {
 
   it('is a no-op for undefined (a node with no three.js object yet)', () => {
     expect(() => disposeNodeObject3D(undefined)).not.toThrow()
+  })
+})
+
+// Locks in the always-on card border and the theme-aware link colors --
+// the link color used to be a single fixed value regardless of theme,
+// which read fine on the dark canvas but had poor contrast on the light
+// one.
+describe('theme-aware borders and link colors', () => {
+  it('gives light and dark themes distinct card border colors', () => {
+    expect(CARD_THEME_COLORS.light.border).not.toBe(
+      CARD_THEME_COLORS.dark.border,
+    )
+  })
+
+  it('gives light and dark themes distinct, non-empty link colors', () => {
+    expect(LINK_THEME_COLORS.light.normal).not.toBe(
+      LINK_THEME_COLORS.dark.normal,
+    )
+    expect(LINK_THEME_COLORS.light.highlighted).not.toBe(
+      LINK_THEME_COLORS.dark.highlighted,
+    )
+    for (const theme of ['light', 'dark'] as const) {
+      expect(LINK_THEME_COLORS[theme].normal.length).toBeGreaterThan(0)
+      expect(LINK_THEME_COLORS[theme].highlighted.length).toBeGreaterThan(0)
+    }
   })
 })
