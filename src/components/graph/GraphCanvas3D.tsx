@@ -154,6 +154,13 @@ const USE_CARD_NODES = true
 const CARD_WIDTH_PX = 220
 const CARD_HEIGHT_PX = 60
 const CARD_TEXTURE_SCALE = 3
+
+/** How many card textures refreshCardTextures redraws per animation
+ *  frame during a theme-triggered refresh (see that function). Keeps
+ *  each frame's work small enough not to visibly stall the rest of the
+ *  app on a large graph, while still finishing in well under a second
+ *  for typical graph sizes. */
+const CARD_REFRESH_BATCH_SIZE = 60
 const CARD_WORLD_SCALE = 0.12
 const CARD_ACCENT_HEIGHT_PX = 3
 const CARD_CORNER_RADIUS_PX = 8
@@ -192,22 +199,33 @@ export const CARD_THEME_COLORS = {
     border: '#333c4b',
   },
   light: {
-    // Was '#ffffff' -- CksNode/2D actually uses --color-surface-3
-    // (#e5e7ec), not pure white (see CksNode.tsx: "surface-2 sits too
-    // close to the page background... use surface-3"). The 3D canvas
-    // background is --color-surface-0 (#f5f4f0), so a white card had
-    // almost no contrast against it and read as washed-out/transparent
-    // even though the card itself is fully opaque. Matching 2D's
-    // surface-3 here fixes that without changing anything about opacity
-    // (background/backgroundHovered are always drawn as solid fills,
-    // never with alpha -- see drawNodeCardCanvas below).
-    background: '#e5e7ec',
-    backgroundHovered: '#eef0f4',
-    text: '#16181d',
-    badgeBg: 'rgba(203, 208, 217, 0.9)',
-    badgeText: '#404550',
-    // Matches --color-border-strong in the light theme.
-    border: '#c2c5cc',
+    // Was '#e5e7ec' (matching 2D's surface-3) -- still nearly the same
+    // lightness as the canvas background (--color-surface-0 #f5f4f0),
+    // so cards read as barely-there against it and the always-on
+    // border (below) was the only thing separating a card from the
+    // canvas -- which itself was only a few points darker than the
+    // card fill, so in practice neither was visible until hover drew
+    // the much more saturated accent-colored outline instead. A
+    // warm, clearly-saturated fill fixes the contrast problem at its
+    // source: the card itself is now unmistakably a card against the
+    // near-white canvas, with or without a border or hover state.
+    background: '#a66f1f',
+    backgroundHovered: '#b87f27',
+    text: '#ffffff',
+    // Was a light gray chip on a near-white card (worked); against the
+    // amber fill a dark, warm-tinted chip reads clearly instead while
+    // staying in the same warm family as the card itself.
+    badgeBg: 'rgba(41, 26, 6, 0.55)',
+    badgeText: '#fdf3e2',
+    // Was '#c2c5cc' -- matched --color-border-strong but had almost no
+    // contrast against --color-surface-0 (#f5f4f0), which is why the
+    // "always-on" border was only actually visible on hover, when the
+    // much more saturated accent-colored outline replaced it. A darker
+    // shade of the new amber fill gives the border a real job again:
+    // defining the card's edge against both the canvas and any link
+    // line crossing behind it, same as the dark theme's border already
+    // does.
+    border: '#5c3c10',
   },
 } as const
 
@@ -226,12 +244,24 @@ export const LINK_THEME_COLORS = {
     highlighted: '#22d3ee',
   },
   light: {
-    // Darker + more opaque than the dark-theme value so a thin edge line
-    // still reads clearly against the light canvas and light card
-    // borders, matching --color-graph-edge's light-theme value (see
-    // styles/index.css, used by 2D's GraphCanvas for the same reason).
-    normal: 'rgba(100, 110, 128, 0.75)',
-    highlighted: '#0e7490',
+    // Was 'rgba(100, 110, 128, 0.75)' -- a darker gray, on the theory
+    // that darker-on-light gives better contrast the same way dark
+    // text on a light page does. In practice edges are thin 1-2px
+    // lines, not filled text, and applyNodeVisualState already dims
+    // non-touched links down to 0.06-0.6 opacity -- stacking a darker
+    // *base* color on top of that dimming made ordinary (non-hovered,
+    // non-highlighted) links read as faint gray hairlines, functionally
+    // invisible until hovered. Using the same lighter slate as the dark
+    // theme, just pushed closer to fully opaque, keeps the line clearly
+    // a distinct light-blue-gray against the cream canvas without
+    // needing hover to see it at all.
+    normal: 'rgba(148, 163, 184, 0.9)',
+    // Was '#0e7490' (dark teal, tuned for the "darker is more visible"
+    // idea above). Brightened to match -- still reads clearly as
+    // "this edge is highlighted" against the light canvas without the
+    // washed-out feel a truly light color would have here, since this
+    // one *is* meant to pop rather than blend in.
+    highlighted: '#0891b2',
   },
 } as const
 
@@ -434,6 +464,22 @@ function buildNodeCardSprite(
     theme,
   )
   const texture = new THREE.CanvasTexture(canvas)
+  // These billboarded card sprites are drawn at a fixed CARD_TEXTURE_SCALE
+  // (crisp-text supersampling, not a "real" minification range like a
+  // textured 3D surface would have), so the mip chain WebGL would
+  // otherwise generate on every texture.needsUpdate is pure overhead here
+  // -- generateMipmaps=true's default is where every full-graph theme
+  // refresh was spending most of its time (one full mip-chain build per
+  // card, per refresh), which is what turned "refresh all card textures
+  // on theme toggle" into a main-thread/GPU-driver-queue stall that read
+  // as the whole app -- not just the 3D canvas -- lagging right after a
+  // toggle. LinearFilter (no mips) is the same fix 3d-force-graph's own
+  // default node/link materials effectively get away with, and looks
+  // identical here since the card never renders far enough from camera
+  // for mip aliasing to matter.
+  texture.generateMipmaps = false
+  texture.minFilter = THREE.LinearFilter
+  texture.magFilter = THREE.LinearFilter
   texture.needsUpdate = true
   const material = new THREE.SpriteMaterial({
     map: texture,
@@ -674,6 +720,12 @@ export function GraphCanvas3D({
   // sprites, materials, or textures (see that effect's comment for why
   // that matters).
   const themeRefreshRef = useRef<(() => void) | null>(null)
+  // Generation counter + in-flight rAF handle for the batched card
+  // texture refresh (see refreshCardTextures below) -- lets a new
+  // refresh call (or unmount) abandon a still-running batched refresh
+  // instead of it racing a newer one and writing stale colors last.
+  const refreshGenerationRef = useRef(0)
+  const cardRefreshFrameRef = useRef<number | null>(null)
   // Mirrors focusStateRef.current.active into React state purely so the
   // "exit focus" affordance in the toolbar can re-render; the ref
   // remains the source of truth read by simulation/click code.
@@ -959,38 +1011,68 @@ export function GraphCanvas3D({
      *  toggling piled up orphaned GPU textures until a reload cleared
      *  them. Reusing the same texture and just swapping its backing
      *  canvas + flagging needsUpdate re-uploads the same GL texture
-     *  object instead of allocating a new one. */
+     *  object instead of allocating a new one.
+     *
+     *  Batched across multiple animation frames (CARD_REFRESH_BATCH_SIZE
+     *  per frame) rather than looping every node in one synchronous
+     *  pass: each iteration is a canvas draw + measureText calls + a GPU
+     *  texture re-upload, and running all of them back-to-back on a
+     *  larger graph blocks the main thread for long enough that the rest
+     *  of the app -- not just the 3D canvas -- visibly stalls right
+     *  after a theme toggle, which is what read as "the whole studio
+     *  lags" even after the debounce/dependency-array fix above. Ties
+     *  into refreshGenerationRef so a new call (e.g. toggling theme
+     *  again before a batched refresh finishes) abandons the in-flight
+     *  one instead of both writing to the same textures out of order. */
     const refreshCardTextures = () => {
+      const generation = ++refreshGenerationRef.current
       const g = graphRef.current
       if (!g) return
       const { nodes: currentNodes } = g.graphData() as {
         nodes: Graph3DNode[]
       }
-      for (const gn of currentNodes) {
-        const card = gn.__threeObj?.children.find(
-          (c): c is THREE.Sprite =>
-            c instanceof THREE.Sprite && c.userData.isCard === true,
+      let index = 0
+      const processBatch = () => {
+        // Abandoned: either unmounted (graphRef cleared) or a newer
+        // refresh call superseded this one.
+        if (generation !== refreshGenerationRef.current || !graphRef.current) {
+          return
+        }
+        const end = Math.min(
+          index + CARD_REFRESH_BATCH_SIZE,
+          currentNodes.length,
         )
-        if (!card) continue
-        const material = card.material as THREE.SpriteMaterial
-        const texture = material.map as THREE.CanvasTexture | null
-        if (!texture) continue
-        const cardWidthPx = (card.userData.widthPx as number) ?? CARD_WIDTH_PX
-        const cardHeightPx =
-          (card.userData.heightPx as number) ?? CARD_HEIGHT_PX
-        const canvas = drawNodeCardCanvas(
-          gn.name,
-          nodeTypeIcon(gn.cksType),
-          gn.color,
-          Boolean(card.userData.hovered),
-          cardWidthPx,
-          cardHeightPx,
-          (card.userData.degree as number) ?? gn.degree,
-          themeRef.current,
-        )
-        texture.image = canvas
-        texture.needsUpdate = true
+        for (; index < end; index++) {
+          const gn = currentNodes[index]
+          const card = gn.__threeObj?.children.find(
+            (c): c is THREE.Sprite =>
+              c instanceof THREE.Sprite && c.userData.isCard === true,
+          )
+          if (!card) continue
+          const material = card.material as THREE.SpriteMaterial
+          const texture = material.map as THREE.CanvasTexture | null
+          if (!texture) continue
+          const cardWidthPx = (card.userData.widthPx as number) ?? CARD_WIDTH_PX
+          const cardHeightPx =
+            (card.userData.heightPx as number) ?? CARD_HEIGHT_PX
+          const canvas = drawNodeCardCanvas(
+            gn.name,
+            nodeTypeIcon(gn.cksType),
+            gn.color,
+            Boolean(card.userData.hovered),
+            cardWidthPx,
+            cardHeightPx,
+            (card.userData.degree as number) ?? gn.degree,
+            themeRef.current,
+          )
+          texture.image = canvas
+          texture.needsUpdate = true
+        }
+        if (index < currentNodes.length) {
+          cardRefreshFrameRef.current = requestAnimationFrame(processBatch)
+        }
       }
+      processBatch()
     }
     themeRefreshRef.current = refreshCardTextures
 
@@ -1340,6 +1422,14 @@ export function GraphCanvas3D({
 
     return () => {
       resizeObserver.disconnect()
+      // Abandon any still-running batched card-texture refresh (see
+      // refreshCardTextures) so it doesn't keep writing to a torn-down
+      // scene's textures after unmount.
+      refreshGenerationRef.current++
+      if (cardRefreshFrameRef.current !== null) {
+        cancelAnimationFrame(cardRefreshFrameRef.current)
+        cardRefreshFrameRef.current = null
+      }
       // 3d-force-graph has no official teardown method; releasing the
       // container's children and the ref is the documented workaround
       // for freeing the WebGL context on unmount.

@@ -6,6 +6,18 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 
 ---
 
+## [0.6.22] - 2026-08-14
+
+### Changed
+- **3D card theme refresh batching** – card texture updates now process in small batches per animation frame instead of one synchronous pass, preventing main-thread stalls on large graphs during theme toggles.
+- **3D card texture filtering** – card textures no longer generate mipmaps, reducing GPU overhead and improving theme-switch responsiveness.
+- **Light-theme 3D cards** – cards now use a warm amber fill with white text and a darker amber border, greatly improving contrast against the light canvas.
+
+### Added
+- Regression tests covering light-theme card colors, disabled mipmaps, and batched refresh logic.
+
+---
+
 ## [0.6.21] - 2026-08-13
 
 ### Fixed

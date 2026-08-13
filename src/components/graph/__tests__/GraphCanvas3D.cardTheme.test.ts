@@ -157,3 +157,64 @@ describe('theme-refresh debounce effect dependencies', () => {
     expect(depsArray).toBe('[theme])')
   })
 })
+
+// Locks in the specific light-theme card colors requested to fix the
+// "card border only visible on hover" readability problem: the previous
+// border (#c2c5cc) had almost no contrast against the canvas background
+// (--color-surface-0 #f5f4f0). A saturated amber fill with a white label
+// makes the card unmistakable with or without a border/hover state.
+describe('light theme card colors', () => {
+  it('uses the requested amber background with white text', () => {
+    expect(CARD_THEME_COLORS.light.background).toBe('#a66f1f')
+    expect(CARD_THEME_COLORS.light.text).toBe('#ffffff')
+  })
+
+  it('gives the light theme card a border with real contrast against the canvas', () => {
+    // Canvas background is --color-surface-0 (#f5f4f0). A border color
+    // needs to differ from that by more than a token gray-on-gray step
+    // to actually read as an edge rather than disappear into the canvas
+    // the way the old #c2c5cc border did.
+    const toRgb = (hex: string) => {
+      const n = Number.parseInt(hex.slice(1), 16)
+      return [(n >> 16) & 255, (n >> 8) & 255, n & 255]
+    }
+    const canvasBg = toRgb('#f5f4f0')
+    const border = toRgb(CARD_THEME_COLORS.light.border)
+    const distance = Math.sqrt(
+      canvasBg.reduce((sum, c, i) => sum + (c - border[i]) ** 2, 0),
+    )
+    // The old border (#c2c5cc) sits at a distance of ~68 from the
+    // canvas background -- the reported bug. Require meaningfully more
+    // separation than that.
+    expect(distance).toBeGreaterThan(150)
+  })
+})
+
+// Locks in that card textures never carry mipmaps: these are flat,
+// camera-facing billboards drawn once at a fixed supersampled
+// resolution (CARD_TEXTURE_SCALE), not a textured 3D surface with a
+// real minification range -- generating a full mip chain on every
+// texture.needsUpdate (i.e. on every card, every theme toggle) was pure
+// overhead and the main contributor to theme toggles stalling the whole
+// app, not just the 3D canvas.
+describe('card texture filtering', () => {
+  it('creates card textures with mipmaps disabled', () => {
+    expect(componentSource).toContain('texture.generateMipmaps = false')
+    expect(componentSource).toContain('texture.minFilter = THREE.LinearFilter')
+  })
+})
+
+// Locks in that the full-graph card refresh is batched across animation
+// frames rather than looping every node synchronously in one pass --
+// the other main contributor to "the whole studio lags" after a theme
+// toggle on a larger graph.
+describe('card texture refresh batching', () => {
+  it('processes card texture refreshes in batches via requestAnimationFrame', () => {
+    expect(componentSource).toContain('CARD_REFRESH_BATCH_SIZE')
+    expect(componentSource).toContain('requestAnimationFrame(processBatch)')
+  })
+
+  it('abandons a stale in-flight refresh via a generation counter', () => {
+    expect(componentSource).toContain('refreshGenerationRef')
+  })
+})
