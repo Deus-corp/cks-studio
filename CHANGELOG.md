@@ -6,6 +6,18 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 
 ---
 
+## [0.6.28] - 2026-08-14
+
+### Added
+- **Metrics strip** – new reusable `MetricsStrip` component placed on Agents and Pipeline pages. Shows key operational metrics: registered graphs, running in-process agents, alive standalone processes, and dead-letter task count. Updates every 10 seconds, pauses when the tab is hidden, and handles per-metric errors gracefully.
+- **`useMetricsStripPolling` hook** – polls `list_graphs`, `list_agents`, `list_processes`, `list_dead_lettered_conflicts` independently using `Promise.allSettled`, so a failure in one source does not blank the rest.
+
+### Changed
+- Agents and Pipeline pages now render `MetricsStrip` above their existing content.
+- Added unit tests for metrics strip rendering, error placeholders, unsupported backend handling, polling, and visibility pause.
+
+---
+
 ## [0.6.27] - 2026-08-14
 
 ### Added

@@ -654,3 +654,27 @@ export async function listLLMModels(): Promise<LLMModel[]> {
   const result = await callTool('list_llm_models', {})
   return (result as unknown as ListLLMModelsResponse).models
 }
+
+// ---------------------------------------------------------------------------
+// Runtime/tool/LLM metrics dashboard (get_metrics, cks-mcp)
+// ---------------------------------------------------------------------------
+
+/** Loosely typed on purpose: get_metrics' payload (runtime_metrics,
+ *  tool_telemetry, critic_agent_metrics, llm_telemetry) is a dashboard
+ *  blob whose exact shape is an implementation detail of cks-mcp/
+ *  cks-runtime (see get_metrics/schema.py) -- callers that need a
+ *  specific field should narrow it themselves rather than this module
+ *  encoding every nested counter. */
+export interface MetricsSnapshot {
+  runtime_metrics?: Record<string, unknown>
+  tool_telemetry?: Record<string, unknown>
+  critic_agent_metrics?: Record<string, unknown>
+  llm_telemetry?: Record<string, unknown>
+}
+
+/** Не принимает session_id — как и getLLMStatus/listAgents, метрики не
+ *  привязаны к конкретной сессии/графу. */
+export async function getMetrics(): Promise<MetricsSnapshot> {
+  const result = await callTool('get_metrics', {})
+  return result as unknown as MetricsSnapshot
+}
