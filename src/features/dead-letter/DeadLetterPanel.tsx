@@ -9,6 +9,7 @@ import {
   rejectResolution,
   reviewDeadLetter,
 } from '@/services/mcpTools'
+import { useSettingsStore } from '@/shared/stores/settingsStore'
 import { useDeadLetterPolling } from './useDeadLetterPolling'
 
 const MAX_SNIPPET_LENGTH = 90
@@ -300,8 +301,9 @@ function TaskDetail({
  * studio currently needs it).
  */
 export function DeadLetterPanel() {
+  const pollingIntervalMs = useSettingsStore((s) => s.pollingIntervalMs)
   const { tasks, supported, lastFetchedAt, error, isLoading, refresh } =
-    useDeadLetterPolling()
+    useDeadLetterPolling(pollingIntervalMs)
   const [selectedTaskId, setSelectedTaskId] = useState<number | null>(null)
 
   const handleResolved = () => {

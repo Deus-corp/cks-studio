@@ -35,6 +35,7 @@ import type { GraphState } from '@/features/graph-explorer/graphExplorerStore'
 import { useGraphStore } from '@/features/graph-explorer/graphExplorerStore'
 import { nodeTypeColor, nodeTypeIcon } from '@/shared/constants/nodeTypes'
 import { useFullscreen } from '@/shared/hooks/useFullscreen'
+import { useSettingsStore } from '@/shared/stores/settingsStore'
 import { useThemeStore } from '@/shared/stores/themeStore'
 import type { SubgraphResult } from '@/shared/types/graph'
 import {
@@ -737,7 +738,9 @@ export function GraphCanvas3D({
   // selects the node and moves the camera toward it (the old plain
   // focusNode behavior). A ref mirror so onNodeClick's closure (captured
   // once in the mount effect) always reads the latest value.
-  const [isFocusModeEnabled, setIsFocusModeEnabled] = useState(false)
+  const [isFocusModeEnabled, setIsFocusModeEnabled] = useState(
+    () => useSettingsStore.getState().focusModeEnabledByDefault3D,
+  )
   const isFocusModeEnabledRef = useRef(isFocusModeEnabled)
   isFocusModeEnabledRef.current = isFocusModeEnabled
 

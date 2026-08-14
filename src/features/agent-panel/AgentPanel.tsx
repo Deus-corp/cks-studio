@@ -9,6 +9,7 @@ import {
   startAgent,
   stopAgent,
 } from '@/services/mcpTools'
+import { useSettingsStore } from '@/shared/stores/settingsStore'
 import { formatRelativeTime } from '@/shared/utils/formatUtils'
 import { useAgentsPolling } from './useAgentsPolling'
 import { useProcessesPolling } from './useProcessesPolling'
@@ -217,15 +218,16 @@ function ProcessCard({
  * на graceful-остановку.
  */
 export function AgentPanel() {
+  const pollingIntervalMs = useSettingsStore((s) => s.pollingIntervalMs)
   const { agents, lastFetchedAt, error, isLoading, refresh } =
-    useAgentsPolling()
+    useAgentsPolling(pollingIntervalMs)
   const {
     processes,
     lastFetchedAt: processesLastFetchedAt,
     error: processesError,
     isLoading: processesLoading,
     refresh: refreshProcesses,
-  } = useProcessesPolling()
+  } = useProcessesPolling(pollingIntervalMs)
 
   // Отдельно от polling-состояния: какие agent_id/instance_id сейчас в
   // полёте (busy) и ошибка последнего действия для каждого — polling не

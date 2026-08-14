@@ -20,6 +20,7 @@ import { useGraphStore } from '@/features/graph-explorer/graphExplorerStore'
 import { useGraphLayout } from '@/features/graph-explorer/useGraphLayout'
 import { nodeTypeColor } from '@/shared/constants/nodeTypes'
 import { useFullscreen } from '@/shared/hooks/useFullscreen'
+import { useSettingsStore } from '@/shared/stores/settingsStore'
 import {
   cksToReactFlow,
   findPathBetweenNodes,
@@ -77,7 +78,9 @@ export function GraphCanvas({
   // the toolbar button; when on, clicking a node highlights it + its
   // direct neighbors and dims everything else until the user clicks the
   // same node again, clicks empty space, or turns the toggle off.
-  const [isFocusModeEnabled, setIsFocusModeEnabled] = useState(false)
+  const [isFocusModeEnabled, setIsFocusModeEnabled] = useState(
+    () => useSettingsStore.getState().focusModeEnabledByDefault2D,
+  )
   const [focusedNodeId, setFocusedNodeId] = useState<string | null>(null)
 
   // Measured (not guessed) vertical layout for the stack of top-right
@@ -238,6 +241,9 @@ export function GraphCanvas({
       )
     : displayNodesWithFocus
 
+  const showMiniMap = useSettingsStore((s) => s.showMiniMap)
+  const showEdgeLabels = useSettingsStore((s) => s.showEdgeLabels)
+
   const styledEdges = layoutedEdges.map((edge) => {
     const isHighlighted = highlightedEdgeIds.has(edge.id)
     const isFocusRelated =
@@ -257,6 +263,10 @@ export function GraphCanvas({
       : 'var(--color-graph-edge)'
     return {
       ...edge,
+      // Settings 2.0 "Show edge labels" toggle: drop the label rather
+      // than hide it via CSS, so the layout doesn't reserve space for
+      // hidden text.
+      label: showEdgeLabels ? edge.label : undefined,
       // trace-highlight-edge drives a drop-shadow glow + pulse in
       // index.css -- on the light theme a plain color/width bump gets
       // lost in a dense tangle of crossing edges, so it needs its own
@@ -468,25 +478,27 @@ export function GraphCanvas({
             <FullscreenIcon isFullscreen={isFullscreen} />
           </ControlButton>
         </Controls>
-        <MiniMap
-          nodeStrokeWidth={3}
-          nodeStrokeColor="var(--color-border-strong)"
-          nodeColor={(node) => nodeTypeColor(node.data?.cksType as string)}
-          // Explicit mask color/stroke: the xyflow default mask fill is a
-          // light gray tuned for a dark canvas — on the light theme it's
-          // nearly identical to the minimap background, so the "already
-          // visible" viewport rectangle became indistinguishable from the
-          // dimmed surrounding area. color-mix over --color-surface-0
-          // (not -1/-2, so it tracks the *canvas* background specifically)
-          // keeps the dimmed region readable in both themes, and the
-          // stroke gives the viewport rect a visible outline either way.
-          maskColor="color-mix(in srgb, var(--color-surface-0) 65%, transparent)"
-          maskStrokeColor="var(--color-border-strong)"
-          maskStrokeWidth={1}
-          pannable
-          zoomable
-          style={{ backgroundColor: 'var(--color-surface-1)' }}
-        />
+        {showMiniMap && (
+          <MiniMap
+            nodeStrokeWidth={3}
+            nodeStrokeColor="var(--color-border-strong)"
+            nodeColor={(node) => nodeTypeColor(node.data?.cksType as string)}
+            // Explicit mask color/stroke: the xyflow default mask fill is a
+            // light gray tuned for a dark canvas — on the light theme it's
+            // nearly identical to the minimap background, so the "already
+            // visible" viewport rectangle became indistinguishable from the
+            // dimmed surrounding area. color-mix over --color-surface-0
+            // (not -1/-2, so it tracks the *canvas* background specifically)
+            // keeps the dimmed region readable in both themes, and the
+            // stroke gives the viewport rect a visible outline either way.
+            maskColor="color-mix(in srgb, var(--color-surface-0) 65%, transparent)"
+            maskStrokeColor="var(--color-border-strong)"
+            maskStrokeWidth={1}
+            pannable
+            zoomable
+            style={{ backgroundColor: 'var(--color-surface-1)' }}
+          />
+        )}
         <ExportControls
           onRefresh={onRefresh}
           isRefreshing={isLoading}

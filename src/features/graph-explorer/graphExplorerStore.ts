@@ -1,5 +1,6 @@
 import type { Edge, Node } from '@xyflow/react'
 import { create } from 'zustand'
+import { useSettingsStore } from '@/shared/stores/settingsStore'
 
 export interface RelationDraftState {
   active: boolean
@@ -169,10 +170,14 @@ export const useGraphStore = create<GraphState>((set) => ({
     }),
   showAllTypes: () => set({ hiddenTypes: new Set() }),
 
-  viewMode: '2d',
+  // Seeded from Settings 2.0's "Default view mode" (see settingsStore) so
+  // GraphPage opens the way the person configured, without this store
+  // needing to know about the settings store on every read -- just once,
+  // at module init, before any explicit user toggle happens.
+  viewMode: useSettingsStore.getState().defaultViewMode,
   setViewMode: (mode) => set({ viewMode: mode }),
 
-  layoutDirection: 'TB',
+  layoutDirection: useSettingsStore.getState().defaultLayoutDirection,
   setLayoutDirection: (dir) => set({ layoutDirection: dir }),
 
   multiSelectedIds: new Set(),

@@ -13,6 +13,7 @@ import { WhyThisBeliefPanel } from '@/features/graph-explorer/WhyThisBeliefPanel
 import { getFullGraph, querySubgraph } from '@/services/mcpTools'
 import { useSessionStore } from '@/services/sessionStore'
 import { useSessionEvents } from '@/services/useSessionEvents'
+import { useSettingsStore } from '@/shared/stores/settingsStore'
 import { cksToReactFlow, traceInferenceChain } from '@/shared/utils/graphUtils'
 
 // three.js (via 3d-force-graph) is ~500KB gzipped -- code-split it into
@@ -102,7 +103,19 @@ export function GraphPage() {
   // handleConnect() the initial load and manual refresh already use, so
   // there is exactly one code path that (re)loads the graph. No-ops in
   // demo mode and while no session is connected -- see useSessionEvents.
-  useSessionEvents({ onRefresh: handleConnect })
+  const showTypeLegend = useSettingsStore((s) => s.showTypeLegend)
+  const sseRefreshDebounceMs = useSettingsStore((s) => s.sseRefreshDebounceMs)
+  const autoReconnectSse = useSettingsStore((s) => s.autoReconnectSse)
+
+  useSessionEvents({
+    onRefresh: handleConnect,
+    debounceMs: sseRefreshDebounceMs,
+    // autoReconnectSse === false disables the live-events subscription
+    // entirely (a null/empty session id short-circuits useSessionEvents'
+    // connect effect the same way), rather than requiring a separate
+    // "auto-reconnect" concept inside sessionEvents.ts.
+    eventTypes: autoReconnectSse ? undefined : [],
+  })
 
   const handleExplore = async () => {
     if (!selectedNodeId || isLoading) return
@@ -287,7 +300,7 @@ export function GraphPage() {
               onRefresh={handleRefresh}
             />
           )}
-          <TypeLegend />
+          {showTypeLegend && <TypeLegend />}
           {/* Bottom dock: independent collapsible panels, kept off the
            *  bottom-left corner where TypeLegend already lives.
            *

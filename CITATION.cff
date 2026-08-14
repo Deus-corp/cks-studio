@@ -8,5 +8,5 @@ repository-code: "https://github.com/Deus-corp/cks-studio"
 url: "https://github.com/Deus-corp/cks-studio"
 abstract: "Interactive visual workspace for the Canonical Knowledge Structure ecosystem."
 license: MIT
-version: 0.6.32
+version: 0.7.0
 date-released: 2026-08-14

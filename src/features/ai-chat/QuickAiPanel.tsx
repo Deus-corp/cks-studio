@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useSessionStore } from '@/services/sessionStore'
+import { useSettingsStore } from '@/shared/stores/settingsStore'
 import type { ChatTurn } from './chatStore'
 import { useAiChat } from './useAiChat'
 
@@ -37,7 +38,13 @@ function MiniTurnBubble({ turn }: { turn: ChatTurn }) {
  * nothing needs to be copied over.
  */
 export function QuickAiPanel() {
-  const [isOpen, setIsOpen] = useState(false)
+  // Read once at mount (not subscribed) -- this only seeds the initial
+  // open/closed state per Settings 2.0's "Open Quick AI by default"
+  // toggle; changing the setting later shouldn't yank an already-open
+  // or already-closed panel out from under the user mid-session.
+  const [isOpen, setIsOpen] = useState(
+    () => useSettingsStore.getState().quickAiPanelDefaultOpen,
+  )
   const [input, setInput] = useState('')
   const sessionId = useSessionStore((s) => s.sessionId)
   const { turns, isSending, error, send } = useAiChat()

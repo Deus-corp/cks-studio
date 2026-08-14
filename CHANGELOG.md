@@ -6,6 +6,26 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 
 ---
 
+## [0.7.0] - 2026-08-14
+
+### Added
+- **Settings 2.0** – expanded Settings page with tabbed sections: Appearance, Connection, AI & LLM, Graph Behavior, About, and Danger Zone.
+- **`settingsStore`** – new Zustand store persisting all client-side settings to localStorage, with defaults and `resetAllSettings()`.
+- **Graph defaults** – default view mode (2D/3D), default layout direction (TB/LR), minimap/legend/edge label toggles.
+- **Connection settings** – MCP server URL, recent sessions list, live SSE toggle, refresh debounce and polling interval controls.
+- **AI preferences** – preferred provider/model inputs, Quick AI default open toggle, and server setup snippets for Ollama/Anthropic/OpenAI-compatible/HTTP server.
+- **Graph behavior settings** – focus mode defaults for 2D/3D, degree-based sizing toggle, polling interval.
+- **Danger Zone** – reset all settings with confirmation, returning theme and preferences to defaults.
+- **Tests** – added store persistence, settings page, integration, and reset tests.
+
+### Changed
+- `GraphCanvas` and `GraphCanvas3D` now initialize focus mode from settings defaults.
+- `GraphPage` now respects `showTypeLegend`, SSE debounce/auto-reconnect settings.
+- `AgentPanel`/`DeadLetterPanel` polling interval now driven by settings.
+- `QuickAiPanel` default open state driven by settings.
+
+---
+
 ## [0.6.32] - 2026-08-14
 
 ### Fixed
