@@ -63,7 +63,7 @@ export function ExportControls({
             disabled={isRefreshing}
             title="Refresh graph"
             aria-label="Refresh graph"
-            className="bg-surface-1/90 border border-border hover:bg-surface-2 text-text-secondary hover:text-text-primary w-7 h-7 flex items-center justify-center rounded disabled:opacity-50"
+            className="bg-surface-1/90 border border-border hover:bg-surface-2 text-text-secondary hover:text-text-primary w-7 h-7 flex items-center justify-center rounded shadow-lg disabled:opacity-50"
           >
             <span
               className={isRefreshing ? 'inline-block animate-spin' : undefined}
@@ -77,7 +77,7 @@ export function ExportControls({
           type="button"
           onClick={() => handleExport('png')}
           disabled={isExporting !== null}
-          className="bg-surface-1/90 border border-border hover:bg-surface-2 text-text-secondary hover:text-text-primary text-xs px-2.5 py-1.5 rounded disabled:opacity-50"
+          className="bg-surface-1/90 border border-border hover:bg-surface-2 text-text-secondary hover:text-text-primary text-xs px-2.5 py-1.5 rounded shadow-lg disabled:opacity-50"
         >
           {isExporting === 'png' ? 'Exporting…' : 'Export PNG'}
         </button>
@@ -85,7 +85,7 @@ export function ExportControls({
           type="button"
           onClick={() => handleExport('svg')}
           disabled={isExporting !== null}
-          className="bg-surface-1/90 border border-border hover:bg-surface-2 text-text-secondary hover:text-text-primary text-xs px-2.5 py-1.5 rounded disabled:opacity-50"
+          className="bg-surface-1/90 border border-border hover:bg-surface-2 text-text-secondary hover:text-text-primary text-xs px-2.5 py-1.5 rounded shadow-lg disabled:opacity-50"
         >
           {isExporting === 'svg' ? 'Exporting…' : 'Export SVG'}
         </button>

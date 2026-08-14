@@ -2,22 +2,29 @@
   font-size: 12px;
 }
 
+/* Matches the bg-surface-1/95 + backdrop-blur-sm + border-border-subtle
+ * treatment used by the other custom toolbar buttons (ExportControls,
+ * Focus toggle) -- see GraphCanvas.tsx / ExportControls.tsx. Previously
+ * this used --color-surface-2 with no blur, which read as a visibly
+ * different (lighter/flatter) panel next to those buttons. */
 .react-flow__controls {
-  background: var(--color-surface-2);
-  border: 1px solid var(--color-border);
+  background: color-mix(in srgb, var(--color-surface-1) 95%, transparent);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  border: 1px solid var(--color-border-subtle);
   border-radius: 8px;
   overflow: hidden;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
 }
 
 .react-flow__controls-button {
-  background: var(--color-surface-2);
+  background: transparent;
   border-bottom: 1px solid var(--color-border-subtle);
   fill: var(--color-text-secondary);
 }
 
 .react-flow__controls-button:hover {
-  background: var(--color-surface-3);
+  background: var(--color-surface-2);
   fill: var(--color-text-primary);
 }
 

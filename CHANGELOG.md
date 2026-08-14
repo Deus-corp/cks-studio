@@ -6,6 +6,18 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 
 ---
 
+## [0.6.27] - 2026-08-14
+
+### Added
+- **Graph stats in Node Types panel** – the bottom-left legend now has a Stats/Types toggle. Stats view shows graph name/session id, node count, edge count, visible type count, selected count (if any), and most connected node.
+- **Consistent toolbar shadows** – refresh, PNG export, and SVG export buttons now have the same shadow treatment as the zoom/fullscreen controls.
+
+### Changed
+- **2D zoom controls theme** – React Flow zoom/fullscreen controls now match the background, border, and blur of the other toolbar buttons.
+- Added tests for TypeLegend stats toggle.
+
+---
+
 ## [0.6.26] - 2026-08-14
 
 ### Added
