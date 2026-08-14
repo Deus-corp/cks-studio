@@ -6,6 +6,14 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 
 ---
 
+## [0.6.32] - 2026-08-14
+
+### Fixed
+- **Bottom overlay alignment** – TypeLegend and bottom dock panels now use a shared `15px` offset, aligning them with React Flow’s built-in MiniMap/Controls margin. In 3D mode, the dock is raised slightly (`21px`) to avoid 3d-force-graph’s nav hint.
+- **WhyThisBeliefPanel label** – collapsed tab now says “Select a node” when no node is selected (already partially delivered; now consistent).
+
+---
+
 ## [0.6.31] - 2026-08-14
 
 ### Fixed

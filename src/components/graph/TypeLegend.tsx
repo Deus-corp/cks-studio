@@ -82,7 +82,7 @@ export function TypeLegend() {
     // Collapsed: just the small "Node types" label/button, compact
     // enough to sit in the corner without obstructing the canvas.
     return (
-      <div className="absolute bottom-3 left-3 z-10">
+      <div className="absolute bottom-[15px] left-[15px] z-10">
         <button
           type="button"
           onClick={() => setIsExpanded(true)}
@@ -97,7 +97,7 @@ export function TypeLegend() {
   }
 
   return (
-    <div className="absolute bottom-3 left-3 z-10 bg-surface-1/95 backdrop-blur-sm border border-border-subtle rounded-md px-3 py-2 text-xs text-text-secondary space-y-1.5 select-none shadow-lg min-w-[168px]">
+    <div className="absolute bottom-[15px] left-[15px] z-10 bg-surface-1/95 backdrop-blur-sm border border-border-subtle rounded-md px-3 py-2 text-xs text-text-secondary space-y-1.5 select-none shadow-lg min-w-[168px]">
       <div className="flex items-center justify-between gap-3 pb-0.5">
         <button
           type="button"

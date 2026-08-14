@@ -6,7 +6,7 @@
 ![React](https://img.shields.io/badge/react-19-61DAFB)
 ![Tests](https://img.shields.io/badge/tests-167%20passed-brightgreen)
 ![License](https://img.shields.io/badge/license-MIT-green)
-![Status](https://img.shields.io/badge/status-v0.6.31-orange)
+![Status](https://img.shields.io/badge/status-v0.6.32-orange)
 
 > 🚀 **[Live demo →](https://deus-corp.github.io/cks-website/demo/demo.html)** — explore the CKS ecosystem graph directly in your browser, no server required.
 

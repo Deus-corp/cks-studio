@@ -309,7 +309,7 @@ export function GraphPage() {
            *  fully interactive everywhere else along the bottom edge. */}
           <div
             className={`absolute inset-x-0 z-10 flex items-end justify-center gap-2 px-3 pointer-events-none ${
-              viewMode === '3d' ? 'bottom-9' : 'bottom-3'
+              viewMode === '3d' ? 'bottom-[21px]' : 'bottom-[15px]'
             }`}
           >
             <div className="pointer-events-auto">
@@ -322,7 +322,7 @@ export function GraphPage() {
             </div>
           </div>
           <div
-            className={`absolute bottom-3 z-10 ${
+            className={`absolute bottom-[15px] z-10 ${
               viewMode === '3d' ? 'right-3' : 'right-[228px]'
             }`}
           >
