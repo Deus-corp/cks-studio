@@ -6,6 +6,17 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 
 ---
 
+## [0.6.23] - 2026-08-14
+
+### Fixed
+- **Graph state persistence across navigation** – GraphPage is now kept mounted when navigating to other tabs, so 3D camera, force-simulation positions, focus mode, and selected node no longer reset when returning to the Graph tab.
+- **Removed repeated 3D reinitialization** – avoiding unmount/remount of GraphCanvas3D eliminates costly WebGL context rebuilds and simulation restarts on every tab switch.
+
+### Added
+- Regression test `App.persistentGraphPage.test.tsx` asserting GraphPage is hidden rather than unmounted when on another route.
+
+---
+
 ## [0.6.22] - 2026-08-14
 
 ### Changed

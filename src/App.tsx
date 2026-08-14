@@ -131,20 +131,65 @@ export function App() {
       <div className="h-screen flex flex-col">
         <NavBar />
         <div className="flex-1 min-h-0">
-          <ErrorBoundary>
-            <Routes>
-              <Route path="/" element={<GraphPage />} />
-              <Route path="/pipeline" element={<PipelinePage />} />
-              <Route path="/gallery" element={<GalleryPage />} />
-              <Route path="/diff" element={<DiffPage />} />
-              <Route path="/settings" element={<SettingsPage />} />
-              <Route path="/agents" element={<AgentsPage />} />
-              <Route path="/dead-letter" element={<DeadLetterPage />} />
-              <Route path="/chat" element={<ChatsPage />} />
-            </Routes>
-          </ErrorBoundary>
+          <AppContent />
         </div>
       </div>
     </BrowserRouter>
+  )
+}
+
+/** Keeps GraphPage permanently mounted instead of letting react-router
+ *  unmount/remount it on every navigation away from and back to "/".
+ *  GraphPage's *data* (nodes/edges/session) already lives in zustand
+ *  stores that survive unmounting fine, but its *view* state doesn't:
+ *  - GraphCanvas3D builds a fresh three.js/3d-force-graph scene per
+ *    mount, so the force simulation restarts from scratch (nodes spawn
+ *    at random positions and animate into place -- the "graph unfurls
+ *    again" effect) and the camera resets to its default position,
+ *    every single time you navigate away and back.
+ *  - GraphPage's `selectedNode` (what SidePanel shows) is local
+ *    useState, not store state, so it's lost outright on unmount --
+ *    whatever node you had open before leaving is gone when you return.
+ *  Rendering GraphPage unconditionally and toggling visibility with
+ *  `hidden` (rather than routing it through <Routes>) keeps all of that
+ *  state -- physics-settled node positions, camera, focus mode,
+ *  selected node -- alive across tab switches, so returning to "/"
+ *  looks exactly like you left it instead of restarting. `hidden` was
+ *  chosen over unmounting-and-caching-state because the simulation
+ *  itself (not just the data) needs to keep existing for this to work;
+ *  reconstructing it from saved positions on every remount would be
+ *  more code for a strictly worse result (still restarts the WebGL
+ *  context, still pays 3d-force-graph's init cost, still needs to
+ *  re-seed a great deal of internal simulation state that isn't
+ *  actually exposed to reset from outside).
+ *  Every other page keeps its original mount-on-navigate behavior
+ *  (via <Routes> below) -- this is deliberately scoped to the one page
+ *  that actually asked for it, not a blanket "keep everything alive"
+ *  change to the rest of the app. */
+export function AppContent() {
+  const { pathname } = useLocation()
+  const isGraphRoute = pathname === '/'
+
+  return (
+    <div className="h-full relative">
+      <div className={isGraphRoute ? 'h-full' : 'hidden'}>
+        <ErrorBoundary>
+          <GraphPage />
+        </ErrorBoundary>
+      </div>
+      <div className={isGraphRoute ? 'hidden' : 'h-full'}>
+        <ErrorBoundary>
+          <Routes>
+            <Route path="/pipeline" element={<PipelinePage />} />
+            <Route path="/gallery" element={<GalleryPage />} />
+            <Route path="/diff" element={<DiffPage />} />
+            <Route path="/settings" element={<SettingsPage />} />
+            <Route path="/agents" element={<AgentsPage />} />
+            <Route path="/dead-letter" element={<DeadLetterPage />} />
+            <Route path="/chat" element={<ChatsPage />} />
+          </Routes>
+        </ErrorBoundary>
+      </div>
+    </div>
   )
 }
