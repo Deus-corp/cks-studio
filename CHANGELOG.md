@@ -6,6 +6,18 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 
 ---
 
+## [0.6.26] - 2026-08-14
+
+### Added
+- **Real-time session event subscription** – GraphPage now subscribes to the cks-mcp `/events` SSE endpoint and automatically refreshes the graph when `VersionCreated`, `TransactionCommitted`, `GossipConflictDetected`, `CRDTForkDetected`, or `AgentStepCompleted` events arrive. Updates are debounced/coalesced, so bursts of events trigger one refresh.
+- **`sessionEvents` / `useSessionEvents`** – framework-agnostic SSE wrapper and React hook for the real-time connection. No-op in demo mode, with automatic reconnect and backoff.
+- **Tests** – unit tests for SSE connection logic, filtering, debouncing, session change, and unmount behavior.
+
+### Changed
+- ROADMAP updated: Real MCP Session Presence marked in progress.
+
+---
+
 ## [0.6.25] - 2026-08-14
 
 ### Fixed

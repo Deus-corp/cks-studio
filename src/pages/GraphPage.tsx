@@ -10,6 +10,7 @@ import { useGraphStore } from '@/features/graph-explorer/graphExplorerStore'
 import { StartPipelineButton } from '@/features/graph-explorer/StartPipelineButton'
 import { getFullGraph, querySubgraph } from '@/services/mcpTools'
 import { useSessionStore } from '@/services/sessionStore'
+import { useSessionEvents } from '@/services/useSessionEvents'
 import { cksToReactFlow, traceInferenceChain } from '@/shared/utils/graphUtils'
 
 // three.js (via 3d-force-graph) is ~500KB gzipped -- code-split it into
@@ -92,6 +93,14 @@ export function GraphPage() {
       handleConnect()
     }
   }, [sessionId, handleConnect])
+
+  // Real-time updates: refresh the graph when the server reports a
+  // change (another user/agent committing a version, a gossip conflict,
+  // etc.) instead of relying purely on manual refresh. Reuses the same
+  // handleConnect() the initial load and manual refresh already use, so
+  // there is exactly one code path that (re)loads the graph. No-ops in
+  // demo mode and while no session is connected -- see useSessionEvents.
+  useSessionEvents({ onRefresh: handleConnect })
 
   const handleExplore = async () => {
     if (!selectedNodeId || isLoading) return

@@ -92,10 +92,10 @@ CKS Studio is now a full visual workspace and control surface:
 
 # Next Up
 
-## Real MCP Session Presence (🟡 P0)
+## Real MCP Session Presence (🟢 in progress)
 
-- WebSocket/SSE subscription to session events so agents mutate the graph and the UI updates without manual refresh.
-- Presence indicators for other connected sessions/agents.
+- SSE subscription to session events so agents mutate the graph and the UI updates without manual refresh — done: `src/services/sessionEvents.ts` + `useSessionEvents.ts`, wired into `GraphPage` (debounced, coalesced refresh via the existing `getFullGraph` load path; no-ops in the static demo). Backend endpoint lives in cks-mcp (`GET /events`, see its ROADMAP).
+- Still open: presence indicators for other connected sessions/agents.
 
 ## Graph Gallery: Clone & Filters (🟡 P1)
 
