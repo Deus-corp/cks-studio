@@ -6,6 +6,19 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 
 ---
 
+## [0.6.29] - 2026-08-14
+
+### Added
+- **Demo Pipeline page** – static Kanban-style pipeline monitor derived deterministically from the bundled ecosystem graph. Shows four stage columns (`Awaiting Research`, `Awaiting Review`, `Needs Research`, `Resolved`) with mock cards and transition logs. No backend required.
+- **Demo Diff page** – static version diff example showing one added, one removed, and one modified object with color-coded rows and count badges. Includes a mock modified `cks-core` version change (`v1.21.1` → `v1.22.0`) and a fictional `cks-analytics` addition.
+- **`listDemoGraphObjects`** – exported helper from `mockClient` that returns non-relation objects from the bundled graph for demo pages.
+- **Tests** for both new demo pages.
+
+### Changed
+- The static demo banner and README/demo comments now reflect that all tabs have mock content instead of placeholders.
+
+---
+
 ## [0.6.28] - 2026-08-14
 
 ### Added

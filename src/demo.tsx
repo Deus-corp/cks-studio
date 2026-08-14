@@ -12,9 +12,8 @@
  *    immediately instead of showing an empty "connect" state;
  *  - the nav shows the full studio menu -- Graph, Pipeline, Gallery,
  *    Diff, Agents, Chat and Settings all appear so the demo reads as the
- *    real app, but everything except Graph needs a live cks-mcp server
- *    and renders a static "available in full version" placeholder
- *    instead of an empty/broken page;
+ *    real app; every tab renders demo-specific mock data derived from the
+ *    bundled ecosystem graph instead of an empty/broken page;
  *  - a banner explains this is a static demo;
  *  - a floating "Back to Docs" link returns to the cks-website docs site.
  */
@@ -25,7 +24,9 @@ import { ErrorBoundary } from '@/components/common/ErrorBoundary'
 import { useThemeStore } from '@/shared/stores/themeStore'
 import { DemoAgentsPage } from './demo/DemoAgentsPage'
 import { DemoChatPage } from './demo/DemoChatPage'
+import { DemoDiffPage } from './demo/DemoDiffPage'
 import { DemoGalleryPage } from './demo/DemoGalleryPage'
+import { DemoPipelinePage } from './demo/DemoPipelinePage'
 import { DemoSettingsPage } from './demo/DemoSettingsPage'
 import { DemoToastProvider } from './demo/DemoToast'
 import { GraphPage } from './pages/GraphPage'
@@ -100,34 +101,12 @@ function BackToDocsLink() {
   )
 }
 
-/** Placeholder shown for demo pages that need a live cks-mcp server to
- *  show anything meaningful (Gallery lists registered graphs across
- *  sessions, Pipeline streams live sweeper/agent activity -- neither
- *  exists in a single bundled static graph). Keeping the routes and nav
- *  entries in place, instead of hiding them, means the demo still reads
- *  as the full studio interface rather than a cut-down preview. */
-function UnavailableInDemo({ title }: { title: string }) {
-  return (
-    <div className="h-full flex items-center justify-center px-6">
-      <div className="max-w-sm text-center">
-        <h2 className="text-text-primary font-display font-semibold text-sm mb-2">
-          {title} -- available in full version
-        </h2>
-        <p className="text-text-secondary text-xs leading-relaxed">
-          This section is not available in the static demo. Run cks-mcp locally
-          to see live data.
-        </p>
-      </div>
-    </div>
-  )
-}
-
 function DemoBanner() {
   return (
     <div className="bg-accent/10 border-b border-accent/30 text-text-primary text-xs px-4 py-2 text-center">
       This is a static demo of CKS Studio, showing the cks-ecosystem graph.
-      Gallery, Agents, Chat and Settings show mock/sample data so you can see
-      what's included; Pipeline and Diff need a running server for real data.{' '}
+      Every tab shows mock/sample data derived from that graph so you can see
+      what's included; connect a running server for real, live data.{' '}
       <a
         href="https://github.com/Deus-corp/cks-studio"
         className="underline hover:text-accent-strong"
@@ -284,15 +263,9 @@ function DemoContent() {
       <div className={isGraphRoute ? 'hidden' : 'h-full'}>
         <ErrorBoundary>
           <Routes>
-            <Route
-              path="/pipeline"
-              element={<UnavailableInDemo title="Pipeline Monitor" />}
-            />
+            <Route path="/pipeline" element={<DemoPipelinePage />} />
             <Route path="/gallery" element={<DemoGalleryPage />} />
-            <Route
-              path="/diff"
-              element={<UnavailableInDemo title="Version Diff" />}
-            />
+            <Route path="/diff" element={<DemoDiffPage />} />
             <Route path="/agents" element={<DemoAgentsPage />} />
             <Route path="/chat" element={<DemoChatPage />} />
             <Route path="/settings" element={<DemoSettingsPage />} />

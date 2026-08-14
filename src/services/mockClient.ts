@@ -180,3 +180,11 @@ export function listComponentVersions(): DemoComponentVersion[] {
     })
     .filter((c) => c.version !== null)
 }
+
+/** Non-relation objects from the bundled graph, in file order -- used by
+ *  the demo Pipeline and Diff pages to derive deterministic mock data
+ *  without pulling in every Relation object (which has no `name` worth
+ *  showing on a card). */
+export function listDemoGraphObjects(): CksObject[] {
+  return GRAPH.objects.filter((obj) => obj.identity.type !== 'Relation')
+}

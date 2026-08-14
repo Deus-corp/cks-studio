@@ -5,7 +5,9 @@ import { MemoryRouter } from 'react-router-dom'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { DemoAgentsPage } from '../DemoAgentsPage'
 import { DemoChatPage } from '../DemoChatPage'
+import { DemoDiffPage } from '../DemoDiffPage'
 import { DemoGalleryPage } from '../DemoGalleryPage'
+import { DemoPipelinePage } from '../DemoPipelinePage'
 import { DemoSettingsPage } from '../DemoSettingsPage'
 import { DemoToastProvider } from '../DemoToast'
 
@@ -107,5 +109,52 @@ describe('DemoSettingsPage', () => {
       expect.stringContaining('CKS_LLM_PROVIDER=ollama'),
     )
     expect(await screen.findByText('Copied')).toBeInTheDocument()
+  })
+})
+
+describe('DemoPipelinePage', () => {
+  it('renders all four active pipeline stage columns', () => {
+    render(<DemoPipelinePage />)
+    expect(screen.getByText('Awaiting Research')).toBeInTheDocument()
+    expect(screen.getByText('Awaiting Review')).toBeInTheDocument()
+    expect(screen.getByText('Needs Research')).toBeInTheDocument()
+    expect(screen.getByText('Resolved')).toBeInTheDocument()
+  })
+
+  it('shows mock cards derived from the bundled graph', () => {
+    render(<DemoPipelinePage />)
+    expect(screen.getByText('cks-core')).toBeInTheDocument()
+    expect(screen.getByText('cks-runtime')).toBeInTheDocument()
+  })
+
+  it('shows the demo data banner', () => {
+    render(<DemoPipelinePage />)
+    expect(
+      screen.getByText(/Demo data — connect a live server/),
+    ).toBeInTheDocument()
+  })
+})
+
+describe('DemoDiffPage', () => {
+  it('renders an added, a removed and a modified entry', () => {
+    render(<DemoDiffPage />)
+    expect(screen.getByText(/cks-analytics/)).toBeInTheDocument()
+    expect(screen.getByText(/cks-runtime/)).toBeInTheDocument()
+    expect(screen.getByText(/cks-core/)).toBeInTheDocument()
+    expect(screen.getByText('v1.22.0')).toBeInTheDocument()
+  })
+
+  it('shows count badges for each change type', () => {
+    render(<DemoDiffPage />)
+    expect(screen.getByText('Added: 1')).toBeInTheDocument()
+    expect(screen.getByText('Removed: 1')).toBeInTheDocument()
+    expect(screen.getByText('Modified: 1')).toBeInTheDocument()
+  })
+
+  it('shows the demo diff banner', () => {
+    render(<DemoDiffPage />)
+    expect(
+      screen.getByText(/Demo diff — connect a live server/),
+    ).toBeInTheDocument()
   })
 })
