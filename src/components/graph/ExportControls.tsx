@@ -15,11 +15,18 @@ import { exportGraphAsPng, exportGraphAsSvg } from '@/shared/utils/graphExport'
 export function ExportControls({
   onRefresh,
   isRefreshing,
+  panelRef,
 }: {
   /** Reloads the current session's graph. Refresh button is omitted
    *  entirely if not provided (see GraphCanvas). */
   onRefresh?: () => void
   isRefreshing?: boolean
+  /** Forwarded to the underlying <Panel>'s DOM node -- lets GraphCanvas
+   *  measure this panel's actual rendered height/position (see the
+   *  Focus-button centering effect there) instead of guessing a pixel
+   *  offset for the Focus toggle stacked below it, which is what made
+   *  that offset go stale every time this row's contents changed. */
+  panelRef?: React.Ref<HTMLDivElement>
 } = {}) {
   const { getNodes } = useReactFlow()
   const [isExporting, setIsExporting] = useState<'png' | 'svg' | null>(null)
@@ -43,7 +50,11 @@ export function ExportControls({
   }
 
   return (
-    <Panel position="top-right" className="flex flex-col items-end gap-1.5">
+    <Panel
+      ref={panelRef}
+      position="top-right"
+      className="flex flex-col items-end gap-1.5"
+    >
       <div className="flex gap-1.5">
         {onRefresh && (
           <button

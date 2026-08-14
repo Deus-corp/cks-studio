@@ -7,7 +7,7 @@ import {
   Panel,
   ReactFlow,
 } from '@xyflow/react'
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useLayoutEffect, useRef, useState } from 'react'
 import '@xyflow/react/dist/style.css'
 import { ExportControls } from '@/components/graph/ExportControls'
 import { FullscreenIcon } from '@/components/graph/FullscreenIcon'
@@ -79,6 +79,49 @@ export function GraphCanvas({
   // same node again, clicks empty space, or turns the toggle off.
   const [isFocusModeEnabled, setIsFocusModeEnabled] = useState(false)
   const [focusedNodeId, setFocusedNodeId] = useState<string | null>(null)
+
+  // Measured (not guessed) vertical layout for the stack of top-right
+  // Panels: ExportControls -> Focus toggle -> Controls (zoom/fullscreen).
+  // Both react-flow's own <Controls> and ExportControls' <Panel> render
+  // whatever buttons/errors they currently have, so a fixed pixel guess
+  // for "where Focus goes" goes stale the moment either row's content
+  // changes height (already happened twice per the comments below on
+  // the Focus/Controls Panels). Measuring the Export row's actual
+  // rendered height via panelRef and using a single GAP_PX on both
+  // sides of Focus makes "Focus sits exactly centered between Export
+  // and Controls" true by construction instead of by a periodically
+  // re-tuned constant.
+  const GAP_PX = 12
+  const exportPanelRef = useRef<HTMLDivElement>(null)
+  const focusPanelRef = useRef<HTMLDivElement>(null)
+  const [focusTop, setFocusTop] = useState(58)
+  const [controlsTop, setControlsTop] = useState(100)
+
+  useLayoutEffect(() => {
+    const exportEl = exportPanelRef.current
+    const focusEl = focusPanelRef.current
+    if (!exportEl || !focusEl) return
+
+    const recompute = () => {
+      // offsetTop/offsetHeight, not getBoundingClientRect, since both
+      // Panels share the same positioned ancestor (react-flow's pane) --
+      // this stays correct regardless of the canvas's own scroll/zoom/
+      // viewport position.
+      const exportBottom = exportEl.offsetTop + exportEl.offsetHeight
+      const nextFocusTop = exportBottom + GAP_PX
+      setFocusTop(nextFocusTop)
+      setControlsTop(nextFocusTop + focusEl.offsetHeight + GAP_PX)
+    }
+    recompute()
+
+    // Re-measure if either row's height changes -- e.g. an export error
+    // message appearing/disappearing under the Export row, or the Focus
+    // button's own size changing (font/zoom/locale).
+    const observer = new ResizeObserver(recompute)
+    observer.observe(exportEl)
+    observer.observe(focusEl)
+    return () => observer.disconnect()
+  }, [])
 
   // Fullscreen target is the outer wrapper div below (not the ReactFlow
   // pane itself), so overlays like TypeLegend and the drag/drop error
@@ -341,15 +384,17 @@ export function GraphCanvas({
          *
          *  Order top-to-bottom is: ExportControls' own top-right Panel
          *  (refresh/PNG/SVG, default offset) -> this Focus toggle -> the
-         *  zoom/fullscreen Controls block. Focus used to be placed
-         *  *below* Controls's offset but visually landed *inside* it --
-         *  <Controls> here renders its 4 default buttons (zoom in/out,
-         *  fit view, interactive lock) plus the custom fullscreen button
-         *  below, a 5-button stack roughly 180px tall, so a small top
-         *  offset difference wasn't enough to clear it. Focus now sits
-         *  directly under the Export row instead, and Controls is pushed
-         *  down far enough to start below Focus with a clear gap. */}
-        <Panel position="top-right" style={{ top: 58 }}>
+         *  zoom/fullscreen Controls block. focusTop/controlsTop (see the
+         *  measurement effect above) are computed from ExportControls'
+         *  actual rendered height plus GAP_PX on both sides of Focus, so
+         *  Focus stays exactly centered between the two even if either
+         *  row's contents change height later -- no more guessed pixel
+         *  offsets to re-tune by hand. */}
+        <Panel
+          position="top-right"
+          style={{ top: focusTop }}
+          ref={focusPanelRef}
+        >
           <button
             type="button"
             onClick={() => {
@@ -396,11 +441,8 @@ export function GraphCanvas({
           </button>
         </Panel>
         {/* Zoom/fullscreen block, pushed down below the Focus toggle
-         *  above. 100px clears Export (~43px) + Focus (~36px) + gaps
-         *  with a few px to spare -- was `top: 64` before, i.e. this is
-         *  the "move it down" half of the fix, now measured against
-         *  Focus's real height instead of guessed. */}
-        <Controls position="top-right" style={{ top: 100 }}>
+         *  above -- see the measurement effect for controlsTop. */}
+        <Controls position="top-right" style={{ top: controlsTop }}>
           <ControlButton
             onClick={toggleFullscreen}
             title={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
@@ -427,7 +469,11 @@ export function GraphCanvas({
           zoomable
           style={{ backgroundColor: 'var(--color-surface-1)' }}
         />
-        <ExportControls onRefresh={onRefresh} isRefreshing={isLoading} />
+        <ExportControls
+          onRefresh={onRefresh}
+          isRefreshing={isLoading}
+          panelRef={exportPanelRef}
+        />
         {nodes.length > 0 && (
           <Panel position="top-left">
             <div className="flex items-center gap-2">

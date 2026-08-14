@@ -6,6 +6,17 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 
 ---
 
+## [0.6.24] - 2026-08-14
+
+### Fixed
+- **Demo graph persistence** – GraphPage in the static demo now remains mounted when switching demo tabs, matching the real studio behavior. The 3D graph no longer re-unfurls, resets the camera, or loses selected node state when navigating away and back.
+- **2D focus button centering** – the Focus toggle is now dynamically positioned exactly between the Export SVG row and the zoom/fullscreen controls using measured heights and a shared gap, instead of a hand-tuned pixel offset that could go stale.
+
+### Added
+- Regression tests for the 2D focus centering formula.
+
+---
+
 ## [0.6.23] - 2026-08-14
 
 ### Fixed

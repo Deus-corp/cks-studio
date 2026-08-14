@@ -97,3 +97,27 @@ describe('GraphCanvas — 2D focus mode toggle', () => {
     })
   })
 })
+
+// Regression test for the Focus toggle's vertical position: it used to
+// sit at a hand-picked pixel offset between ExportControls and Controls
+// (react-flow's zoom/fullscreen block), which needed re-tuning by hand
+// whenever either row's rendered height changed (see the git history on
+// this file/GraphCanvas.tsx for two rounds of that). jsdom doesn't run
+// real layout, so offsetTop/offsetHeight are always 0 in this
+// environment and can't be used to assert the *rendered* pixel result --
+// this instead locks in the formula itself: focusTop and controlsTop
+// must be computed from the *same* GAP_PX constant on both sides of
+// Focus, which is what guarantees "centered" by construction rather
+// than by a periodically-stale guess.
+describe('Focus toggle centering formula', () => {
+  it('derives focusTop and controlsTop from the same GAP_PX on both sides of Focus', async () => {
+    // Same `?raw` approach as GraphCanvas3D.cardTheme.test.ts -- avoids
+    // needing @types/node (not installed in this project) for node:fs.
+    // @ts-expect-error -- no `vite/client` types in this project
+    const { default: source } = await import('../GraphCanvas.tsx?raw')
+    expect(source).toContain('const nextFocusTop = exportBottom + GAP_PX')
+    expect(source).toContain(
+      'setControlsTop(nextFocusTop + focusEl.offsetHeight + GAP_PX)',
+    )
+  })
+})

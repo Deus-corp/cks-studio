@@ -248,27 +248,58 @@ function DemoApp() {
           <DemoBanner />
           <DemoNavBar />
           <div className="flex-1 min-h-0">
-            <ErrorBoundary>
-              <Routes>
-                <Route path="/" element={<GraphPage />} />
-                <Route
-                  path="/pipeline"
-                  element={<UnavailableInDemo title="Pipeline Monitor" />}
-                />
-                <Route path="/gallery" element={<DemoGalleryPage />} />
-                <Route
-                  path="/diff"
-                  element={<UnavailableInDemo title="Version Diff" />}
-                />
-                <Route path="/agents" element={<DemoAgentsPage />} />
-                <Route path="/chat" element={<DemoChatPage />} />
-                <Route path="/settings" element={<DemoSettingsPage />} />
-              </Routes>
-            </ErrorBoundary>
+            <DemoContent />
           </div>
         </div>
       </DemoToastProvider>
     </HashRouter>
+  )
+}
+
+/** GraphPage is rendered unconditionally (not through <Routes>) and only
+ *  visibility-toggled with `hidden`, mirroring the same fix applied to
+ *  the real studio's App.tsx: routing it through <Routes> fully
+ *  unmounts/remounts GraphPage on every nav away from and back to "/",
+ *  which restarts GraphCanvas3D's three.js scene (force simulation
+ *  replays from scratch, camera resets) and drops GraphPage's local
+ *  `selectedNode` state. See App.tsx's AppContent for the full
+ *  writeup -- same root cause, same fix, just duplicated here because
+ *  the demo is a fully separate entry point/component tree from the
+ *  real app rather than something that could import App.tsx directly
+ *  (different nav, banner, mock session, HashRouter vs BrowserRouter).
+ *  Needs its own component (rather than living directly in DemoApp)
+ *  since useLocation() must be called below <HashRouter>, not in the
+ *  component that renders it. */
+function DemoContent() {
+  const { pathname } = useLocation()
+  const isGraphRoute = pathname === '/'
+
+  return (
+    <div className="h-full relative">
+      <div className={isGraphRoute ? 'h-full' : 'hidden'}>
+        <ErrorBoundary>
+          <GraphPage />
+        </ErrorBoundary>
+      </div>
+      <div className={isGraphRoute ? 'hidden' : 'h-full'}>
+        <ErrorBoundary>
+          <Routes>
+            <Route
+              path="/pipeline"
+              element={<UnavailableInDemo title="Pipeline Monitor" />}
+            />
+            <Route path="/gallery" element={<DemoGalleryPage />} />
+            <Route
+              path="/diff"
+              element={<UnavailableInDemo title="Version Diff" />}
+            />
+            <Route path="/agents" element={<DemoAgentsPage />} />
+            <Route path="/chat" element={<DemoChatPage />} />
+            <Route path="/settings" element={<DemoSettingsPage />} />
+          </Routes>
+        </ErrorBoundary>
+      </div>
+    </div>
   )
 }
 
