@@ -3,6 +3,7 @@ import type {
   EvolveOperation,
   EvolveResult,
   ExplainDiffResult,
+  ExplainInferenceResult,
   GraphHealthResult,
   GraphHealthUnavailable,
   GraphRegistryEntry,
@@ -202,6 +203,45 @@ export async function explainDiff(
     target_version_id: targetVersionId,
   })
   return result as unknown as ExplainDiffResult
+}
+
+// ---------------------------------------------------------------------------
+// explain_knowledge with object_id — "Why this belief?" panel (Graph page)
+// ---------------------------------------------------------------------------
+
+/**
+ * Explains why `objectId` is currently believed within `sessionId`,
+ * walking its active InferenceStep chain(s) back to base facts (see
+ * cks-mcp's explain_knowledge tool / cks-core's explain_inference).
+ *
+ * Like evolveKnowledge, explain_knowledge's own business-level failures
+ * (no attached Core, Core doesn't implement explain_inference, unknown
+ * object_id, etc.) come back as a normal successful tool result shaped
+ * `{ error: string }` rather than a thrown error (see cks-mcp handler.py
+ * -- `internal_error(...)`). We re-throw here so callers (useExplainInference)
+ * can use one error path for both that and real network/transport
+ * failures, matching how the rest of this module's read-only helpers
+ * (e.g. explainDiff) are consumed.
+ */
+export async function explainKnowledge(
+  sessionId: string,
+  objectId: string,
+): Promise<ExplainInferenceResult> {
+  const result = await callTool('explain_knowledge', {
+    // json_data формально required в схеме тула, но handler.py читает его
+    // только когда session_id не передан (та же ветка, что и у
+    // evolveKnowledge выше) — пустая строка тут ничего не парсит.
+    json_data: '',
+    session_id: sessionId,
+    object_id: objectId,
+  })
+  if (typeof (result as { error?: unknown }).error === 'string') {
+    throw new Error(
+      (result as { error: string; message?: string }).message ??
+        (result as { error: string }).error,
+    )
+  }
+  return (result as { explanation: ExplainInferenceResult }).explanation
 }
 
 // ---------------------------------------------------------------------------

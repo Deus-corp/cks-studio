@@ -119,6 +119,62 @@ export interface InferenceStepDiffEntry {
 }
 
 /** Ответ explain_diff, см. cks_mcp/tools/explain_diff/handler.py. */
+// ---------------------------------------------------------------------------
+// explain_knowledge with object_id — "why is this object believed?"
+// (cks-mcp ADR-001, cks-core src/cks/constraints/reasoning.py::explain_inference)
+// ---------------------------------------------------------------------------
+
+/** One InferenceStep once concluding an object, since revised away. */
+export interface SupersededStepNode {
+  step_id: string
+  operator: string | null
+  confidence: number | null
+  justification: string | null
+  superseded_by: string | null
+}
+
+/**
+ * A premise cited by an InferenceStep. Either a nested sub-explanation
+ * (the premise is itself the conclusion of other steps, or a base fact
+ * with no inference at all), or `{ object_id, cites_step: true }` when
+ * the premise names another InferenceStep directly (meta-reasoning
+ * citation) rather than a conclusion.
+ */
+export type InferencePremiseNode =
+  | InferenceExplanationNode
+  | { object_id: string; cites_step: true }
+
+/** One active InferenceStep node in the walk back to base facts. */
+export interface InferenceStepNode {
+  step_id: string
+  operator: string | null
+  confidence: number | null
+  justification: string | null
+  alternatives_considered: string[]
+  premises: InferencePremiseNode[]
+}
+
+/**
+ * Shape returned for `object_id` itself and for every nested premise
+ * that isn't a direct step citation. `truncated` is only present on
+ * nested premise nodes (`"max_depth" | "cycle"`), never on the
+ * top-level result — see cks-core's explain_inference docstring.
+ */
+export interface InferenceExplanationNode {
+  object_id: string
+  exists?: boolean
+  has_inference: boolean | null
+  active_steps: InferenceStepNode[]
+  superseded_steps: SupersededStepNode[]
+  truncated?: 'max_depth' | 'cycle' | null
+}
+
+/** Top-level payload of explain_knowledge's `explanation` field when
+ *  called with `object_id`. */
+export type ExplainInferenceResult = InferenceExplanationNode & {
+  exists: boolean
+}
+
 export interface ExplainDiffResult {
   session_id: string
   base_version_id: string

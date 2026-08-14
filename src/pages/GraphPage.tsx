@@ -4,10 +4,12 @@ import { GraphCanvas } from '@/components/graph/GraphCanvas'
 import { GraphSkeleton } from '@/components/graph/GraphSkeleton'
 import { TypeLegend } from '@/components/graph/TypeLegend'
 import { SidePanel } from '@/components/layout/SidePanel'
+import { QuickAiPanel } from '@/features/ai-chat/QuickAiPanel'
 import { CreateNodeForm } from '@/features/graph-explorer/CreateNodeForm'
 import { CreateRelationForm } from '@/features/graph-explorer/CreateRelationForm'
 import { useGraphStore } from '@/features/graph-explorer/graphExplorerStore'
 import { StartPipelineButton } from '@/features/graph-explorer/StartPipelineButton'
+import { WhyThisBeliefPanel } from '@/features/graph-explorer/WhyThisBeliefPanel'
 import { getFullGraph, querySubgraph } from '@/services/mcpTools'
 import { useSessionStore } from '@/services/sessionStore'
 import { useSessionEvents } from '@/services/useSessionEvents'
@@ -286,6 +288,27 @@ export function GraphPage() {
             />
           )}
           <TypeLegend />
+          {/* Bottom dock: independent collapsible panels, kept off the
+           *  bottom-left corner where TypeLegend already lives. Why panel
+           *  centered so it naturally sits "aligned with the selected
+           *  node" area of the canvas; Quick AI in the bottom-right,
+           *  mirroring where a chat launcher usually lives. Both are
+           *  pointer-events-auto islands inside a pointer-events-none
+           *  strip so the graph underneath stays fully interactive
+           *  everywhere else along the bottom edge. */}
+          <div className="absolute inset-x-0 bottom-3 z-10 flex items-end justify-center gap-2 px-3 pointer-events-none">
+            <div className="pointer-events-auto">
+              <WhyThisBeliefPanel
+                selectedNodeId={selectedNodeId}
+                selectedNodeLabel={
+                  (selectedNode?.data?.label as string | undefined) ?? null
+                }
+              />
+            </div>
+          </div>
+          <div className="absolute bottom-3 right-3 z-10">
+            <QuickAiPanel />
+          </div>
         </main>
         {/* relative + z-10: в 3D-режиме GraphCanvas3D монтирует свой
          *  WebGL-canvas через three.js вне обычного React-дерева стилей

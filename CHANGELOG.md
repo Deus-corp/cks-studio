@@ -6,6 +6,19 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 
 ---
 
+## [0.6.30] - 2026-08-14
+
+### Added
+- **Why this belief? panel** – collapsible bottom panel on Graph page for inspecting the active inference chain of the selected node. Uses `explain_knowledge(object_id=...)` and shows operator, confidence, justification, premises chips, and superseded steps.
+- **Quick AI panel** – collapsible mini-chat on Graph page that reuses the same conversation store as the full Chat page. Supports quick questions, tool-call responses, error display, and an “Open full Chat” button that navigates to `/chat` with the shared conversation intact.
+- **`useExplainInference` hook** – fetches inference explanation with request-sequence guard and proper loading/error states.
+- **Tests** for both panels and the new hook/type integration.
+
+### Changed
+- Graph page bottom dock now hosts independent collapsible panels (`WhyThisBeliefPanel` centered, `QuickAiPanel` bottom-right) that don’t block the canvas elsewhere.
+
+---
+
 ## [0.6.29] - 2026-08-14
 
 ### Added
