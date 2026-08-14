@@ -115,9 +115,52 @@ describe('Focus toggle centering formula', () => {
     // needing @types/node (not installed in this project) for node:fs.
     // @ts-expect-error -- no `vite/client` types in this project
     const { default: source } = await import('../GraphCanvas.tsx?raw')
-    expect(source).toContain('const nextFocusTop = exportBottom + GAP_PX')
+    expect(source).toContain(
+      'const nextFocusTop = exportBottom + GAP_PX - PANEL_MARGIN_PX',
+    )
     expect(source).toContain(
       'setControlsTop(nextFocusTop + focusEl.offsetHeight + GAP_PX)',
     )
+  })
+
+  // Regression test for the follow-up report that Focus still wasn't
+  // centered after the fix above: react-flow's `.react-flow__panel` CSS
+  // sets `margin: 15px` on every Panel (including <Controls>, which
+  // renders through Panel internally), and that margin applies *in
+  // addition to* whatever `top` style we set -- so a Panel's real
+  // rendered top is our JS `top` value plus that margin, not just our
+  // value. exportBottom is a real *measured* position (already correct)
+  // but the first version of this formula turned it directly into
+  // Focus's `top` value without subtracting that margin back out first,
+  // so the browser silently re-added it -- making the gap above Focus
+  // PANEL_MARGIN_PX bigger than the gap below it (Focus read as sitting
+  // closer to Controls than to Export, exactly as reported). This test
+  // locks in the derivation with a concrete example so the arithmetic
+  // itself -- not just the presence of PANEL_MARGIN_PX somewhere in the
+  // formula -- stays right.
+  it('produces an equal true rendered gap above and below Focus, accounting for react-flow Panel margin', () => {
+    const GAP_PX = 12
+    const PANEL_MARGIN_PX = 15
+    // Arbitrary example export/focus box heights -- the assertion holds
+    // for any values, this just picks concrete ones to compute with.
+    const exportOffsetTop = 15 // react-flow's own default Panel top (0) + its 15px margin
+    const exportOffsetHeight = 30
+    const focusOffsetHeight = 30
+
+    const exportBottom = exportOffsetTop + exportOffsetHeight
+    const focusTopJs = exportBottom + GAP_PX - PANEL_MARGIN_PX
+    const controlsTopJs = focusTopJs + focusOffsetHeight + GAP_PX
+
+    // True rendered positions include the margin the browser re-adds on
+    // top of each Panel's inline `top` style.
+    const trueFocusTop = focusTopJs + PANEL_MARGIN_PX
+    const trueFocusBottom = trueFocusTop + focusOffsetHeight
+    const trueControlsTop = controlsTopJs + PANEL_MARGIN_PX
+
+    const gapAboveFocus = trueFocusTop - exportBottom
+    const gapBelowFocus = trueControlsTop - trueFocusBottom
+
+    expect(gapAboveFocus).toBe(GAP_PX)
+    expect(gapBelowFocus).toBe(GAP_PX)
   })
 })

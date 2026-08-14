@@ -92,6 +92,24 @@ export function GraphCanvas({
   // and Controls" true by construction instead of by a periodically
   // re-tuned constant.
   const GAP_PX = 12
+  // react-flow's own `.react-flow__panel` CSS rule (see its stylesheet)
+  // sets `margin: 15px` on every Panel -- including <Controls>, which
+  // renders through Panel internally. That margin applies *in addition
+  // to* whatever `top` we set inline below, so a Panel's true rendered
+  // top is always our `top` value + PANEL_MARGIN_PX, not just our value.
+  // exportEl.offsetTop already reflects that (it's the real measured
+  // position), so exportBottom below is already correct -- but when we
+  // turn that into a `top` value for the *next* Panel (Focus), we have
+  // to subtract this margin back out first, or the browser re-adds it
+  // and the gap above Focus ends up PANEL_MARGIN_PX bigger than the gap
+  // below it (Focus reads as sitting closer to Controls than to Export,
+  // exactly as reported -- Controls' own top is derived from Focus's
+  // *unrendered* JS value the same way Focus's is derived from
+  // exportBottom, so that margin cancels out between Focus and Controls
+  // but not between Export and Focus, where one side of the calculation
+  // -- exportBottom -- is a real measured position and the other --
+  // focusTop -- is still a pre-margin JS value at that point).
+  const PANEL_MARGIN_PX = 15
   const exportPanelRef = useRef<HTMLDivElement>(null)
   const focusPanelRef = useRef<HTMLDivElement>(null)
   const [focusTop, setFocusTop] = useState(58)
@@ -108,7 +126,7 @@ export function GraphCanvas({
       // this stays correct regardless of the canvas's own scroll/zoom/
       // viewport position.
       const exportBottom = exportEl.offsetTop + exportEl.offsetHeight
-      const nextFocusTop = exportBottom + GAP_PX
+      const nextFocusTop = exportBottom + GAP_PX - PANEL_MARGIN_PX
       setFocusTop(nextFocusTop)
       setControlsTop(nextFocusTop + focusEl.offsetHeight + GAP_PX)
     }

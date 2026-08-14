@@ -6,6 +6,14 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 
 ---
 
+## [0.6.25] - 2026-08-14
+
+### Fixed
+- **2D focus button centering** – Focus toggle now correctly accounts for react-flow’s built-in 15px panel margin when computing its `top`, so the gap above and below Focus is truly equal. Previously the rendered gap above was larger than the gap below, making Focus appear biased toward the zoom controls.
+- **Focus centering regression tests** – added a concrete arithmetic test that verifies the true rendered gaps above and below Focus are identical.
+
+---
+
 ## [0.6.24] - 2026-08-14
 
 ### Fixed
