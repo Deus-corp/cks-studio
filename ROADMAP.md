@@ -7,45 +7,38 @@ production-ready, real-time visual layer over `cks-mcp`.
 
 ---
 
-# Current Status (v0.6.6 — August 2026)
+# Current Status (v0.6.25 — August 2026)
 
-CKS Studio has grown from a read-only graph viewer into a full
-**human control surface for the CKS ecosystem**: graph exploration with
-type filtering and quick-jump search in both 2D and 3D, inference and
-fork inspection, pipeline and agent monitoring with live control, a
-public gallery, an AI chat panel wired to the same MCP tools an LLM
-would use, an installable PWA, a standalone no-server demo, and a
-dark/light theme built on a single token system. 81 tests, TypeScript
-strict mode, Biome-enforced formatting.
+CKS Studio is now a full visual workspace and control surface:
+
+- 2D/3D graph views with degree-based node sizing, focus modes, multi-select, fullscreen, search palette, and type filtering.
+- Persistent graph state across tab navigation — the 3D scene and camera no longer reset.
+- Start Pipeline button for selected graph objects.
+- Dead Letter inbox UI with approve/reject.
+- Agent observability and control panels.
+- AI Chat with model selector.
+- Graph Gallery and Version Diff views.
+- PWA support.
+- Fully static demo with mock Gallery/Agents/Chat/Settings pages.
 
 ## ✅ Completed Milestones
 
-### Graph Canvas
-- Interactive graph canvas — React Flow + Dagre automatic layout.
-- Custom nodes for every CKS object type (Definition, Claim, Concept,
-  Fork, Resolution), colour- and icon-coded by type, status dot for
-  pipeline state.
-- Drill-down — click a node to expand its neighbourhood
-  (`query_subgraph`).
-- **Cmd/Ctrl+K search palette** — fuzzy match on label/id, arrow-key
-  navigation, centres the viewport on the selected node.
-- **Type filter** — legend doubles as a checkbox filter; hidden types
-  and their edges are dropped before layout.
-- **MiniMap coloured by type**, matching the main canvas and legend.
-- **Empty state** and **skeleton loading** — the canvas now always
-  explains what's happening instead of showing a blank rectangle.
-- Drag-and-drop import of `query_subgraph` `.json` exports.
-- PNG/SVG graph export.
-- Path highlighting between two nodes (Shift+click).
-- **2D/3D view toggle** — force-directed 3D canvas (`3d-force-graph` /
-  Three.js) as an alternative to the 2D Dagre layout, useful for wide
-  graphs with many same-rank nodes. Feature parity with 2D: path
-  highlighting, drag-and-drop import, participant picking, and
-  Cmd/Ctrl+K search. Lazy-loaded (React.lazy + Suspense) so the
-  default 2D-only view never pays the Three.js bundle cost. Nodes are
-  softly clustered by containing Component/Module.
-- **Layout direction toggle** (2D) — top-to-bottom or left-to-right
-  Dagre layout for handling wide graphs.
+- 2D/3D graph explorer.
+- Cmd/Ctrl+K search palette.
+- Node type filter and collapsible type legend.
+- Degree-based node sizing and degree badges in both 2D and 3D.
+- 2D/3D focus modes with opt-in toggles.
+- Multi-select with Ctrl/Cmd+click and selection rings.
+- Start Pipeline button using `start_pipeline` MCP tool.
+- Dead Letter inbox page with `review_dead_letter`, `approve_resolution`, `reject_resolution`.
+- Inference Chain Inspector.
+- CRDT Fork Diff View.
+- Version Diff.
+- Agent/Pipeline monitoring and control.
+- Graph Gallery.
+- AI Chat panel.
+- PWA support.
+- Static demo with mock pages for Gallery, Agents, Chat, Settings.
 
 ### Inspection & Review
 - Inference Chain Inspector — trace `depends_on` from a conclusion
@@ -99,63 +92,35 @@ strict mode, Biome-enforced formatting.
 
 # Next Up
 
-## Real MCP Session Presence (🔴 P0)
+## Real MCP Session Presence (🟡 P0)
 
-**Goal:** Make the canvas reflect what's actually happening on the
-server in real time, not just on the actions a user takes locally.
+- WebSocket/SSE subscription to session events so agents mutate the graph and the UI updates without manual refresh.
+- Presence indicators for other connected sessions/agents.
 
-- [ ] **WebSocket/SSE subscription** to session events so a graph
-  mutated by an agent or another user updates without a manual
-  `query_subgraph` re-fetch.
-- [ ] **Optimistic-update reconciliation** — the existing pending-node
-  / pending-edge dashed-edge treatment already covers local
-  create/evolve calls; extend it to reconcile against server-pushed
-  state instead of only the local mutation's own response.
-- [ ] **Presence indicators** — show which other sessions/agents are
-  currently connected to the same `session_id`.
+## Graph Gallery: Clone & Filters (🟡 P1)
 
-## Graph Gallery: Clone & Fork (🟡 P1)
-
-- [ ] **Clone a public graph** into the user's own session instead of
-  only viewing it read-only.
-- [ ] **Filters** by category, tags, date, popularity in the Gallery
-  search bar.
-- [ ] **Health score badge** on gallery cards, sourced from
-  `check_graph_health`.
+- Clone a public graph into the user's own session.
+- Filters by category, tags, date, popularity.
+- Health score badge on gallery cards.
 
 ## Pipeline Orchestrator UI (🟡 P1)
 
-- [ ] **Visual pipeline builder** — drag-and-drop `AgentStep`
-  configuration instead of editing `cks-pipeline-agent` config by
-  hand.
-- [ ] **Run history and logs** view per pipeline execution.
+- Run history and logs per pipeline execution.
+- Visual pipeline builder.
 
 ## Conflict Resolution UI (🟢 P2)
 
-- [ ] **Dead-letter review queue** — surface
-  `list_dead_lettered_conflicts` with `approve_resolution` /
-  `reject_resolution` actions directly from the studio, instead of
-  only via raw tool calls.
-- [ ] **Gossip conflict inspector** — visualise
-  `list_gossip_conflicts` / `list_inference_conflicts` on the graph
-  canvas (highlight the conflicting nodes/edges in place).
+- Gossip conflict inspector: highlight conflicting nodes/edges on the canvas.
 
 ## Accessibility & Performance (🟢 P2)
 
-- [ ] **Code-splitting** — the 3D graph module (Three.js) is already
-  lazy-loaded; extend the same treatment to the AI Chat, Gallery, and
-  export (`html-to-image`) code paths, which still ship in the main
-  bundle.
-- [ ] **Full keyboard navigation** of the graph canvas (tab through
-  nodes, arrow-key pan) for parity with mouse/touch interaction.
-- [ ] **Virtualised MiniMap/legend** for graphs with 500+ distinct
-  types.
+- Code-splitting for AI Chat, Gallery, export.
+- Full keyboard navigation of the graph canvas.
+- Virtualised MiniMap/legend for large graphs.
 
 ## Desktop Application (🔵 P3)
 
-- [ ] Single installer (Electron or Tauri) bundling `cks-studio` +
-  `cks-mcp` + `cks-core` + `cks-runtime` for one-click local knowledge
-  management, no `npm install`/`pip install` required.
+- Single installer bundling `cks-studio` + `cks-mcp` + `cks-core` + `cks-runtime`.
 
 ---
 
