@@ -160,7 +160,7 @@ export function WhyThisBeliefPanel({
         }
         className="bg-surface-1/95 backdrop-blur-sm border border-border-subtle hover:border-border rounded-md px-3 py-2 text-[10px] font-display font-semibold uppercase tracking-wider text-text-tertiary hover:text-text-secondary shadow-lg transition-colors select-none disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:border-border-subtle"
       >
-        Why this belief?
+        {selectedNodeId ? 'Why this belief?' : 'Select a node'}
       </button>
     )
   }

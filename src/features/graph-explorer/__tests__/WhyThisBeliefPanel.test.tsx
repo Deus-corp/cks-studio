@@ -20,12 +20,11 @@ afterEach(() => {
 })
 
 describe('WhyThisBeliefPanel', () => {
-  it('renders a disabled tab when no node is selected', () => {
+  it('renders a disabled tab with a "select a node" label when no node is selected', () => {
     render(<WhyThisBeliefPanel selectedNodeId={null} />)
 
-    expect(
-      screen.getByRole('button', { name: /why this belief\?/i }),
-    ).toBeDisabled()
+    const button = screen.getByRole('button', { name: /select a node/i })
+    expect(button).toBeDisabled()
     expect(explainKnowledgeMock).not.toHaveBeenCalled()
   })
 

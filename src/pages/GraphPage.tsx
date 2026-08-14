@@ -289,14 +289,29 @@ export function GraphPage() {
           )}
           <TypeLegend />
           {/* Bottom dock: independent collapsible panels, kept off the
-           *  bottom-left corner where TypeLegend already lives. Why panel
-           *  centered so it naturally sits "aligned with the selected
-           *  node" area of the canvas; Quick AI in the bottom-right,
-           *  mirroring where a chat launcher usually lives. Both are
-           *  pointer-events-auto islands inside a pointer-events-none
-           *  strip so the graph underneath stays fully interactive
-           *  everywhere else along the bottom edge. */}
-          <div className="absolute inset-x-0 bottom-3 z-10 flex items-end justify-center gap-2 px-3 pointer-events-none">
+           *  bottom-left corner where TypeLegend already lives.
+           *
+           *  Why panel: centered, so it naturally sits "aligned with the
+           *  selected node" area of the canvas. In 3D mode it's raised
+           *  above 3d-force-graph's own built-in nav-info hint ("Left-
+           *  click: rotate, Mouse-wheel/middle-click: zoom, Right-click:
+           *  pan" -- see .scene-nav-info in 3d-force-graph's bundled CSS),
+           *  which is centered across the full canvas width at ~bottom:
+           *  5px and would otherwise sit right under the collapsed tab.
+           *
+           *  Quick AI: bottom-right in 3D (no minimap there), but nudged
+           *  left of react-flow's MiniMap in 2D mode (MiniMap defaults to
+           *  bottom-right with a 15px @xyflow/react panel margin and a
+           *  ~200px width) so the two don't overlap.
+           *
+           *  Both are pointer-events-auto islands inside a pointer-
+           *  events-none strip/wrapper so the graph underneath stays
+           *  fully interactive everywhere else along the bottom edge. */}
+          <div
+            className={`absolute inset-x-0 z-10 flex items-end justify-center gap-2 px-3 pointer-events-none ${
+              viewMode === '3d' ? 'bottom-9' : 'bottom-3'
+            }`}
+          >
             <div className="pointer-events-auto">
               <WhyThisBeliefPanel
                 selectedNodeId={selectedNodeId}
@@ -306,7 +321,11 @@ export function GraphPage() {
               />
             </div>
           </div>
-          <div className="absolute bottom-3 right-3 z-10">
+          <div
+            className={`absolute bottom-3 z-10 ${
+              viewMode === '3d' ? 'right-3' : 'right-[228px]'
+            }`}
+          >
             <QuickAiPanel />
           </div>
         </main>

@@ -6,6 +6,14 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 
 ---
 
+## [0.6.31] - 2026-08-14
+
+### Fixed
+- **Graph page panel positioning** – “Why this belief?” collapsed tab now shows “Select a node” when no node is selected. The tab is raised above 3d-force-graph’s built-in navigation hint in 3D mode. Quick AI launcher is positioned to avoid overlapping the React Flow MiniMap in 2D and the bottom-right corner in 3D.
+- **Panel overlap prevention** – bottom dock panels now account for view mode and existing bottom-right UI elements.
+
+---
+
 ## [0.6.30] - 2026-08-14
 
 ### Added
