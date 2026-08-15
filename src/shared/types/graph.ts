@@ -52,6 +52,21 @@ export interface GraphRegistryEntry {
   public: boolean
 }
 
+/**
+ * Ответ clone_graph (см. cks_mcp/tools/clone_graph/handler.py). session_id
+ * пуст только если target_session_id уже содержал всё (version_id: null).
+ */
+export interface CloneGraphResult {
+  session_id: string
+  version_id: string | null
+  source_session_id: string
+  source_graph_name?: string
+  imported_objects: number
+  imported_relations: number
+  registered_as?: string
+  message?: string
+}
+
 /** Ответ check_graph_health, когда сессия доступна и посчитан скор. */
 export interface GraphHealthResult {
   name: string

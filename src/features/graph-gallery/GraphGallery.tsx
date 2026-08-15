@@ -1,13 +1,19 @@
 // Copyright (c) 2025 Deus Corp. Licensed under MIT.
 
-import { useEffect } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { HealthIndicator } from '@/components/common/HealthIndicator'
+import { cloneGraph } from '@/services/mcpTools'
 import { useSessionStore } from '@/services/sessionStore'
 import type { GraphRegistryEntry } from '@/shared/types/graph'
 import { formatDateTime } from '@/shared/utils/formatUtils'
 import { useGalleryStore } from './galleryStore'
-import { formatTags } from './galleryUtils'
+import {
+  collectTags,
+  formatTags,
+  SORT_OPTIONS,
+  sortGraphs,
+} from './galleryUtils'
 
 function HealthBadge({ name }: { name: string }) {
   const { health, healthLoading, loadHealth } = useGalleryStore()
@@ -23,11 +29,30 @@ function HealthBadge({ name }: { name: string }) {
 function GraphCard({ graph }: { graph: GraphRegistryEntry }) {
   const navigate = useNavigate()
   const { setSessionId } = useSessionStore()
+  const [isCloning, setIsCloning] = useState(false)
+  const [cloneError, setCloneError] = useState<string | null>(null)
+  const [cloneMessage, setCloneMessage] = useState<string | null>(null)
 
   const handleOpen = () => {
     setSessionId(graph.session_id)
     // Автоматически запускаем подключение после перехода
     setTimeout(() => navigate('/'), 0)
+  }
+
+  const handleClone = async () => {
+    setIsCloning(true)
+    setCloneError(null)
+    setCloneMessage(null)
+    try {
+      const result = await cloneGraph({ graphName: graph.name })
+      setSessionId(result.session_id)
+      setCloneMessage(`Cloned into session ${result.session_id}`)
+      setTimeout(() => navigate('/'), 0)
+    } catch (e) {
+      setCloneError(e instanceof Error ? e.message : 'Unknown error')
+    } finally {
+      setIsCloning(false)
+    }
   }
 
   return (
@@ -69,16 +94,32 @@ function GraphCard({ graph }: { graph: GraphRegistryEntry }) {
         Updated {formatDateTime(graph.updated_at)}
       </p>
 
-      <div className="flex items-center justify-between mt-1">
+      <div className="flex items-center justify-between mt-1 gap-2">
         <HealthBadge name={graph.name} />
-        <button
-          type="button"
-          onClick={handleOpen}
-          className="text-xs bg-accent hover:bg-accent-strong text-white px-2 py-1 rounded"
-        >
-          Open in Graph
-        </button>
+        <div className="flex items-center gap-1.5">
+          <button
+            type="button"
+            onClick={handleClone}
+            disabled={isCloning}
+            title="Copy this graph into a new session of your own"
+            className="text-xs bg-surface-2 hover:bg-surface-3 text-text-primary px-2 py-1 rounded disabled:opacity-50"
+          >
+            {isCloning ? 'Cloning…' : 'Clone'}
+          </button>
+          <button
+            type="button"
+            onClick={handleOpen}
+            className="text-xs bg-accent hover:bg-accent-strong text-white px-2 py-1 rounded"
+          >
+            Open in Graph
+          </button>
+        </div>
       </div>
+
+      {cloneMessage && (
+        <p className="text-[10px] text-success">{cloneMessage}</p>
+      )}
+      {cloneError && <p className="text-[10px] text-danger">{cloneError}</p>}
     </div>
   )
 }
@@ -95,11 +136,13 @@ export function GraphGallery() {
     query,
     tag,
     publicOnly,
+    sortBy,
     isLoading,
     error,
     setQuery,
     setTag,
     setPublicOnly,
+    setSortBy,
     load,
   } = useGalleryStore()
 
@@ -110,6 +153,19 @@ export function GraphGallery() {
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault()
+    load()
+  }
+
+  // Union тегов из текущего (уже отфильтрованного бэкендом) списка — чипы
+  // быстрого фильтра, а не полный справочник тегов по всей галерее.
+  const availableTags = useMemo(() => collectTags(graphs), [graphs])
+  const sortedGraphs = useMemo(
+    () => sortGraphs(graphs, sortBy),
+    [graphs, sortBy],
+  )
+
+  const handleTagChipClick = (clicked: string) => {
+    setTag(tag === clicked ? '' : clicked)
     load()
   }
 
@@ -144,6 +200,18 @@ export function GraphGallery() {
           />
           Public only
         </label>
+        <select
+          value={sortBy}
+          onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
+          aria-label="Sort by"
+          className="bg-surface-2 border border-border rounded px-2 py-1 text-xs text-text-primary"
+        >
+          {SORT_OPTIONS.map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
+            </option>
+          ))}
+        </select>
         <button
           type="submit"
           disabled={isLoading}
@@ -152,6 +220,28 @@ export function GraphGallery() {
           {isLoading ? 'Loading…' : 'Search'}
         </button>
       </form>
+
+      {availableTags.length > 0 && (
+        <div className="flex items-center gap-1.5 flex-wrap px-4 py-2 border-b border-border-subtle">
+          <span className="text-[10px] text-text-tertiary uppercase tracking-wide mr-1">
+            Tags
+          </span>
+          {availableTags.map((t) => (
+            <button
+              key={t}
+              type="button"
+              onClick={() => handleTagChipClick(t)}
+              className={`text-[10px] px-1.5 py-0.5 rounded ${
+                tag === t
+                  ? 'bg-accent text-white'
+                  : 'bg-surface-2 hover:bg-surface-3 text-text-secondary'
+              }`}
+            >
+              {t}
+            </button>
+          ))}
+        </div>
+      )}
 
       {error && <p className="text-danger text-xs px-4 py-2">{error}</p>}
 
@@ -164,7 +254,7 @@ export function GraphGallery() {
       )}
 
       <div className="flex-1 overflow-y-auto p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 content-start">
-        {graphs.map((graph) => (
+        {sortedGraphs.map((graph) => (
           <GraphCard key={graph.name} graph={graph} />
         ))}
       </div>

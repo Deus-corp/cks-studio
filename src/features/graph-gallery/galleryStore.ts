@@ -1,4 +1,4 @@
-// Copyright (c) 2025 Deus Corp. Licensed under MIT.
+// Copyright (c) 2026 Deus Corp. Licensed under MIT.
 
 import { create } from 'zustand'
 import { checkGraphHealth, listGraphs, searchGraphs } from '@/services/mcpTools'
@@ -7,12 +7,14 @@ import type {
   GraphHealthUnavailable,
   GraphRegistryEntry,
 } from '@/shared/types/graph'
+import type { GallerySortOrder } from './galleryUtils'
 
 export interface GalleryState {
   graphs: GraphRegistryEntry[]
   query: string
   tag: string
   publicOnly: boolean
+  sortBy: GallerySortOrder
   isLoading: boolean
   error: string | null
   /** health_score/детали по имени графа — считается лениво, по клику, не на весь список сразу. */
@@ -21,6 +23,7 @@ export interface GalleryState {
   setQuery: (query: string) => void
   setTag: (tag: string) => void
   setPublicOnly: (publicOnly: boolean) => void
+  setSortBy: (sortBy: GallerySortOrder) => void
   load: () => Promise<void>
   loadHealth: (name: string) => Promise<void>
 }
@@ -30,6 +33,7 @@ export const useGalleryStore = create<GalleryState>((set, get) => ({
   query: '',
   tag: '',
   publicOnly: true,
+  sortBy: 'updated_desc',
   isLoading: false,
   error: null,
   health: {},
@@ -38,6 +42,7 @@ export const useGalleryStore = create<GalleryState>((set, get) => ({
   setQuery: (query) => set({ query }),
   setTag: (tag) => set({ tag }),
   setPublicOnly: (publicOnly) => set({ publicOnly }),
+  setSortBy: (sortBy) => set({ sortBy }),
 
   load: async () => {
     const { query, tag, publicOnly } = get()

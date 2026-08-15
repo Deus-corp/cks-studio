@@ -1,5 +1,6 @@
 import type {
   CksObject,
+  CloneGraphResult,
   EvolveOperation,
   EvolveResult,
   ExplainDiffResult,
@@ -173,6 +174,46 @@ export async function checkGraphHealth(
 ): Promise<GraphHealthResult | GraphHealthUnavailable> {
   const result = await callTool('check_graph_health', { name })
   return result as unknown as GraphHealthResult | GraphHealthUnavailable
+}
+
+/**
+ * Клонирует зарегистрированный (по имени) граф в новую сессию через
+ * clone_graph (см. cks_mcp/tools/clone_graph/handler.py). Источник
+ * никогда не модифицируется. targetSessionId/copyName пробрасываются
+ * как есть, если понадобится импорт в существующую сессию или
+ * регистрация клона под новым именем -- Gallery сегодня использует
+ * только graphName, создавая новую сессию каждый раз.
+ *
+ * Как и explainKnowledge/evolveKnowledge, бизнес-уровневые ошибки
+ * (неизвестный graph_name, отсутствующая source_session_id и т.д.)
+ * приходят как обычный успешный tool-результат вида
+ * `{ error: string, message?: string }`, а не как JSON-RPC ошибка —
+ * здесь мы их перебрасываем как Error, чтобы вызывающий код (кнопка
+ * Clone в Gallery) мог использовать один путь обработки ошибок.
+ */
+export async function cloneGraph(params: {
+  graphName?: string
+  sourceSessionId?: string
+  targetSessionId?: string
+  copyName?: string
+}): Promise<CloneGraphResult> {
+  const result = await callTool('clone_graph', {
+    ...(params.graphName ? { graph_name: params.graphName } : {}),
+    ...(params.sourceSessionId
+      ? { source_session_id: params.sourceSessionId }
+      : {}),
+    ...(params.targetSessionId
+      ? { target_session_id: params.targetSessionId }
+      : {}),
+    ...(params.copyName ? { copy_name: params.copyName } : {}),
+  })
+  if (typeof (result as { error?: unknown }).error === 'string') {
+    throw new Error(
+      (result as { error: string; message?: string }).message ??
+        (result as { error: string }).error,
+    )
+  }
+  return result as unknown as CloneGraphResult
 }
 
 // ---------------------------------------------------------------------------
