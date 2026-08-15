@@ -2,6 +2,7 @@
 
 import { Panel, useReactFlow } from '@xyflow/react'
 import { useState } from 'react'
+import { IconButton } from '@/components/common/IconButton'
 import { exportGraphAsPng, exportGraphAsSvg } from '@/shared/utils/graphExport'
 
 /**
@@ -57,38 +58,83 @@ export function ExportControls({
     >
       <div className="flex gap-1.5">
         {onRefresh && (
-          <button
-            type="button"
+          <IconButton
             onClick={onRefresh}
             disabled={isRefreshing}
-            title="Refresh graph"
-            aria-label="Refresh graph"
-            className="bg-surface-1/90 border border-border hover:bg-surface-2 text-text-secondary hover:text-text-primary w-7 h-7 flex items-center justify-center rounded shadow-lg disabled:opacity-50"
-          >
-            <span
-              className={isRefreshing ? 'inline-block animate-spin' : undefined}
-              aria-hidden="true"
-            >
-              ↻
-            </span>
-          </button>
+            label="Refresh graph"
+            icon={
+              <span
+                className={
+                  isRefreshing ? 'inline-block animate-spin' : undefined
+                }
+              >
+                ↻
+              </span>
+            }
+          />
         )}
-        <button
-          type="button"
+        <IconButton
           onClick={() => handleExport('png')}
           disabled={isExporting !== null}
-          className="bg-surface-1/90 border border-border hover:bg-surface-2 text-text-secondary hover:text-text-primary text-xs px-2.5 py-1.5 rounded shadow-lg disabled:opacity-50"
-        >
-          {isExporting === 'png' ? 'Exporting…' : 'Export PNG'}
-        </button>
-        <button
-          type="button"
+          label={isExporting === 'png' ? 'Exporting PNG…' : 'Export as PNG'}
+          icon={
+            isExporting === 'png' ? (
+              <span className="inline-block animate-spin text-xs">↻</span>
+            ) : (
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                aria-hidden="true"
+              >
+                <rect
+                  x="3"
+                  y="3"
+                  width="18"
+                  height="18"
+                  rx="2"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                />
+                <circle cx="8.5" cy="8.5" r="1.5" fill="currentColor" />
+                <path
+                  d="M21 15l-5-5L5 21"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            )
+          }
+        />
+        <IconButton
           onClick={() => handleExport('svg')}
           disabled={isExporting !== null}
-          className="bg-surface-1/90 border border-border hover:bg-surface-2 text-text-secondary hover:text-text-primary text-xs px-2.5 py-1.5 rounded shadow-lg disabled:opacity-50"
-        >
-          {isExporting === 'svg' ? 'Exporting…' : 'Export SVG'}
-        </button>
+          label={isExporting === 'svg' ? 'Exporting SVG…' : 'Export as SVG'}
+          icon={
+            isExporting === 'svg' ? (
+              <span className="inline-block animate-spin text-xs">↻</span>
+            ) : (
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                aria-hidden="true"
+              >
+                <path
+                  d="M4 16l4-8 4 8M6.5 10.5h3M14 16V8h3a2 2 0 010 4h-3M4 16h4M14 12h3"
+                  stroke="currentColor"
+                  strokeWidth="1.6"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            )
+          }
+        />
       </div>
       {exportError && (
         <div className="max-w-xs bg-danger/15 border border-danger/40 text-danger text-xs rounded px-2.5 py-1.5">

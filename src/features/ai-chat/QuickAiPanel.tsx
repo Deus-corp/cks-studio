@@ -2,6 +2,7 @@
 
 import { memo, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { IconButton } from '@/components/common/IconButton'
 import { useSessionStore } from '@/services/sessionStore'
 import { useSettingsStore } from '@/shared/stores/settingsStore'
 import type { ChatTurn } from './chatStore'
@@ -94,23 +95,38 @@ export function QuickAiPanel() {
         <span className="font-display text-[10px] font-semibold uppercase tracking-wider text-text-tertiary">
           Quick AI
         </span>
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
+        <div className="flex items-center gap-1">
+          <IconButton
             onClick={() => navigate('/chat')}
-            className="text-[10px] text-accent hover:text-accent-strong"
-          >
-            Open full Chat
-          </button>
-          <button
-            type="button"
+            label="Open full Chat"
+            size="sm"
+            className="!shadow-none !border-transparent !bg-transparent text-accent hover:!text-accent-strong hover:!bg-surface-2"
+            icon={
+              <svg
+                width="13"
+                height="13"
+                viewBox="0 0 24 24"
+                fill="none"
+                aria-hidden="true"
+              >
+                <path
+                  d="M7 17L17 7M9 7h8v8"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            }
+          />
+          <IconButton
             onClick={() => setIsOpen(false)}
-            aria-label="Close panel"
+            label="Close panel"
             title="Close"
-            className="text-text-tertiary hover:text-text-primary rounded px-1 hover:bg-surface-2"
-          >
-            ✕
-          </button>
+            size="sm"
+            className="!shadow-none !border-transparent !bg-transparent hover:!bg-surface-2"
+            icon={<span className="text-xs leading-none">✕</span>}
+          />
         </div>
       </div>
 

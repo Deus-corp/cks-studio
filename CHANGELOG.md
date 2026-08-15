@@ -6,6 +6,26 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 
 ---
 
+## [0.14.0] - 2026-08-15
+
+### Added
+- **IconButton component** – reusable icon-only button with accessible label and native tooltip.
+- **Icon toolbar in GraphPage** – New object, New relation, Cross-Graph Link, Explore Neighbourhood, Trace Inference, and Reset Graph are now compact icon buttons with tooltips.
+- **Icon toolbar in ExportControls** – Refresh, PNG export, and SVG export now use icon buttons with accessible labels and spinners for loading states.
+- **Icon focus/fullscreen in 2D/3D graph** – Focus mode and fullscreen toggles now use icon buttons; active focus state remains visually distinct.
+- **Icon actions in QuickAiPanel and WhyThisBeliefPanel** – Open full Chat and close controls are icon-only with tooltips.
+- **Icon actions in GraphGallery cards** – Preview and Clone actions are now icon buttons with tooltips.
+
+### Changed
+- Existing text-only buttons replaced by icon buttons across the most visible surfaces.
+- All icon-only buttons have `aria-label`; `title` is used as a native tooltip.
+- Tests added for `IconButton`.
+
+### Known note
+- Some existing tests may need to query by accessible name (`aria-label`) instead of visible text; update if needed.
+
+---
+
 ## [0.13.0] - 2026-08-15
 
 ### Added

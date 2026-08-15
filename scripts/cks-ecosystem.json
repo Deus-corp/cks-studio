@@ -2,7 +2,7 @@
   "_cks_format_version": "1.0",
   "_cks_metadata": {
     "cks_core_version": "1.21.0",
-    "serialized_at": "2026-08-12T16:27:34.519852+00:00"
+    "serialized_at": "2026-08-15T16:46:42.788159+00:00"
   },
   "_cks_min_reader_version": "1.13.0",
   "objects": [
@@ -27,7 +27,7 @@
       "structure": {
         "description": "Operational execution platform for Canonical Knowledge Structures",
         "role": "operational_layer",
-        "version": "v1.49.2"
+        "version": "v1.51.0"
       }
     },
     {
@@ -40,9 +40,9 @@
         "description": "MCP server exposing CKS knowledge lifecycle tools to LLMs",
         "http_env": "CKS_MCP_HTTP_PORT",
         "role": "llm_interface",
-        "tool_count": 63,
+        "tool_count": 69,
         "transports": ["stdio", "http"],
-        "version": "v1.60.0"
+        "version": "v1.66.0"
       }
     },
     {
@@ -2166,6 +2166,9 @@
           "description",
           "tags",
           "public",
+          "visibility",
+          "team",
+          "source_graph_name",
           "created_at",
           "updated_at"
         ],
@@ -4058,7 +4061,7 @@
           "Tailwind",
           "vite-plugin-pwa"
         ],
-        "version": "v0.7.0",
+        "version": "v0.13.0",
         "version_source": "package.json"
       }
     },
@@ -5939,6 +5942,448 @@
           "event-AgentStepCompleted"
         ],
         "relation_type": "emits"
+      }
+    },
+    {
+      "identity": {
+        "id": "tool-list_pipeline_runs",
+        "name": "list_pipeline_runs",
+        "type": "Tool"
+      },
+      "structure": {
+        "description": "Read-only reconstruction of ADR-007 pipeline runs for a session, grouped by run_id",
+        "group": "Version Control",
+        "since": "cks-mcp 1.66.0"
+      }
+    },
+    {
+      "identity": {
+        "id": "tool-compare_graphs",
+        "name": "compare_graphs",
+        "type": "Tool"
+      },
+      "structure": {
+        "description": "Read-only diff between two registered graphs or sessions: shared ids, unique-to-each-side ids, structural differences",
+        "group": "Memory & Persistence",
+        "since": "cks-mcp 1.65.0"
+      }
+    },
+    {
+      "identity": {
+        "id": "tool-merge_graphs",
+        "name": "merge_graphs",
+        "type": "Tool"
+      },
+      "structure": {
+        "description": "Three-way merge of two graphs into a new session, with optional common ancestor and per-object conflict resolutions",
+        "group": "Branching & Merging",
+        "since": "cks-mcp 1.65.0"
+      }
+    },
+    {
+      "identity": {
+        "id": "tool-link_graphs",
+        "name": "link_graphs",
+        "type": "Tool"
+      },
+      "structure": {
+        "description": "Creates a deterministic cross-graph relation between an object in graph A and an object in graph B",
+        "group": "Memory & Persistence",
+        "since": "cks-mcp 1.65.0"
+      }
+    },
+    {
+      "identity": {
+        "id": "tool-clone_graph",
+        "name": "clone_graph",
+        "type": "Tool"
+      },
+      "structure": {
+        "description": "Creates a new session containing a copy of an existing registered graph or session; source is never modified",
+        "group": "Memory & Persistence",
+        "since": "cks-mcp 1.62.0"
+      }
+    },
+    {
+      "identity": {
+        "id": "rel-mcp-tools-contains-list_pipeline_runs",
+        "name": "contains",
+        "type": "Relation"
+      },
+      "structure": {
+        "participants": ["mcp-tools", "tool-list_pipeline_runs"],
+        "relation_type": "contains"
+      }
+    },
+    {
+      "identity": {
+        "id": "rel-mcp-tools-contains-compare_graphs",
+        "name": "contains",
+        "type": "Relation"
+      },
+      "structure": {
+        "participants": ["mcp-tools", "tool-compare_graphs"],
+        "relation_type": "contains"
+      }
+    },
+    {
+      "identity": {
+        "id": "rel-mcp-tools-contains-merge_graphs",
+        "name": "contains",
+        "type": "Relation"
+      },
+      "structure": {
+        "participants": ["mcp-tools", "tool-merge_graphs"],
+        "relation_type": "contains"
+      }
+    },
+    {
+      "identity": {
+        "id": "rel-mcp-tools-contains-link_graphs",
+        "name": "contains",
+        "type": "Relation"
+      },
+      "structure": {
+        "participants": ["mcp-tools", "tool-link_graphs"],
+        "relation_type": "contains"
+      }
+    },
+    {
+      "identity": {
+        "id": "rel-mcp-tools-contains-clone_graph",
+        "name": "contains",
+        "type": "Relation"
+      },
+      "structure": {
+        "participants": ["mcp-tools", "tool-clone_graph"],
+        "relation_type": "contains"
+      }
+    },
+    {
+      "identity": {
+        "id": "rel-list_pipeline_runs-implements-adr007",
+        "name": "implements",
+        "type": "Relation"
+      },
+      "structure": {
+        "participants": ["tool-list_pipeline_runs", "mcp-ADR-007"],
+        "relation_type": "implements"
+      }
+    },
+    {
+      "identity": {
+        "id": "rel-compare_graphs-uses-registry",
+        "name": "uses",
+        "type": "Relation"
+      },
+      "structure": {
+        "participants": [
+          "tool-compare_graphs",
+          "runtime-storage-graph_registry"
+        ],
+        "relation_type": "uses"
+      }
+    },
+    {
+      "identity": {
+        "id": "rel-merge_graphs-uses-registry",
+        "name": "uses",
+        "type": "Relation"
+      },
+      "structure": {
+        "participants": ["tool-merge_graphs", "runtime-storage-graph_registry"],
+        "relation_type": "uses"
+      }
+    },
+    {
+      "identity": {
+        "id": "rel-link_graphs-uses-registry",
+        "name": "uses",
+        "type": "Relation"
+      },
+      "structure": {
+        "participants": ["tool-link_graphs", "runtime-storage-graph_registry"],
+        "relation_type": "uses"
+      }
+    },
+    {
+      "identity": {
+        "id": "rel-clone_graph-uses-registry",
+        "name": "uses",
+        "type": "Relation"
+      },
+      "structure": {
+        "participants": ["tool-clone_graph", "runtime-storage-graph_registry"],
+        "relation_type": "uses"
+      }
+    },
+    {
+      "identity": {
+        "id": "studio-run-history-panel",
+        "name": "RunHistoryPanel",
+        "type": "Feature"
+      },
+      "structure": {
+        "description": "Pipeline page panel listing ADR-007 pipeline runs with per-step status, timestamps, errors, dead-letter refs; backed by real list_pipeline_runs since studio 0.12.0 (mock until then)",
+        "since": "cks-studio 0.10.0"
+      }
+    },
+    {
+      "identity": {
+        "id": "studio-cross-graph-ui",
+        "name": "CrossGraphCompareMergeLink",
+        "type": "Feature"
+      },
+      "structure": {
+        "description": "Gallery Compare mode, Compare-modal Merge flow, and GraphPage Cross-Graph Link form, backed by compare_graphs, merge_graphs, link_graphs",
+        "since": "cks-studio 0.11.0"
+      }
+    },
+    {
+      "identity": {
+        "id": "studio-publish-to-gallery",
+        "name": "PublishToGallery",
+        "type": "Feature"
+      },
+      "structure": {
+        "description": "Modal on Graph page to publish current session as a registered graph with name, description, tags, visibility",
+        "since": "cks-studio 0.9.0"
+      }
+    },
+    {
+      "identity": {
+        "id": "studio-clone-graph-button",
+        "name": "CloneGraphButton",
+        "type": "Feature"
+      },
+      "structure": {
+        "description": "Gallery card button that calls clone_graph and navigates to the cloned session on the Graph page",
+        "since": "cks-studio 0.8.0"
+      }
+    },
+    {
+      "identity": {
+        "id": "rel-studio-contains-run-history-panel",
+        "name": "contains",
+        "type": "Relation"
+      },
+      "structure": {
+        "participants": ["cks-studio", "studio-run-history-panel"],
+        "relation_type": "contains"
+      }
+    },
+    {
+      "identity": {
+        "id": "rel-run-history-panel-uses-list_pipeline_runs",
+        "name": "uses",
+        "type": "Relation"
+      },
+      "structure": {
+        "participants": ["studio-run-history-panel", "tool-list_pipeline_runs"],
+        "relation_type": "uses"
+      }
+    },
+    {
+      "identity": {
+        "id": "rel-studio-contains-cross-graph-ui",
+        "name": "contains",
+        "type": "Relation"
+      },
+      "structure": {
+        "participants": ["cks-studio", "studio-cross-graph-ui"],
+        "relation_type": "contains"
+      }
+    },
+    {
+      "identity": {
+        "id": "rel-cross-graph-ui-uses-compare",
+        "name": "uses",
+        "type": "Relation"
+      },
+      "structure": {
+        "participants": ["studio-cross-graph-ui", "tool-compare_graphs"],
+        "relation_type": "uses"
+      }
+    },
+    {
+      "identity": {
+        "id": "rel-cross-graph-ui-uses-merge",
+        "name": "uses",
+        "type": "Relation"
+      },
+      "structure": {
+        "participants": ["studio-cross-graph-ui", "tool-merge_graphs"],
+        "relation_type": "uses"
+      }
+    },
+    {
+      "identity": {
+        "id": "rel-cross-graph-ui-uses-link",
+        "name": "uses",
+        "type": "Relation"
+      },
+      "structure": {
+        "participants": ["studio-cross-graph-ui", "tool-link_graphs"],
+        "relation_type": "uses"
+      }
+    },
+    {
+      "identity": {
+        "id": "rel-studio-contains-publish-to-gallery",
+        "name": "contains",
+        "type": "Relation"
+      },
+      "structure": {
+        "participants": ["cks-studio", "studio-publish-to-gallery"],
+        "relation_type": "contains"
+      }
+    },
+    {
+      "identity": {
+        "id": "rel-publish-to-gallery-uses-register_graph",
+        "name": "uses",
+        "type": "Relation"
+      },
+      "structure": {
+        "participants": ["studio-publish-to-gallery", "tool-register_graph"],
+        "relation_type": "uses"
+      }
+    },
+    {
+      "identity": {
+        "id": "rel-studio-contains-clone-graph-button",
+        "name": "contains",
+        "type": "Relation"
+      },
+      "structure": {
+        "participants": ["cks-studio", "studio-clone-graph-button"],
+        "relation_type": "contains"
+      }
+    },
+    {
+      "identity": {
+        "id": "rel-clone-graph-button-uses-clone_graph",
+        "name": "uses",
+        "type": "Relation"
+      },
+      "structure": {
+        "participants": ["studio-clone-graph-button", "tool-clone_graph"],
+        "relation_type": "uses"
+      }
+    },
+    {
+      "identity": {
+        "id": "rel-mcp-tools-contains-revert_version",
+        "name": "contains",
+        "type": "Relation"
+      },
+      "structure": {
+        "participants": ["mcp-tools", "tool-revert_version"],
+        "relation_type": "contains"
+      }
+    },
+    {
+      "identity": {
+        "id": "rel-revert_version-uses-versioning",
+        "name": "uses",
+        "type": "Relation"
+      },
+      "structure": {
+        "participants": ["tool-revert_version", "runtime-versioning"],
+        "relation_type": "uses"
+      }
+    },
+    {
+      "identity": {
+        "id": "rel-core-constraints-contains-inference-confidence-conflict",
+        "name": "contains",
+        "type": "Relation"
+      },
+      "structure": {
+        "participants": [
+          "core-constraints",
+          "constraint-inference-confidence-conflict"
+        ],
+        "relation_type": "contains"
+      }
+    },
+    {
+      "identity": {
+        "id": "rel-core-constraints-contains-stale-premise",
+        "name": "contains",
+        "type": "Relation"
+      },
+      "structure": {
+        "participants": ["core-constraints", "constraint-stale-premise"],
+        "relation_type": "contains"
+      }
+    },
+    {
+      "identity": {
+        "id": "rel-core-evolution-contains-rename-object",
+        "name": "contains",
+        "type": "Relation"
+      },
+      "structure": {
+        "participants": ["core-evolution", "operator-rename-object"],
+        "relation_type": "contains"
+      }
+    },
+    {
+      "identity": {
+        "id": "rel-core-constraints-contains-explain-inference",
+        "name": "contains",
+        "type": "Relation"
+      },
+      "structure": {
+        "participants": ["core-constraints", "query-explain-inference"],
+        "relation_type": "contains"
+      }
+    },
+    {
+      "identity": {
+        "id": "rel-explain_knowledge-uses-explain-inference",
+        "name": "uses",
+        "type": "Relation"
+      },
+      "structure": {
+        "participants": ["tool-explain_knowledge", "query-explain-inference"],
+        "relation_type": "uses"
+      }
+    },
+    {
+      "identity": {
+        "id": "cks-website",
+        "name": "cks-website",
+        "type": "Component"
+      },
+      "structure": {
+        "description": "Documentation and marketing site for the CKS ecosystem, built with Astro/Starlight; hosts docs for core, runtime, mcp, studio and an interactive demo",
+        "repo_url": "https://github.com/Deus-corp/cks-website",
+        "role": "documentation_site",
+        "version": "v0.1.6"
+      }
+    },
+    {
+      "identity": {
+        "id": "rel-website-depends-studio",
+        "name": "depends_on",
+        "type": "Relation"
+      },
+      "structure": {
+        "participants": ["cks-website", "cks-studio"],
+        "relation_type": "depends_on"
+      }
+    },
+    {
+      "identity": {
+        "id": "rel-website-depends-mcp",
+        "name": "depends_on",
+        "type": "Relation"
+      },
+      "structure": {
+        "participants": ["cks-website", "cks-mcp"],
+        "relation_type": "depends_on"
       }
     }
   ],

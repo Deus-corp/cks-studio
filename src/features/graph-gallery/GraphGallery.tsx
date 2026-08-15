@@ -3,6 +3,7 @@
 import { memo, useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { HealthIndicator } from '@/components/common/HealthIndicator'
+import { IconButton } from '@/components/common/IconButton'
 import { CompareGraphsModal } from '@/features/cross-graph/CompareGraphsModal'
 import { cloneGraph } from '@/services/mcpTools'
 import { useSessionStore } from '@/services/sessionStore'
@@ -124,13 +125,35 @@ function GraphCard({
         )}
       </div>
 
-      <button
-        type="button"
+      <IconButton
         onClick={() => setShowPreview((v) => !v)}
-        className="self-start text-[10px] text-text-tertiary hover:text-accent hover:underline"
-      >
-        {showPreview ? 'Hide preview' : 'Show preview'}
-      </button>
+        active={showPreview}
+        label={showPreview ? 'Hide preview' : 'Show preview'}
+        size="sm"
+        className="self-start !shadow-none"
+        icon={
+          <svg
+            width="13"
+            height="13"
+            viewBox="0 0 24 24"
+            fill="none"
+            aria-hidden="true"
+          >
+            <path
+              d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"
+              stroke="currentColor"
+              strokeWidth="1.6"
+            />
+            <circle
+              cx="12"
+              cy="12"
+              r="3"
+              stroke="currentColor"
+              strokeWidth="1.6"
+            />
+          </svg>
+        }
+      />
       {showPreview && <GraphPreview sessionId={graph.session_id} />}
 
       {graph.source_graph_name && (
@@ -170,15 +193,41 @@ function GraphCard({
       <div className="flex items-center justify-between mt-1 gap-2">
         <HealthBadge name={graph.name} />
         <div className="flex items-center gap-1.5">
-          <button
-            type="button"
+          <IconButton
             onClick={handleClone}
             disabled={isCloning}
+            label="Clone"
             title="Copy this graph into a new session of your own"
-            className="text-xs bg-surface-2 hover:bg-surface-3 text-text-primary px-2 py-1 rounded disabled:opacity-50"
-          >
-            {isCloning ? 'Cloning…' : 'Clone'}
-          </button>
+            className="!bg-surface-2 hover:!bg-surface-3"
+            icon={
+              isCloning ? (
+                <div className="h-3 w-3 animate-spin rounded-full border-2 border-current border-t-transparent" />
+              ) : (
+                <svg
+                  width="13"
+                  height="13"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  aria-hidden="true"
+                >
+                  <rect
+                    x="9"
+                    y="9"
+                    width="12"
+                    height="12"
+                    rx="1.5"
+                    stroke="currentColor"
+                    strokeWidth="1.6"
+                  />
+                  <path
+                    d="M6 15H4.5A1.5 1.5 0 013 13.5v-9A1.5 1.5 0 014.5 3h9A1.5 1.5 0 0115 4.5V6"
+                    stroke="currentColor"
+                    strokeWidth="1.6"
+                  />
+                </svg>
+              )
+            }
+          />
           <button
             type="button"
             onClick={handleOpen}

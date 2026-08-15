@@ -1,6 +1,7 @@
 // Copyright (c) 2026 Deus Corp. Licensed under MIT.
 
 import { useEffect, useState } from 'react'
+import { IconButton } from '@/components/common/IconButton'
 import type {
   InferencePremiseNode,
   InferenceStepNode,
@@ -176,15 +177,14 @@ export function WhyThisBeliefPanel({
             {selectedNodeLabel || selectedNodeId || '—'}
           </div>
         </div>
-        <button
-          type="button"
+        <IconButton
           onClick={() => setIsOpen(false)}
-          aria-label="Close panel"
+          label="Close panel"
           title="Close"
-          className="text-text-tertiary hover:text-text-primary shrink-0 rounded px-1.5 py-0.5 hover:bg-surface-2"
-        >
-          ✕
-        </button>
+          size="sm"
+          className="!shadow-none !border-transparent !bg-transparent hover:!bg-surface-2 shrink-0"
+          icon={<span className="text-xs leading-none">✕</span>}
+        />
       </div>
 
       <div

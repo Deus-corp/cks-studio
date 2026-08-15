@@ -27,6 +27,7 @@ import ForceGraph3D, { type ForceGraph3DInstance } from '3d-force-graph'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import * as THREE from 'three'
 import SpriteText from 'three-spritetext'
+import { IconButton } from '@/components/common/IconButton'
 import { FullscreenIcon } from '@/components/graph/FullscreenIcon'
 import { GraphEmptyState } from '@/components/graph/GraphEmptyState'
 import { GraphSearchPalette3D } from '@/components/graph/GraphSearchPalette3D'
@@ -1786,8 +1787,7 @@ export function GraphCanvas3D({
       />
 
       <div className="absolute top-3 right-3 z-10 flex items-center gap-2">
-        <button
-          type="button"
+        <IconButton
           onClick={() => {
             const next = !isFocusModeEnabled
             setIsFocusModeEnabled(next)
@@ -1797,50 +1797,43 @@ export function GraphCanvas3D({
             // exit it.
             if (!next && focusStateRef.current.active) exitFocus()
           }}
-          aria-pressed={isFocusModeEnabled}
+          active={isFocusModeEnabled}
+          label="Focus mode"
           title={
             isFocusModeEnabled
               ? 'Focus mode on — click a node to isolate its neighborhood'
               : 'Focus mode off — click a node to select and center it'
           }
-          className={`flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium backdrop-blur-sm border shadow-lg transition-colors ${
-            isFocusModeEnabled
-              ? 'bg-cyan-950/90 border-cyan-800 text-cyan-100'
-              : 'bg-surface-1/95 border-border-subtle text-text-secondary hover:text-text-primary hover:border-border'
-          }`}
-        >
-          <svg
-            width="13"
-            height="13"
-            viewBox="0 0 24 24"
-            fill="none"
-            aria-hidden="true"
-          >
-            <circle
-              cx="12"
-              cy="12"
-              r="3"
-              stroke="currentColor"
-              strokeWidth="2"
-            />
-            <path
-              d="M3 9V6a3 3 0 013-3h3M15 3h3a3 3 0 013 3v3M21 15v3a3 3 0 01-3 3h-3M9 21H6a3 3 0 01-3-3v-3"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-          Focus
-        </button>
-        <button
-          type="button"
+          icon={
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              aria-hidden="true"
+            >
+              <circle
+                cx="12"
+                cy="12"
+                r="3"
+                stroke="currentColor"
+                strokeWidth="2"
+              />
+              <path
+                d="M3 9V6a3 3 0 013-3h3M15 3h3a3 3 0 013 3v3M21 15v3a3 3 0 01-3 3h-3M9 21H6a3 3 0 01-3-3v-3"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          }
+        />
+        <IconButton
           onClick={toggleFullscreen}
-          title={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
-          className="flex items-center justify-center bg-surface-1/95 backdrop-blur-sm border border-border-subtle hover:border-border rounded-md p-1.5 text-text-secondary hover:text-text-primary shadow-lg transition-colors"
-        >
-          <FullscreenIcon isFullscreen={isFullscreen} />
-        </button>
+          label={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
+          icon={<FullscreenIcon isFullscreen={isFullscreen} />}
+        />
       </div>
 
       {nodes.length > 0 && (

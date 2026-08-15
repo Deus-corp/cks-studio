@@ -9,6 +9,7 @@ import {
 } from '@xyflow/react'
 import { useCallback, useLayoutEffect, useRef, useState } from 'react'
 import '@xyflow/react/dist/style.css'
+import { IconButton } from '@/components/common/IconButton'
 import { ExportControls } from '@/components/graph/ExportControls'
 import { FullscreenIcon } from '@/components/graph/FullscreenIcon'
 import { GraphEmptyState } from '@/components/graph/GraphEmptyState'
@@ -547,8 +548,7 @@ export function GraphCanvas({
           style={{ top: focusTop }}
           ref={focusPanelRef}
         >
-          <button
-            type="button"
+          <IconButton
             onClick={() => {
               const next = !isFocusModeEnabled
               setIsFocusModeEnabled(next)
@@ -556,41 +556,37 @@ export function GraphCanvas({
               // immediately, same as the 3D toggle.
               if (!next) setFocusedNodeId(null)
             }}
-            aria-pressed={isFocusModeEnabled}
+            active={isFocusModeEnabled}
+            label="Focus mode"
             title={
               isFocusModeEnabled
                 ? 'Focus mode on — click a node to isolate its neighborhood'
                 : 'Focus mode off — click a node to select it normally'
             }
-            className={`flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium backdrop-blur-sm border shadow-lg transition-colors ${
-              isFocusModeEnabled
-                ? 'bg-cyan-950/90 border-cyan-800 text-cyan-100'
-                : 'bg-surface-1/95 border-border-subtle text-text-secondary hover:text-text-primary hover:border-border'
-            }`}
-          >
-            <svg
-              width="13"
-              height="13"
-              viewBox="0 0 24 24"
-              fill="none"
-              aria-hidden="true"
-            >
-              <circle
-                cx="12"
-                cy="12"
-                r="3"
-                stroke="currentColor"
-                strokeWidth="2"
-              />
-              <path
-                d="M12 3v3M12 18v3M3 12h3M18 12h3"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-              />
-            </svg>
-            Focus
-          </button>
+            icon={
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                aria-hidden="true"
+              >
+                <circle
+                  cx="12"
+                  cy="12"
+                  r="3"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                />
+                <path
+                  d="M12 3v3M12 18v3M3 12h3M18 12h3"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                />
+              </svg>
+            }
+          />
         </Panel>
         {/* Zoom/fullscreen block, pushed down below the Focus toggle
          *  above -- see the measurement effect for controlsTop. */}
