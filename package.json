@@ -1,7 +1,7 @@
 {
   "name": "cks-studio",
   "private": true,
-  "version": "0.8.1",
+  "version": "0.9.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -24,6 +24,7 @@
     "@xyflow/react": "^12.11.2",
     "3d-force-graph": "^1.79.0",
     "html-to-image": "^1.11.13",
+    "mermaid": "^11.16.1",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "react-router-dom": "^7.18.2",

@@ -6,6 +6,25 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 
 ---
 
+## [0.9.0] - 2026-08-15
+
+### Added
+- **Publish to Gallery** – new `PublishToGalleryButton` modal on the Graph page side panel. Users can publish the current session as a registered graph with name, description, tags, and visibility (`private`, `team`, or `public`).
+- **Mermaid graph preview** – gallery cards now have a lazy “Show preview” toggle that renders the graph as an inline SVG using Mermaid. The library is dynamically imported, so it doesn’t bloat the main bundle.
+- **Team-scoped visibility** – gallery now supports `visibility` and `team` fields from the backend registry. A new team filter input narrows the gallery to a specific team namespace.
+- **Graph type/source lineage display** – `GraphRegistryEntry` includes `source_graph_name` for clone lineage (already partially delivered earlier; now fully integrated with cards/badges).
+
+### Changed
+- `mcpTools` client wrappers updated for `visibility`, `team`, and `visualize_graph`.
+- `galleryStore` now manages team filter and updated load/search logic.
+- `GraphGallery` UI now displays visibility/team information and previews.
+- Main bundle size reduced by code-splitting Mermaid into a separate async chunk.
+
+### Known issue
+- Tests for the new Publish button, Mermaid preview, and team filters are not yet included; they will follow in a separate patch.
+
+---
+
 ## [0.8.1] - 2026-08-15
 
 ### Added

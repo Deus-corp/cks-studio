@@ -7,6 +7,7 @@ import { cloneGraph } from '@/services/mcpTools'
 import { useSessionStore } from '@/services/sessionStore'
 import type { GraphRegistryEntry } from '@/shared/types/graph'
 import { formatDateTime } from '@/shared/utils/formatUtils'
+import { GraphPreview } from './GraphPreview'
 import { useGalleryStore } from './galleryStore'
 import {
   collectTags,
@@ -33,6 +34,7 @@ function GraphCard({ graph }: { graph: GraphRegistryEntry }) {
   const [isCloning, setIsCloning] = useState(false)
   const [cloneError, setCloneError] = useState<string | null>(null)
   const [cloneMessage, setCloneMessage] = useState<string | null>(null)
+  const [showPreview, setShowPreview] = useState(false)
 
   const handleOpen = () => {
     setSessionId(graph.session_id)
@@ -80,7 +82,24 @@ function GraphCard({ graph }: { graph: GraphRegistryEntry }) {
             Public
           </span>
         )}
+        {!graph.public && graph.visibility === 'team' && (
+          <span
+            className="text-[10px] uppercase tracking-wide text-text-secondary bg-surface-2 px-1.5 py-0.5 rounded"
+            title={graph.team ? `Team: ${graph.team}` : undefined}
+          >
+            Team{graph.team ? `: ${graph.team}` : ''}
+          </span>
+        )}
       </div>
+
+      <button
+        type="button"
+        onClick={() => setShowPreview((v) => !v)}
+        className="self-start text-[10px] text-text-tertiary hover:text-accent hover:underline"
+      >
+        {showPreview ? 'Hide preview' : 'Show preview'}
+      </button>
+      {showPreview && <GraphPreview sessionId={graph.session_id} />}
 
       {graph.source_graph_name && (
         <button
@@ -158,12 +177,14 @@ export function GraphGallery() {
     query,
     tag,
     publicOnly,
+    team,
     sortBy,
     isLoading,
     error,
     setQuery,
     setTag,
     setPublicOnly,
+    setTeam,
     setSortBy,
     load,
   } = useGalleryStore()
@@ -222,6 +243,16 @@ export function GraphGallery() {
           />
           Public only
         </label>
+        {!publicOnly && (
+          <input
+            type="text"
+            placeholder="team namespace"
+            value={team}
+            onChange={(e) => setTeam(e.target.value)}
+            title="Also show visibility='team' graphs scoped to this team, alongside public graphs"
+            className="bg-surface-2 border border-border rounded px-2 py-1 w-32 text-xs text-text-primary placeholder:text-text-tertiary"
+          />
+        )}
         <select
           value={sortBy}
           onChange={(e) => setSortBy(e.target.value as typeof sortBy)}

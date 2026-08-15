@@ -14,6 +14,10 @@ export interface GalleryState {
   query: string
   tag: string
   publicOnly: boolean
+  /** Team namespace filter (Memory Agent v3): when set and publicOnly is
+   *  false, also includes this team's visibility='team' graphs, on top
+   *  of public ones -- see list_graphs(team=...) / search_graphs(team=...). */
+  team: string
   sortBy: GallerySortOrder
   isLoading: boolean
   error: string | null
@@ -23,6 +27,7 @@ export interface GalleryState {
   setQuery: (query: string) => void
   setTag: (tag: string) => void
   setPublicOnly: (publicOnly: boolean) => void
+  setTeam: (team: string) => void
   setSortBy: (sortBy: GallerySortOrder) => void
   load: () => Promise<void>
   loadHealth: (name: string) => Promise<void>
@@ -33,6 +38,7 @@ export const useGalleryStore = create<GalleryState>((set, get) => ({
   query: '',
   tag: '',
   publicOnly: true,
+  team: '',
   sortBy: 'updated_desc',
   isLoading: false,
   error: null,
@@ -42,13 +48,18 @@ export const useGalleryStore = create<GalleryState>((set, get) => ({
   setQuery: (query) => set({ query }),
   setTag: (tag) => set({ tag }),
   setPublicOnly: (publicOnly) => set({ publicOnly }),
+  setTeam: (team) => set({ team }),
   setSortBy: (sortBy) => set({ sortBy }),
 
   load: async () => {
-    const { query, tag, publicOnly } = get()
+    const { query, tag, publicOnly, team } = get()
     set({ isLoading: true, error: null })
     try {
-      const options = { tag: tag || undefined, publicOnly }
+      const options = {
+        tag: tag || undefined,
+        publicOnly,
+        team: !publicOnly && team.trim() ? team.trim() : undefined,
+      }
       const graphs = query.trim()
         ? await searchGraphs(query.trim(), options)
         : await listGraphs(options)

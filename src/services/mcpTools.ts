@@ -127,23 +127,25 @@ export async function getFullGraph(sessionId: string): Promise<SubgraphResult> {
 // ---------------------------------------------------------------------------
 
 export async function listGraphs(
-  options: { tag?: string; publicOnly?: boolean } = {},
+  options: { tag?: string; publicOnly?: boolean; team?: string } = {},
 ): Promise<GraphRegistryEntry[]> {
   const result = await callTool('list_graphs', {
     ...(options.tag ? { tag: options.tag } : {}),
     public_only: options.publicOnly ?? false,
+    ...(options.team ? { team: options.team } : {}),
   })
   return (result.graphs as GraphRegistryEntry[] | undefined) ?? []
 }
 
 export async function searchGraphs(
   query: string,
-  options: { tag?: string; publicOnly?: boolean } = {},
+  options: { tag?: string; publicOnly?: boolean; team?: string } = {},
 ): Promise<GraphRegistryEntry[]> {
   const result = await callTool('search_graphs', {
     query,
     ...(options.tag ? { tag: options.tag } : {}),
     public_only: options.publicOnly ?? false,
+    ...(options.team ? { team: options.team } : {}),
   })
   return (result.graphs as GraphRegistryEntry[] | undefined) ?? []
 }
@@ -154,18 +156,62 @@ export async function registerGraph(params: {
   description?: string
   tags?: string
   isPublic?: boolean
-}): Promise<{ registered: boolean; name: string; public: boolean }> {
+  visibility?: 'private' | 'team' | 'public'
+  team?: string
+}): Promise<{
+  registered: boolean
+  name: string
+  public: boolean
+  visibility?: string
+  team?: string | null
+}> {
   const result = await callTool('register_graph', {
     name: params.name,
     session_id: params.sessionId,
     description: params.description ?? '',
     tags: params.tags ?? '',
     public: params.isPublic ?? false,
+    ...(params.visibility ? { visibility: params.visibility } : {}),
+    ...(params.team ? { team: params.team } : {}),
   })
   return result as unknown as {
     registered: boolean
     name: string
     public: boolean
+    visibility?: string
+    team?: string | null
+  }
+}
+
+/**
+ * Renders a session's Knowledge Structure (or subgraph) as a Mermaid
+ * diagram via visualize_graph (see cks_mcp/tools/visualize_graph/handler.py,
+ * mode='structure'). Used for the gallery's card preview -- a lightweight
+ * peek at a graph's shape without fully opening it in the canvas.
+ */
+export async function visualizeGraph(params: {
+  sessionId: string
+  seedIds?: string[]
+  depth?: number
+  maxObjects?: number
+}): Promise<{
+  mermaid: string
+  total_found_nodes: number
+  returned_nodes: number
+  is_truncated: boolean
+}> {
+  const result = await callTool('visualize_graph', {
+    session_id: params.sessionId,
+    mode: 'structure',
+    ...(params.seedIds ? { seed_ids: params.seedIds } : {}),
+    depth: params.depth ?? 1,
+    max_objects: params.maxObjects ?? 12,
+  })
+  return result as unknown as {
+    mermaid: string
+    total_found_nodes: number
+    returned_nodes: number
+    is_truncated: boolean
   }
 }
 

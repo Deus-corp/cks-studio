@@ -10,6 +10,7 @@ import { CreateRelationForm } from '@/features/graph-explorer/CreateRelationForm
 import { useGraphStore } from '@/features/graph-explorer/graphExplorerStore'
 import { StartPipelineButton } from '@/features/graph-explorer/StartPipelineButton'
 import { WhyThisBeliefPanel } from '@/features/graph-explorer/WhyThisBeliefPanel'
+import { PublishToGalleryButton } from '@/features/graph-gallery/PublishToGalleryButton'
 import { getFullGraph, querySubgraph } from '@/services/mcpTools'
 import { useSessionStore } from '@/services/sessionStore'
 import { useSessionEvents } from '@/services/useSessionEvents'
@@ -403,6 +404,7 @@ export function GraphPage() {
               Trace Inference
             </button>
             <StartPipelineButton sessionId={sessionId} />
+            <PublishToGalleryButton sessionId={sessionId} />
             <button
               type="button"
               onClick={clearHighlight}

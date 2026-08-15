@@ -51,6 +51,17 @@ export interface GraphRegistryEntry {
   updated_at: string
   public: boolean
   /**
+   * Discovery scope (Memory Agent v3 -- library/teams), replacing the
+   * public/private binary. 'private': only via get_graph by exact name.
+   * 'team': discoverable by list_graphs/search_graphs called with a
+   * matching `team`. 'public': discoverable by everyone. Falls back to
+   * 'public'/'private' (derived from `public`) on older servers that
+   * don't send this field yet.
+   */
+  visibility?: 'private' | 'team' | 'public'
+  /** The team namespace this graph is scoped to, when visibility === 'team'. */
+  team?: string | null
+  /**
    * Clone lineage (see clone_graph's copy_name + register_graph's
    * source_graph_name): the registry name this graph was forked from,
    * or undefined/null if it wasn't cloned (or was cloned from a bare
