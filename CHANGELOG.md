@@ -6,6 +6,22 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 
 ---
 
+## [0.8.0] - 2026-08-15
+
+### Added
+- **Persistent gallery storage** – the local dev MCP launcher now uses `~/.cks-mcp/cks_mcp.db` instead of `/tmp/cks-studio-dev.db`, so registered graphs survive reboots and remain in the gallery until explicitly deleted.
+- **Clone graph from Gallery** – each public graph card now has a Clone button that calls the new `clone_graph` MCP tool, sets the returned session as current, and navigates to the Graph page. Inline success/error messages are shown.
+- **Gallery tag filters** – clickable tag chips built from the union of tags across visible graphs, allowing quick filtering by tag.
+- **Gallery sorting** – sort dropdown with Most recently updated, Name A-Z, and Name Z-A (client-side).
+- **CloneGraph wrapper** – added `cloneGraph()` to `mcpTools` with snake_case argument mapping and structured error handling.
+
+### Changed
+- `GraphGallery` and `galleryStore` now manage sort order and tag filter.
+- Added utility functions `collectTags` and `sortGraphs`.
+- Added tests for clone flow, gallery filters, sorting, and utility functions.
+
+---
+
 ## [0.7.0] - 2026-08-14
 
 ### Added

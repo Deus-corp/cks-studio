@@ -1,9 +1,16 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import type { ExecutedToolCall } from '../mcpTools'
-import {
-  normalizeCompactSubgraphResponse,
-  toolCallsMutatedGraph,
-} from '../mcpTools'
+
+const { callToolMock } = vi.hoisted(() => ({
+  callToolMock: vi.fn(),
+}))
+
+vi.mock('../mcpClient', () => ({
+  callTool: callToolMock,
+}))
+
+const { normalizeCompactSubgraphResponse, toolCallsMutatedGraph, cloneGraph } =
+  await import('../mcpTools')
 
 describe('normalizeCompactSubgraphResponse', () => {
   it('unwraps nodes/edges from the real query_subgraph_tool compact_mode shape', () => {
@@ -111,5 +118,68 @@ describe('toolCallsMutatedGraph', () => {
     ]) {
       expect(toolCallsMutatedGraph([call(name)])).toBe(true)
     }
+  })
+})
+
+describe('cloneGraph', () => {
+  it('calls clone_graph with only the provided params, mapped to snake_case', async () => {
+    callToolMock.mockResolvedValueOnce({
+      session_id: 'sess-new',
+      version_id: 'v1',
+      source_session_id: 'sess-old',
+      imported_objects: 3,
+      imported_relations: 2,
+    })
+
+    const result = await cloneGraph({ graphName: 'my-graph' })
+
+    expect(callToolMock).toHaveBeenCalledWith('clone_graph', {
+      graph_name: 'my-graph',
+    })
+    expect(result.session_id).toBe('sess-new')
+    expect(result.imported_objects).toBe(3)
+  })
+
+  it('maps all optional params to their snake_case tool arguments', async () => {
+    callToolMock.mockResolvedValueOnce({
+      session_id: 'sess-new',
+      version_id: null,
+      source_session_id: 'sess-old',
+      imported_objects: 0,
+      imported_relations: 0,
+    })
+
+    await cloneGraph({
+      graphName: 'my-graph',
+      sourceSessionId: 'sess-old',
+      targetSessionId: 'sess-target',
+      copyName: 'my-graph-copy',
+    })
+
+    expect(callToolMock).toHaveBeenCalledWith('clone_graph', {
+      graph_name: 'my-graph',
+      source_session_id: 'sess-old',
+      target_session_id: 'sess-target',
+      copy_name: 'my-graph-copy',
+    })
+  })
+
+  it('throws with the message from a business-error response', async () => {
+    callToolMock.mockResolvedValueOnce({
+      error: 'not_found',
+      message: 'Graph "missing" is not registered',
+    })
+
+    await expect(cloneGraph({ graphName: 'missing' })).rejects.toThrow(
+      'Graph "missing" is not registered',
+    )
+  })
+
+  it('falls back to the error code when no message is provided', async () => {
+    callToolMock.mockResolvedValueOnce({ error: 'not_found' })
+
+    await expect(cloneGraph({ graphName: 'missing' })).rejects.toThrow(
+      'not_found',
+    )
   })
 })
