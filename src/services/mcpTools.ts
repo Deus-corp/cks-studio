@@ -1,4 +1,10 @@
 import type {
+  PipelineRun,
+  PipelineRunStatus,
+  PipelineStepName,
+  PipelineStepStatus,
+} from '@/features/pipeline-runs/types'
+import type {
   CksObject,
   CloneGraphResult,
   CompareGraphsResult,
@@ -671,6 +677,65 @@ export async function startPipeline(
     ...(mode ? { mode } : {}),
   })
   return result as unknown as StartPipelineResult
+}
+
+// ---------------------------------------------------------------------------
+// list_pipeline_runs (cks-mcp ADR-007 agent pipeline) -- backs the Run
+// History panel (see src/features/pipeline-runs/RunHistoryPanel.tsx). The
+// tool's own response uses snake_case run_id/session_id/started_at/... and
+// object_ids (see cks-mcp src/cks_mcp/tools/list_pipeline_runs/schema.py);
+// this adapter maps that onto the camelCase PipelineRun/PipelineRunStep
+// shape src/features/pipeline-runs/types.ts already defines, so the rest
+// of the feature never has to know about the wire format.
+// ---------------------------------------------------------------------------
+
+interface RawPipelineRunStep {
+  name: string
+  status: string
+  started_at: string | null
+  completed_at: string | null
+  error?: string | null
+  dead_letter_task_id?: number | null
+}
+
+interface RawPipelineRun {
+  run_id: string
+  session_id: string
+  status: string
+  started_at: string
+  updated_at: string
+  object_ids: string[]
+  steps: RawPipelineRunStep[]
+}
+
+interface ListPipelineRunsResponse {
+  runs: RawPipelineRun[]
+  count: number
+}
+
+export async function listPipelineRuns(
+  sessionId: string,
+): Promise<PipelineRun[]> {
+  const result = (await callTool('list_pipeline_runs', {
+    session_id: sessionId,
+  })) as unknown as ListPipelineRunsResponse
+
+  return (result.runs ?? []).map((run) => ({
+    runId: run.run_id,
+    sessionId: run.session_id,
+    status: run.status as PipelineRunStatus,
+    startedAt: run.started_at,
+    updatedAt: run.updated_at,
+    objectIds: run.object_ids,
+    steps: run.steps.map((step) => ({
+      name: step.name as PipelineStepName,
+      status: step.status as PipelineStepStatus,
+      startedAt: step.started_at,
+      completedAt: step.completed_at,
+      error: step.error ?? null,
+      deadLetterTaskId: step.dead_letter_task_id ?? null,
+    })),
+  }))
 }
 
 // ---------------------------------------------------------------------------

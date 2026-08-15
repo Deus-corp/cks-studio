@@ -4,17 +4,14 @@
  * Run History data model (ADR-007 pipeline: Researcher -> Synthesizer ->
  * Reviewer -> Arbiter, orchestrated by CKSAgentOrchestrator in cks-mcp).
  *
- * There is currently no MCP tool that returns this shape. `start_pipeline`
- * only returns a `run_id` + `status` at enqueue time (see startPipeline in
- * src/services/mcpTools.ts), and per-object `current_status`/`transition_log`
- * (read via getFullGraph, see pipeline-monitor/pipelineUtils.ts) describe
- * where a single *object* is in the pipeline -- not a run as a whole, and
- * they don't carry step-level timestamps/errors for a specific run_id.
- *
- * Until a `list_pipeline_runs` tool exists on the backend, this feature is
- * driven by a deterministic mock dataset (see mockRuns.ts). The component
- * layer is written against this same shape so swapping the mock loader for
- * a real MCP call is a one-line change.
+ * Backed by the `list_pipeline_runs` MCP tool (cks-mcp
+ * src/cks_mcp/tools/list_pipeline_runs) via `listPipelineRuns` in
+ * src/services/mcpTools.ts, which adapts that tool's snake_case response
+ * onto this camelCase shape -- see mockRuns.ts's `loadPipelineRuns` for
+ * the thin loader RunHistoryPanel actually calls. Note the tool's own
+ * doc comment: only Researcher/Reviewer are currently driven by
+ * start_pipeline (Milestone 1), so Synthesizer/Arbiter steps always
+ * report 'pending' until Milestone 2 wires them in too.
  */
 
 export const PIPELINE_RUN_STATUSES = [

@@ -20,9 +20,9 @@ import { stepsCompletedCount } from './types'
  * StartPipelineButton, and lets you drill into per-step status/timestamps/
  * errors for a single run.
  *
- * Backed by a deterministic mock dataset until cks-mcp exposes a
- * `list_pipeline_runs` tool -- see the TODO(backend) note in mockRuns.ts.
- * Swapping the mock loader for a real MCP call only touches `load()` below.
+ * Backed by the real `list_pipeline_runs` MCP tool via `loadPipelineRuns`
+ * (see mockRuns.ts) -- swapping the loader for a different data source
+ * only touches `load()` below.
  */
 export function RunHistoryPanel() {
   const { sessionId } = useSessionStore()

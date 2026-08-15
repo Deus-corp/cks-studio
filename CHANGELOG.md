@@ -6,6 +6,19 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 
 ---
 
+## [0.12.0] - 2026-08-15
+
+### Changed
+- **Run History uses real `list_pipeline_runs`** – replaced the deterministic mock loader with a real MCP call. `RunHistoryPanel` now displays actual ADR-007 pipeline runs, including per-step status, timestamps, errors, and dead-letter task ids.
+- **MCP wrapper `listPipelineRuns`** – added adapter in `mcpTools.ts` that maps the backend’s snake_case response to the UI’s camelCase `PipelineRun` shape.
+- **Mock removed** – `mockRuns.ts` now delegates to `listPipelineRuns(sessionId)` and `IS_MOCK_DATA = false`; no demo banner is shown when real data is available.
+- **Tests updated** – RunHistoryPanel tests now mock `listPipelineRuns` and assert that no mock badge is displayed.
+
+### Known limitation
+- The backend `list_pipeline_runs` only reconstructs runs started after `run_id` tracking was introduced; older runs without `run_id` won’t appear.
+
+---
+
 ## [0.11.0] - 2026-08-15
 
 ### Added

@@ -6,13 +6,12 @@ import { useSessionStore } from '@/services/sessionStore'
 import { RunHistoryPanel } from '../RunHistoryPanel'
 import type { PipelineRun } from '../types'
 
-const { loadPipelineRunsMock } = vi.hoisted(() => ({
-  loadPipelineRunsMock: vi.fn(),
+const { listPipelineRunsMock } = vi.hoisted(() => ({
+  listPipelineRunsMock: vi.fn(),
 }))
 
-vi.mock('../mockRuns', () => ({
-  loadPipelineRuns: loadPipelineRunsMock,
-  IS_MOCK_DATA: true,
+vi.mock('@/services/mcpTools', () => ({
+  listPipelineRuns: listPipelineRunsMock,
 }))
 
 function run(overrides: Partial<PipelineRun> = {}): PipelineRun {
@@ -65,8 +64,8 @@ afterEach(() => {
 })
 
 describe('RunHistoryPanel', () => {
-  it('renders the list of runs with the mock-data badge', async () => {
-    loadPipelineRunsMock.mockResolvedValue([run()])
+  it('renders the list of runs from listPipelineRuns, without the demo badge', async () => {
+    listPipelineRunsMock.mockResolvedValue([run()])
 
     render(<RunHistoryPanel />)
 
@@ -75,12 +74,13 @@ describe('RunHistoryPanel', () => {
     expect(screen.getByText('2 objects')).toBeInTheDocument()
     expect(screen.getByText('1/4 steps')).toBeInTheDocument()
     expect(
-      screen.getByText('Demo/mock — backend connection needed'),
-    ).toBeInTheDocument()
+      screen.queryByText('Demo/mock — backend connection needed'),
+    ).not.toBeInTheDocument()
+    expect(listPipelineRunsMock).toHaveBeenCalledWith('sess-1')
   })
 
   it('expanding a run shows per-step details including an error', async () => {
-    loadPipelineRunsMock.mockResolvedValue([run()])
+    listPipelineRunsMock.mockResolvedValue([run()])
 
     render(<RunHistoryPanel />)
 
@@ -100,7 +100,7 @@ describe('RunHistoryPanel', () => {
   })
 
   it('shows an empty state when there are no runs', async () => {
-    loadPipelineRunsMock.mockResolvedValue([])
+    listPipelineRunsMock.mockResolvedValue([])
 
     render(<RunHistoryPanel />)
 
@@ -108,7 +108,7 @@ describe('RunHistoryPanel', () => {
   })
 
   it('shows an error state when loading fails', async () => {
-    loadPipelineRunsMock.mockRejectedValue(new Error('network down'))
+    listPipelineRunsMock.mockRejectedValue(new Error('network down'))
 
     render(<RunHistoryPanel />)
 
