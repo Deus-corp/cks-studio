@@ -6,6 +6,18 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 
 ---
 
+## [0.10.0] - 2026-08-15
+
+### Added
+- **Pipeline Run History** – new `RunHistoryPanel` on the Pipeline page listing recent ADR-007 pipeline runs with status, step-level details (Researcher → Synthesizer → Reviewer → Arbiter), timestamps, errors, and dead-letter task references. Backed by a deterministic mock dataset until a `list_pipeline_runs` MCP tool exists; swapping the mock loader for a real MCP call is a one-line change.
+- **Pipeline run utilities & types** – new status enums, sorting, filtering, truncation, and step-completion helpers.
+- **Tests** – added coverage for run list rendering, expand/collapse, empty/error states, and utilities.
+
+### Known limitation
+- Run history currently uses mock data; backend integration is pending a future `list_pipeline_runs` tool.
+
+---
+
 ## [0.9.0] - 2026-08-15
 
 ### Added
