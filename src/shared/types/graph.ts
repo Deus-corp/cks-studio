@@ -50,6 +50,13 @@ export interface GraphRegistryEntry {
   created_at: string
   updated_at: string
   public: boolean
+  /**
+   * Clone lineage (see clone_graph's copy_name + register_graph's
+   * source_graph_name): the registry name this graph was forked from,
+   * or undefined/null if it wasn't cloned (or was cloned from a bare
+   * session id with no registered name).
+   */
+  source_graph_name?: string | null
 }
 
 /**

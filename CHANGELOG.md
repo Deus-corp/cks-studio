@@ -6,6 +6,18 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 
 ---
 
+## [0.8.1] - 2026-08-15
+
+### Added
+- **Forked from lineage in Gallery** – cloned graphs now show a “Forked from <source>” badge and can jump back to the original graph. The badge is clickable and triggers a gallery search for the source name.
+- **`source_graph_name` in GraphRegistryEntry** – studio type now includes clone lineage info from the backend.
+- **Tests** for lineage badge rendering and source-jump behavior.
+
+### Changed
+- `GraphGallery` now uses `source_graph_name` from registered graphs.
+
+---
+
 ## [0.8.0] - 2026-08-15
 
 ### Added

@@ -178,4 +178,41 @@ describe('GraphGallery', () => {
     // Sorting is purely client-side.
     expect(listGraphsMock).toHaveBeenCalledTimes(1)
   })
+
+  it('shows a "Forked from" badge for a cloned graph and hides it otherwise', async () => {
+    listGraphsMock.mockResolvedValue([
+      graph({ name: 'proj-a' }),
+      graph({ name: 'proj-a-fork', source_graph_name: 'proj-a' }),
+    ])
+
+    renderGallery()
+
+    await screen.findByText('Forked from proj-a', { exact: false })
+    const originalCard = (await screen.findByText('proj-a')).closest('div')
+    expect(originalCard?.textContent).not.toContain('Forked from')
+  })
+
+  it('clicking the "Forked from" badge searches for the source graph by name', async () => {
+    listGraphsMock.mockResolvedValue([
+      graph({ name: 'proj-a-fork', source_graph_name: 'proj-a' }),
+    ])
+    searchGraphsMock.mockResolvedValue([graph({ name: 'proj-a' })])
+
+    renderGallery()
+
+    const badge = await screen.findByRole('button', {
+      name: /Forked from proj-a/,
+    })
+    fireEvent.click(badge)
+
+    await waitFor(() => {
+      expect(useGalleryStore.getState().query).toBe('proj-a')
+    })
+    await waitFor(() => {
+      expect(searchGraphsMock).toHaveBeenCalledWith(
+        'proj-a',
+        expect.objectContaining({ publicOnly: true }),
+      )
+    })
+  })
 })

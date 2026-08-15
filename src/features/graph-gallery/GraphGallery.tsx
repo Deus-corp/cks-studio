@@ -29,6 +29,7 @@ function HealthBadge({ name }: { name: string }) {
 function GraphCard({ graph }: { graph: GraphRegistryEntry }) {
   const navigate = useNavigate()
   const { setSessionId } = useSessionStore()
+  const { setQuery, setTag, load } = useGalleryStore()
   const [isCloning, setIsCloning] = useState(false)
   const [cloneError, setCloneError] = useState<string | null>(null)
   const [cloneMessage, setCloneMessage] = useState<string | null>(null)
@@ -55,6 +56,16 @@ function GraphCard({ graph }: { graph: GraphRegistryEntry }) {
     }
   }
 
+  // Прыжок к графу-первоисточнику: сбрасываем тег-фильтр (он мог
+  // относиться к текущей карточке, а не к оригиналу) и ищем оригинал по
+  // точному имени, чтобы он остался единственной карточкой в списке.
+  const handleJumpToSource = () => {
+    if (!graph.source_graph_name) return
+    setTag('')
+    setQuery(graph.source_graph_name)
+    load()
+  }
+
   return (
     <div className="bg-surface-1 border border-border-subtle rounded p-3 flex flex-col gap-2">
       <div className="flex items-start justify-between gap-2">
@@ -70,6 +81,17 @@ function GraphCard({ graph }: { graph: GraphRegistryEntry }) {
           </span>
         )}
       </div>
+
+      {graph.source_graph_name && (
+        <button
+          type="button"
+          onClick={handleJumpToSource}
+          title={`Jump to the original graph "${graph.source_graph_name}"`}
+          className="self-start text-[10px] text-text-tertiary hover:text-accent hover:underline"
+        >
+          🍴 Forked from {graph.source_graph_name}
+        </button>
+      )}
 
       {graph.description && (
         <p className="text-xs text-text-secondary line-clamp-3">
