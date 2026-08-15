@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { HealthIndicator } from '@/components/common/HealthIndicator'
+import { CompareGraphsModal } from '@/features/cross-graph/CompareGraphsModal'
 import { cloneGraph } from '@/services/mcpTools'
 import { useSessionStore } from '@/services/sessionStore'
 import type { GraphRegistryEntry } from '@/shared/types/graph'
@@ -27,7 +28,17 @@ function HealthBadge({ name }: { name: string }) {
   )
 }
 
-function GraphCard({ graph }: { graph: GraphRegistryEntry }) {
+function GraphCard({
+  graph,
+  compareMode,
+  isSelected,
+  onToggleSelect,
+}: {
+  graph: GraphRegistryEntry
+  compareMode: boolean
+  isSelected: boolean
+  onToggleSelect: () => void
+}) {
   const navigate = useNavigate()
   const { setSessionId } = useSessionStore()
   const { setQuery, setTag, load } = useGalleryStore()
@@ -69,13 +80,30 @@ function GraphCard({ graph }: { graph: GraphRegistryEntry }) {
   }
 
   return (
-    <div className="bg-surface-1 border border-border-subtle rounded p-3 flex flex-col gap-2">
+    <div
+      className={`bg-surface-1 border rounded p-3 flex flex-col gap-2 ${
+        compareMode && isSelected
+          ? 'border-accent ring-1 ring-accent'
+          : 'border-border-subtle'
+      }`}
+    >
       <div className="flex items-start justify-between gap-2">
-        <div>
-          <h3 className="text-sm font-semibold text-text-primary">
-            {graph.name}
-          </h3>
-          <p className="text-xs text-text-tertiary">{graph.session_id}</p>
+        <div className="flex items-start gap-2">
+          {compareMode && (
+            <input
+              type="checkbox"
+              checked={isSelected}
+              onChange={onToggleSelect}
+              aria-label={`Select ${graph.name} for comparison`}
+              className="mt-1"
+            />
+          )}
+          <div>
+            <h3 className="text-sm font-semibold text-text-primary">
+              {graph.name}
+            </h3>
+            <p className="text-xs text-text-tertiary">{graph.session_id}</p>
+          </div>
         </div>
         {graph.public && (
           <span className="text-[10px] uppercase tracking-wide text-accent bg-accent-muted px-1.5 py-0.5 rounded">
@@ -189,6 +217,27 @@ export function GraphGallery() {
     load,
   } = useGalleryStore()
 
+  const [compareMode, setCompareMode] = useState(false)
+  const [selectedForCompare, setSelectedForCompare] = useState<string[]>([])
+  const [showCompareModal, setShowCompareModal] = useState(false)
+
+  const handleToggleCompareMode = () => {
+    setCompareMode((v) => !v)
+    setSelectedForCompare([])
+  }
+
+  const handleToggleSelect = (name: string) => {
+    setSelectedForCompare((prev) => {
+      if (prev.includes(name)) return prev.filter((n) => n !== name)
+      // Cap at 2: compare_graphs takes exactly two sides -- selecting a
+      // third drops the oldest selection rather than silently ignoring
+      // the click, so the two checkboxes shown checked always match
+      // what Compare will actually run against.
+      const next = [...prev, name]
+      return next.length > 2 ? next.slice(next.length - 2) : next
+    })
+  }
+
   // biome-ignore lint/correctness/useExhaustiveDependencies: load читает query/tag/publicOnly из своего замыкания на момент вызова
   useEffect(() => {
     load()
@@ -272,6 +321,18 @@ export function GraphGallery() {
         >
           {isLoading ? 'Loading…' : 'Search'}
         </button>
+        <button
+          type="button"
+          onClick={handleToggleCompareMode}
+          aria-pressed={compareMode}
+          className={`text-xs px-2 py-1 rounded ${
+            compareMode
+              ? 'bg-accent text-white'
+              : 'bg-surface-2 hover:bg-surface-3 text-text-primary'
+          }`}
+        >
+          {compareMode ? 'Exit compare' : 'Compare graphs'}
+        </button>
       </form>
 
       {availableTags.length > 0 && (
@@ -308,9 +369,38 @@ export function GraphGallery() {
 
       <div className="flex-1 overflow-y-auto p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 content-start">
         {sortedGraphs.map((graph) => (
-          <GraphCard key={graph.name} graph={graph} />
+          <GraphCard
+            key={graph.name}
+            graph={graph}
+            compareMode={compareMode}
+            isSelected={selectedForCompare.includes(graph.name)}
+            onToggleSelect={() => handleToggleSelect(graph.name)}
+          />
         ))}
       </div>
+
+      {compareMode && selectedForCompare.length === 2 && (
+        <div className="flex items-center justify-center gap-2 px-4 py-2 border-t border-border-subtle bg-surface-1">
+          <p className="text-xs text-text-secondary">
+            {selectedForCompare[0]} vs {selectedForCompare[1]}
+          </p>
+          <button
+            type="button"
+            onClick={() => setShowCompareModal(true)}
+            className="text-xs bg-accent hover:bg-accent-strong text-white px-3 py-1.5 rounded"
+          >
+            Compare selected
+          </button>
+        </div>
+      )}
+
+      {showCompareModal && selectedForCompare.length === 2 && (
+        <CompareGraphsModal
+          graphAName={selectedForCompare[0]}
+          graphBName={selectedForCompare[1]}
+          onClose={() => setShowCompareModal(false)}
+        />
+      )}
     </div>
   )
 }

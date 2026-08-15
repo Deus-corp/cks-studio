@@ -5,6 +5,7 @@ import { GraphSkeleton } from '@/components/graph/GraphSkeleton'
 import { TypeLegend } from '@/components/graph/TypeLegend'
 import { SidePanel } from '@/components/layout/SidePanel'
 import { QuickAiPanel } from '@/features/ai-chat/QuickAiPanel'
+import { CrossGraphLinkForm } from '@/features/cross-graph/CrossGraphLinkForm'
 import { CreateNodeForm } from '@/features/graph-explorer/CreateNodeForm'
 import { CreateRelationForm } from '@/features/graph-explorer/CreateRelationForm'
 import { useGraphStore } from '@/features/graph-explorer/graphExplorerStore'
@@ -28,7 +29,7 @@ const GraphCanvas3D = lazy(() =>
   })),
 )
 
-type CreateMode = 'none' | 'node' | 'relation'
+type CreateMode = 'none' | 'node' | 'relation' | 'link'
 
 export function GraphPage() {
   const [selectedNode, setSelectedNode] = useState<Node | null>(null)
@@ -379,6 +380,21 @@ export function GraphPage() {
             </button>
             <button
               type="button"
+              onClick={() =>
+                setCreateMode((m) => (m === 'link' ? 'none' : 'link'))
+              }
+              disabled={!sessionId.trim() || !selectedNodeId}
+              title={
+                !selectedNodeId
+                  ? 'Select an object on the canvas first'
+                  : undefined
+              }
+              className="w-full rounded bg-surface-3 px-4 py-2 text-sm font-medium text-text-primary hover:bg-border disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {createMode === 'link' ? 'Close' : 'Cross-Graph Link'}
+            </button>
+            <button
+              type="button"
               onClick={handleExplore}
               disabled={!selectedNodeId || isLoading}
               className="w-full rounded bg-surface-3 px-4 py-2 text-sm font-medium text-text-primary hover:bg-border disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
@@ -432,6 +448,18 @@ export function GraphPage() {
             <CreateRelationForm
               sessionId={sessionId}
               onCreated={() => setCreateMode('none')}
+              onCancel={() => setCreateMode('none')}
+            />
+          )}
+          {createMode === 'link' && selectedNodeId && (
+            <CrossGraphLinkForm
+              sessionId={sessionId}
+              objectId={selectedNodeId}
+              objectLabel={
+                (selectedNode?.data?.label as string | undefined) ??
+                selectedNodeId
+              }
+              onLinked={() => setCreateMode('none')}
               onCancel={() => setCreateMode('none')}
             />
           )}

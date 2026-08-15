@@ -85,6 +85,63 @@ export interface CloneGraphResult {
   message?: string
 }
 
+/** Одна запись в compare_graphs.differences (см. cks_mcp/diffing.py::field_level_diff). */
+export interface CompareGraphsDifference {
+  id: string
+  action: 'added' | 'deleted' | 'modified' | 'unchanged'
+  type?: string
+  name?: string
+  changes?: Record<string, { from: unknown; to: unknown }>
+}
+
+/** Ответ compare_graphs (см. cks_mcp/tools/compare_graphs/handler.py). Read-only. */
+export interface CompareGraphsResult {
+  graph_a: string
+  graph_b: string
+  graph_a_session_id: string
+  graph_b_session_id: string
+  shared_object_count: number
+  only_in_a_count: number
+  only_in_b_count: number
+  shared_object_ids: string[]
+  only_in_a: string[]
+  only_in_b: string[]
+  differences: CompareGraphsDifference[]
+}
+
+/** Один конфликт в merge_graphs, когда merged=false. */
+export interface MergeGraphsConflict {
+  object_id: string
+  target_diff: Record<string, unknown>
+  source_diff: Record<string, unknown>
+}
+
+/** Ответ merge_graphs (см. cks_mcp/tools/merge_graphs/handler.py) -- две
+ *  формы в одном объекте вместо discriminated union, т.к. бэкенд не всегда
+ *  шлёт merged явно (см. error-ветки типа unverified_provenance). */
+export interface MergeGraphsResult {
+  merged: boolean
+  message?: string
+  session_id?: string
+  version_id?: string
+  graph_a_session_id?: string
+  graph_b_session_id?: string
+  object_count?: number
+  dropped_relations?: string[]
+  registered_as?: string
+  conflicts?: MergeGraphsConflict[]
+  error?: string
+  details?: unknown
+}
+
+/** Ответ link_graphs (см. cks_mcp/tools/link_graphs/handler.py) при успехе. */
+export interface LinkGraphsResult {
+  linked: true
+  relation_id: string
+  graph_a_version: string
+  graph_b_version: string
+}
+
 /** Ответ check_graph_health, когда сессия доступна и посчитан скор. */
 export interface GraphHealthResult {
   name: string

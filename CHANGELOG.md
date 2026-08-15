@@ -6,6 +6,22 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 
 ---
 
+## [0.11.0] - 2026-08-15
+
+### Added
+- **Cross-graph Compare UI** – Gallery now has a Compare mode with per-card selection (capped at 2). Selecting two graphs and clicking “Compare selected” opens a modal showing shared object count, unique-to-each-side lists, and field-level differences.
+- **Cross-graph Merge UI** – from the Compare modal, users can merge the two graphs into a new session, optionally register the result under a name, and resolve conflicts by keeping all from either side. The merged session can be opened directly.
+- **Cross-graph Link form** – on GraphPage, with an object selected, a new “Cross-Graph Link” action opens a form to pick a target registered graph, target object, relation type, and optional name. Calls `link_graphs` and writes the link to both graphs.
+- **MCP client wrappers** – `compareGraphs`, `mergeGraphs`, `linkGraphs` in `mcpTools.ts` with snake_case parameter mapping and structured error handling.
+- **Types** – `CompareGraphsResult`, `MergeGraphsResult`, `LinkGraphsResult`, `CompareGraphsDifference`, `MergeGraphsConflict`.
+- **Tests** – extensive coverage for wrappers, gallery compare mode, compare modal, merge conflict flow, and cross-graph link form.
+
+### Changed
+- `GraphGallery` now supports compare mode with selection checkboxes and a floating Compare selected bar.
+- `GraphPage` SidePanel includes the Cross-Graph Link action.
+
+---
+
 ## [0.10.0] - 2026-08-15
 
 ### Added

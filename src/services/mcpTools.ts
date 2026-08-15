@@ -1,6 +1,7 @@
 import type {
   CksObject,
   CloneGraphResult,
+  CompareGraphsResult,
   EvolveOperation,
   EvolveResult,
   ExplainDiffResult,
@@ -8,7 +9,9 @@ import type {
   GraphHealthResult,
   GraphHealthUnavailable,
   GraphRegistryEntry,
+  LinkGraphsResult,
   ListVersionsResult,
+  MergeGraphsResult,
   SubgraphResult,
 } from '@/shared/types/graph'
 import { callTool } from './mcpClient'
@@ -260,6 +263,117 @@ export async function cloneGraph(params: {
     )
   }
   return result as unknown as CloneGraphResult
+}
+
+// ---------------------------------------------------------------------------
+// Cross-graph analysis: compare_graphs / merge_graphs / link_graphs
+// ---------------------------------------------------------------------------
+
+interface GraphSideParams {
+  graphName?: string
+  sessionId?: string
+}
+
+function graphSideArgs(
+  side: GraphSideParams,
+  nameField: string,
+  sessionField: string,
+): Record<string, string> {
+  return {
+    ...(side.graphName ? { [nameField]: side.graphName } : {}),
+    ...(side.sessionId ? { [sessionField]: side.sessionId } : {}),
+  }
+}
+
+/**
+ * Read-only diff of two graphs via compare_graphs (see
+ * cks_mcp/tools/compare_graphs/handler.py). Never modifies either side.
+ * Each side is identified by registry name and/or session id -- session
+ * id takes precedence server-side when both are given for the same side.
+ */
+export async function compareGraphs(params: {
+  graphA: GraphSideParams
+  graphB: GraphSideParams
+  includeRelations?: boolean
+}): Promise<CompareGraphsResult> {
+  const result = await callTool('compare_graphs', {
+    ...graphSideArgs(params.graphA, 'graph_a_name', 'graph_a_session_id'),
+    ...graphSideArgs(params.graphB, 'graph_b_name', 'graph_b_session_id'),
+    include_relations: params.includeRelations ?? true,
+  })
+  return result as unknown as CompareGraphsResult
+}
+
+/**
+ * Three-way merges two graphs into a brand-new session via merge_graphs
+ * (see cks_mcp/tools/merge_graphs/handler.py). Neither source session is
+ * ever modified. On conflict the result comes back as a normal
+ * `{merged: false, conflicts: [...]}` result rather than a thrown error --
+ * unlike cloneGraph/explainKnowledge above, callers here genuinely need to
+ * branch on `merged` (to show a conflict list with a retry path), so this
+ * does NOT re-throw on merged:false. It still throws on transport-level
+ * failures and on other business errors (e.g. `error: "invalid_resolutions"`)
+ * that have no useful in-place UI beyond an error message.
+ */
+export async function mergeGraphs(params: {
+  graphA: GraphSideParams
+  graphB: GraphSideParams
+  base?: GraphSideParams
+  resolutions?: Record<string, unknown>
+  registerAs?: string
+}): Promise<MergeGraphsResult> {
+  const result = await callTool('merge_graphs', {
+    ...graphSideArgs(params.graphA, 'graph_a_name', 'graph_a_session_id'),
+    ...graphSideArgs(params.graphB, 'graph_b_name', 'graph_b_session_id'),
+    ...(params.base
+      ? graphSideArgs(params.base, 'base_graph_name', 'base_session_id')
+      : {}),
+    ...(params.resolutions ? { resolutions: params.resolutions } : {}),
+    ...(params.registerAs ? { register_as: params.registerAs } : {}),
+  })
+  const typed = result as unknown as MergeGraphsResult
+  if (typed.merged !== true && typed.merged !== false) {
+    // error / unverified_provenance / invalid_resolutions etc. -- no
+    // conflicts array to render, so surface it the same way cloneGraph
+    // does for its business-level errors.
+    throw new Error(typed.message ?? typed.error ?? 'merge_graphs failed')
+  }
+  return typed
+}
+
+/**
+ * Creates a cross-graph relation between an object in graph A and an
+ * object in graph B via link_graphs (see
+ * cks_mcp/tools/link_graphs/handler.py). Written to BOTH source sessions.
+ * Business-level failures (object_not_found, relation_already_exists,
+ * duplicate_object_conflict, or a partial_failure after graph A's side
+ * already committed) come back as `{error, message}` rather than a
+ * thrown error -- re-thrown here for a single error path, same as
+ * cloneGraph/explainKnowledge.
+ */
+export async function linkGraphs(params: {
+  graphA: GraphSideParams
+  graphB: GraphSideParams
+  objectAId: string
+  objectBId: string
+  relationType: string
+  relationName?: string
+}): Promise<LinkGraphsResult> {
+  const result = await callTool('link_graphs', {
+    ...graphSideArgs(params.graphA, 'graph_a_name', 'graph_a_session_id'),
+    ...graphSideArgs(params.graphB, 'graph_b_name', 'graph_b_session_id'),
+    object_a_id: params.objectAId,
+    object_b_id: params.objectBId,
+    relation_type: params.relationType,
+    ...(params.relationName ? { relation_name: params.relationName } : {}),
+  })
+  if (typeof (result as { error?: unknown }).error === 'string') {
+    throw new Error(
+      (result as { error: string; message?: string }).message ??
+        (result as { error: string }).error,
+    )
+  }
+  return result as unknown as LinkGraphsResult
 }
 
 // ---------------------------------------------------------------------------

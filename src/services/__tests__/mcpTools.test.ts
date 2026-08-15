@@ -9,8 +9,14 @@ vi.mock('../mcpClient', () => ({
   callTool: callToolMock,
 }))
 
-const { normalizeCompactSubgraphResponse, toolCallsMutatedGraph, cloneGraph } =
-  await import('../mcpTools')
+const {
+  normalizeCompactSubgraphResponse,
+  toolCallsMutatedGraph,
+  cloneGraph,
+  compareGraphs,
+  mergeGraphs,
+  linkGraphs,
+} = await import('../mcpTools')
 
 describe('normalizeCompactSubgraphResponse', () => {
   it('unwraps nodes/edges from the real query_subgraph_tool compact_mode shape', () => {
@@ -181,5 +187,235 @@ describe('cloneGraph', () => {
     await expect(cloneGraph({ graphName: 'missing' })).rejects.toThrow(
       'not_found',
     )
+  })
+})
+
+describe('compareGraphs', () => {
+  it('maps both sides by name to compare_graphs, defaulting includeRelations to true', async () => {
+    callToolMock.mockResolvedValueOnce({
+      graph_a: 'graph-a',
+      graph_b: 'graph-b',
+      graph_a_session_id: 'sess-a',
+      graph_b_session_id: 'sess-b',
+      shared_object_count: 1,
+      only_in_a_count: 0,
+      only_in_b_count: 0,
+      shared_object_ids: ['obj-1'],
+      only_in_a: [],
+      only_in_b: [],
+      differences: [],
+    })
+
+    const result = await compareGraphs({
+      graphA: { graphName: 'graph-a' },
+      graphB: { graphName: 'graph-b' },
+    })
+
+    expect(callToolMock).toHaveBeenCalledWith('compare_graphs', {
+      graph_a_name: 'graph-a',
+      graph_b_name: 'graph-b',
+      include_relations: true,
+    })
+    expect(result.shared_object_count).toBe(1)
+  })
+
+  it('prefers session ids over names when both are given, per side', async () => {
+    callToolMock.mockResolvedValueOnce({
+      graph_a: 'sess-a',
+      graph_b: 'sess-b',
+      graph_a_session_id: 'sess-a',
+      graph_b_session_id: 'sess-b',
+      shared_object_count: 0,
+      only_in_a_count: 0,
+      only_in_b_count: 0,
+      shared_object_ids: [],
+      only_in_a: [],
+      only_in_b: [],
+      differences: [],
+    })
+
+    await compareGraphs({
+      graphA: { graphName: 'graph-a', sessionId: 'sess-a' },
+      graphB: { graphName: 'graph-b', sessionId: 'sess-b' },
+      includeRelations: false,
+    })
+
+    expect(callToolMock).toHaveBeenCalledWith('compare_graphs', {
+      graph_a_name: 'graph-a',
+      graph_a_session_id: 'sess-a',
+      graph_b_name: 'graph-b',
+      graph_b_session_id: 'sess-b',
+      include_relations: false,
+    })
+  })
+})
+
+describe('mergeGraphs', () => {
+  it('maps params to merge_graphs and returns the merged result as-is', async () => {
+    callToolMock.mockResolvedValueOnce({
+      merged: true,
+      session_id: 'sess-merged',
+      version_id: 'v1',
+      object_count: 5,
+    })
+
+    const result = await mergeGraphs({
+      graphA: { graphName: 'graph-a' },
+      graphB: { graphName: 'graph-b' },
+      registerAs: 'merged-graph',
+    })
+
+    expect(callToolMock).toHaveBeenCalledWith('merge_graphs', {
+      graph_a_name: 'graph-a',
+      graph_b_name: 'graph-b',
+      register_as: 'merged-graph',
+    })
+    expect(result).toEqual({
+      merged: true,
+      session_id: 'sess-merged',
+      version_id: 'v1',
+      object_count: 5,
+    })
+  })
+
+  it('passes base graph and resolutions through when provided', async () => {
+    callToolMock.mockResolvedValueOnce({ merged: true, session_id: 's1' })
+
+    await mergeGraphs({
+      graphA: { sessionId: 'sess-a' },
+      graphB: { sessionId: 'sess-b' },
+      base: { graphName: 'base-graph' },
+      resolutions: { 'obj-1': 'branch_a' },
+    })
+
+    expect(callToolMock).toHaveBeenCalledWith('merge_graphs', {
+      graph_a_session_id: 'sess-a',
+      graph_b_session_id: 'sess-b',
+      base_graph_name: 'base-graph',
+      resolutions: { 'obj-1': 'branch_a' },
+    })
+  })
+
+  it('returns the result unthrown when merged is false with conflicts', async () => {
+    callToolMock.mockResolvedValueOnce({
+      merged: false,
+      message: 'Merge conflict detected.',
+      conflicts: [{ object_id: 'obj-1', target_diff: {}, source_diff: {} }],
+    })
+
+    const result = await mergeGraphs({
+      graphA: { graphName: 'graph-a' },
+      graphB: { graphName: 'graph-b' },
+    })
+
+    expect(result.merged).toBe(false)
+    expect(result.conflicts).toHaveLength(1)
+  })
+
+  it('throws when the response has neither merged:true nor merged:false', async () => {
+    callToolMock.mockResolvedValueOnce({
+      error: 'invalid_resolutions',
+      message: "Invalid 'resolutions' entry: bad JSON",
+    })
+
+    await expect(
+      mergeGraphs({
+        graphA: { graphName: 'graph-a' },
+        graphB: { graphName: 'graph-b' },
+      }),
+    ).rejects.toThrow("Invalid 'resolutions' entry: bad JSON")
+  })
+})
+
+describe('linkGraphs', () => {
+  it('maps params to link_graphs, snake_cased, and returns the result', async () => {
+    callToolMock.mockResolvedValueOnce({
+      linked: true,
+      relation_id: 'cross-link:graph-a:obj-a:graph-b:obj-b:depends_on',
+      graph_a_version: 'va',
+      graph_b_version: 'vb',
+    })
+
+    const result = await linkGraphs({
+      graphA: { graphName: 'graph-a' },
+      graphB: { graphName: 'graph-b' },
+      objectAId: 'obj-a',
+      objectBId: 'obj-b',
+      relationType: 'depends_on',
+    })
+
+    expect(callToolMock).toHaveBeenCalledWith('link_graphs', {
+      graph_a_name: 'graph-a',
+      graph_b_name: 'graph-b',
+      object_a_id: 'obj-a',
+      object_b_id: 'obj-b',
+      relation_type: 'depends_on',
+    })
+    expect(result.linked).toBe(true)
+    expect(result.relation_id).toBe(
+      'cross-link:graph-a:obj-a:graph-b:obj-b:depends_on',
+    )
+  })
+
+  it('includes relation_name only when provided', async () => {
+    callToolMock.mockResolvedValueOnce({
+      linked: true,
+      relation_id: 'id',
+      graph_a_version: 'va',
+      graph_b_version: 'vb',
+    })
+
+    await linkGraphs({
+      graphA: { sessionId: 'sess-a' },
+      graphB: { sessionId: 'sess-b' },
+      objectAId: 'obj-a',
+      objectBId: 'obj-b',
+      relationType: 'references',
+      relationName: 'My Link',
+    })
+
+    expect(callToolMock).toHaveBeenCalledWith('link_graphs', {
+      graph_a_session_id: 'sess-a',
+      graph_b_session_id: 'sess-b',
+      object_a_id: 'obj-a',
+      object_b_id: 'obj-b',
+      relation_type: 'references',
+      relation_name: 'My Link',
+    })
+  })
+
+  it('throws with the message from a business-error response', async () => {
+    callToolMock.mockResolvedValueOnce({
+      error: 'object_not_found',
+      message: "Object 'obj-a' was not found in graph A (graph-a).",
+    })
+
+    await expect(
+      linkGraphs({
+        graphA: { graphName: 'graph-a' },
+        graphB: { graphName: 'graph-b' },
+        objectAId: 'obj-a',
+        objectBId: 'obj-b',
+        relationType: 'depends_on',
+      }),
+    ).rejects.toThrow("Object 'obj-a' was not found in graph A (graph-a).")
+  })
+
+  it('surfaces partial_failure responses via the same error path', async () => {
+    callToolMock.mockResolvedValueOnce({
+      error: 'unverified_provenance',
+      message: 'Cannot link (graph A already updated; graph B failed).',
+      partial_failure: true,
+    })
+
+    await expect(
+      linkGraphs({
+        graphA: { graphName: 'graph-a' },
+        graphB: { graphName: 'graph-b' },
+        objectAId: 'obj-a',
+        objectBId: 'obj-b',
+        relationType: 'depends_on',
+      }),
+    ).rejects.toThrow('Cannot link (graph A already updated; graph B failed).')
   })
 })
