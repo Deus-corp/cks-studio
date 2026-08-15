@@ -6,7 +6,6 @@ import { useSessionStore } from '@/services/sessionStore'
 import {
   DEFAULT_NODE_TYPE_COLOR,
   nodeTypeColor,
-  nodeTypeIcon,
 } from '@/shared/constants/nodeTypes'
 import { withAlpha } from '@/shared/utils/colorUtils'
 
@@ -97,7 +96,7 @@ export function TypeLegend() {
   }
 
   return (
-    <div className="absolute bottom-[15px] left-[15px] z-10 bg-surface-1/95 backdrop-blur-sm border border-border-subtle rounded-md px-3 py-2 text-xs text-text-secondary space-y-1.5 select-none shadow-lg min-w-[168px]">
+    <div className="absolute bottom-[15px] left-[15px] z-10 bg-surface-1/90 backdrop-blur-sm border border-border-subtle rounded-md px-3 py-2 text-xs text-text-secondary space-y-1.5 select-none shadow-lg min-w-[168px]">
       <div className="flex items-center justify-between gap-3 pb-0.5">
         <button
           type="button"
@@ -113,7 +112,7 @@ export function TypeLegend() {
             <button
               type="button"
               onClick={showAllTypes}
-              className="text-[10px] text-accent hover:text-accent-strong"
+              className="text-[10px] text-text-tertiary hover:text-text-secondary"
             >
               Show all
             </button>
@@ -190,16 +189,13 @@ export function TypeLegend() {
                 )}
               </span>
               <span
-                className="w-2 h-2 rounded-full shrink-0"
+                className="w-1.5 h-1.5 rounded-full shrink-0"
                 style={{
                   backgroundColor: color,
-                  boxShadow: `0 0 0 3px ${withAlpha(color, 0.18)}`,
+                  boxShadow: `0 0 0 3px ${withAlpha(color, 0.1)}`,
                 }}
               />
-              <span aria-hidden="true" className="text-[10px] leading-none">
-                {nodeTypeIcon(type)}
-              </span>
-              <span className="font-display text-[11px] font-medium tracking-wide text-text-primary">
+              <span className="font-display text-[11px] font-medium tracking-wide text-text-primary truncate">
                 {type}
               </span>
             </button>

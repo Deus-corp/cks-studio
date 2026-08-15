@@ -1,6 +1,7 @@
 // Copyright (c) 2026 Deus Corp. Licensed under MIT.
 
 import { useState } from 'react'
+import { IconButton } from '@/components/common/IconButton'
 import { useGraphStore } from '@/features/graph-explorer/graphExplorerStore'
 import { requestProcessStop, startPipeline } from '@/services/mcpTools'
 
@@ -85,7 +86,7 @@ export function StartPipelineButton({ sessionId }: { sessionId: string }) {
 
   return (
     <div className="space-y-1.5 min-w-0">
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-1.5">
         <button
           type="button"
           onClick={handleClick}
@@ -93,28 +94,55 @@ export function StartPipelineButton({ sessionId }: { sessionId: string }) {
           title={
             count === 0
               ? 'Select one or more nodes (Ctrl/Cmd+click) to start a pipeline'
-              : undefined
+              : `Start a pipeline run for ${count} selected object${count === 1 ? '' : 's'}`
           }
-          className="flex-1 min-w-0 rounded bg-brand px-4 py-2 text-sm font-medium text-brand-text hover:bg-brand-strong disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          className="flex-1 min-w-0 rounded bg-surface-3 border border-border-subtle px-3 py-2 text-xs font-medium text-text-primary hover:bg-border hover:border-border disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5 transition-colors"
         >
           {isStarting ? (
-            <>
-              <div className="h-4 w-4 animate-spin rounded-full border-2 border-brand-text border-t-transparent" />
-              Starting…
-            </>
+            <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-t-transparent shrink-0" />
           ) : (
-            `Start Pipeline${count > 0 ? ` (${count})` : ''}`
+            <svg
+              width="12"
+              height="12"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+              aria-hidden="true"
+              className="shrink-0"
+            >
+              <path d="M6 4.5v15l14-7.5-14-7.5z" />
+            </svg>
+          )}
+          <span className="truncate">
+            {isStarting ? 'Starting…' : 'Start Pipeline'}
+          </span>
+          {!isStarting && count > 0 && (
+            <span className="shrink-0 text-[10px] leading-none bg-surface-1 border border-border-subtle rounded-full px-1.5 py-0.5 text-text-secondary">
+              ({count})
+            </span>
           )}
         </button>
-        <button
-          type="button"
+        <IconButton
           onClick={handleStop}
           disabled={isStopping}
+          label="Stop pipeline"
           title="Request the running pipeline agent to stop"
-          className="flex-shrink-0 rounded border border-border-subtle px-3 py-2 text-sm font-medium text-text-secondary hover:text-text-primary hover:border-danger disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {isStopping ? '…' : 'Stop'}
-        </button>
+          className="!shadow-none !bg-surface-3 hover:!border-danger hover:!text-danger"
+          icon={
+            isStopping ? (
+              <div className="h-3 w-3 animate-spin rounded-full border-2 border-current border-t-transparent" />
+            ) : (
+              <svg
+                width="11"
+                height="11"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+                aria-hidden="true"
+              >
+                <rect x="5" y="5" width="14" height="14" rx="1.5" />
+              </svg>
+            )
+          }
+        />
       </div>
       {result && (
         <p

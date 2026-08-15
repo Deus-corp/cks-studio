@@ -6,6 +6,17 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 
 ---
 
+## [0.14.1] - 2026-08-15
+
+### Changed
+- **Start Pipeline button** – more compact layout with a play icon, separate count badge, and icon-only Stop button. Full label is preserved and tooltips are provided.
+- **Publish to Gallery button** – now includes a book icon and matches the compact side-panel button style.
+- **Clear Highlight button** – added an X icon and consistent border/background treatment.
+- **Type legend** – removed duplicate type icons, uses a smaller indicator dot, and truncates long type names cleanly.
+- **Minor visual consistency** – side-panel action buttons now share the same compact `surface-3` + subtle border style.
+
+---
+
 ## [0.14.0] - 2026-08-15
 
 ### Added

@@ -556,8 +556,23 @@ export function GraphPage() {
               <button
                 type="button"
                 onClick={clearHighlight}
-                className="flex-1 rounded bg-surface-3 px-4 py-2 text-xs text-text-secondary hover:text-text-primary hover:bg-border"
+                className="flex-1 rounded bg-surface-3 border border-border-subtle px-3 py-2 text-xs font-medium text-text-secondary hover:text-text-primary hover:bg-border hover:border-border flex items-center justify-center gap-1.5 transition-colors"
               >
+                <svg
+                  width="12"
+                  height="12"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  aria-hidden="true"
+                  className="shrink-0"
+                >
+                  <path
+                    d="M18 6L6 18M6 6l12 12"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                    strokeLinecap="round"
+                  />
+                </svg>
                 Clear Highlight
               </button>
               <IconButton
