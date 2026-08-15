@@ -1,6 +1,6 @@
 // Copyright (c) 2026 Deus Corp. Licensed under MIT.
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useSessionStore } from '@/services/sessionStore'
 import { IS_MOCK_DATA, loadPipelineRuns } from './mockRuns'
 import {
@@ -49,7 +49,7 @@ export function RunHistoryPanel() {
     load()
   }, [sessionId])
 
-  const sorted = sortRunsByUpdatedAt(runs)
+  const sorted = useMemo(() => sortRunsByUpdatedAt(runs), [runs])
 
   return (
     <div className="border-t border-border-subtle flex flex-col max-h-80">

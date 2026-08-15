@@ -1,9 +1,10 @@
 // Copyright (c) 2026 Deus Corp. Licensed under MIT.
 
-import { useEffect, useState } from 'react'
+import { useEffect, useId, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { compareGraphs, mergeGraphs } from '@/services/mcpTools'
 import { useSessionStore } from '@/services/sessionStore'
+import { useModalA11y } from '@/shared/hooks/useModalA11y'
 import type {
   CompareGraphsResult,
   MergeGraphsResult,
@@ -82,6 +83,8 @@ export function CompareGraphsModal({
 }: CompareGraphsModalProps) {
   const navigate = useNavigate()
   const { setSessionId } = useSessionStore()
+  const titleId = useId()
+  const dialogRef = useModalA11y<HTMLDivElement>(onClose)
 
   const [compareResult, setCompareResult] =
     useState<CompareGraphsResult | null>(null)
@@ -158,9 +161,16 @@ export function CompareGraphsModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="bg-surface-1 border border-border-subtle rounded-lg w-full max-w-2xl max-h-[85vh] flex flex-col">
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        tabIndex={-1}
+        className="bg-surface-1 border border-border-subtle rounded-lg w-full max-w-2xl max-h-[85vh] flex flex-col outline-none"
+      >
         <div className="flex items-center justify-between px-4 py-3 border-b border-border-subtle">
-          <h2 className="text-sm font-semibold text-text-primary">
+          <h2 id={titleId} className="text-sm font-semibold text-text-primary">
             Compare: {graphAName} vs {graphBName}
           </h2>
           <button

@@ -340,6 +340,129 @@ export function GraphCanvas({
     setFocusedNodeId(null)
   }, [selectNode, clearMultiSelect])
 
+  // Arrow-key spatial navigation between nodes. React Flow already makes
+  // nodes Tab-focusable and triggers onNodeClick on Enter/Space (its
+  // built-in keyboard a11y, active by default) -- what it doesn't do is
+  // move focus *between* nodes other than via Tab order (DOM/insertion
+  // order, which has no relationship to on-screen layout). This walks
+  // `displayNodesWithSelectedHighlight`'s laid-out positions to find the
+  // nearest node in the pressed arrow's direction from whichever node
+  // currently has DOM focus, and moves focus (and, via
+  // .react-flow__node's own Enter/Space handling, selection) there.
+  const handleCanvasKeyDown = useCallback(
+    (event: React.KeyboardEvent) => {
+      const key = event.key
+
+      // React Flow's own Enter/Space keydown handling (elementSelectionKeys
+      // in @xyflow/system) only flips the node's *internal* selected flag
+      // used for its arrow-key-drag feature -- it does not call the
+      // onNodeClick prop, so none of GraphCanvas's own selection/focus-mode/
+      // multi-select/relation-draft logic in handleNodeClick would ever run
+      // from the keyboard without this. Ctrl/Cmd+Enter reaches the same
+      // multi-select branch handleNodeClick already has for Ctrl/Cmd+click,
+      // since the modifier flags are forwarded through unchanged below.
+      if (key === 'Enter' || key === ' ') {
+        const activeEl = document.activeElement as HTMLElement | null
+        const nodeEl = activeEl?.closest<HTMLElement>('.react-flow__node')
+        const nodeId = nodeEl?.getAttribute('data-id')
+        const node = nodeId
+          ? displayNodesWithSelectedHighlight.find((n) => n.id === nodeId)
+          : undefined
+        if (!node) return
+        event.preventDefault()
+        handleNodeClick(event as unknown as React.MouseEvent, node)
+        return
+      }
+
+      if (
+        key !== 'ArrowUp' &&
+        key !== 'ArrowDown' &&
+        key !== 'ArrowLeft' &&
+        key !== 'ArrowRight'
+      ) {
+        return
+      }
+
+      const activeEl = document.activeElement as HTMLElement | null
+      const activeNodeEl = activeEl?.closest<HTMLElement>('.react-flow__node')
+      const currentId = activeNodeEl?.getAttribute('data-id')
+      const current = currentId
+        ? displayNodesWithSelectedHighlight.find((n) => n.id === currentId)
+        : undefined
+
+      // No node currently focused (e.g. focus just entered the canvas
+      // via Tab landing on the pane): jump to the first node rather than
+      // no-op, so arrow keys are useful the moment the canvas is
+      // entered, not just after an initial Tab-to-a-node.
+      if (!current) {
+        const first = displayNodesWithSelectedHighlight[0]
+        if (!first) return
+        event.preventDefault()
+        document
+          .querySelector<HTMLElement>(
+            `.react-flow__node[data-id="${first.id}"]`,
+          )
+          ?.focus()
+        return
+      }
+
+      const cx = current.position.x
+      const cy = current.position.y
+
+      let best: Node | null = null
+      let bestScore = Number.POSITIVE_INFINITY
+      for (const candidate of displayNodesWithSelectedHighlight) {
+        if (candidate.id === current.id) continue
+        const dx = candidate.position.x - cx
+        const dy = candidate.position.y - cy
+
+        // Only consider candidates roughly in the pressed direction (the
+        // "cone" is the primary axis's sign, with the perpendicular axis
+        // used as a tiebreaker so navigation stays sane on off-grid,
+        // dagre-laid-out graphs rather than only working on a strict
+        // grid).
+        let inDirection = false
+        let primary = 0
+        let perpendicular = 0
+        if (key === 'ArrowRight') {
+          inDirection = dx > 0
+          primary = dx
+          perpendicular = dy
+        } else if (key === 'ArrowLeft') {
+          inDirection = dx < 0
+          primary = -dx
+          perpendicular = dy
+        } else if (key === 'ArrowDown') {
+          inDirection = dy > 0
+          primary = dy
+          perpendicular = dx
+        } else {
+          inDirection = dy < 0
+          primary = -dy
+          perpendicular = dx
+        }
+        if (!inDirection) continue
+
+        // Weight perpendicular drift heavier than distance along the
+        // primary axis, so "the node roughly straight ahead" wins over
+        // "the much closer node that's actually off to the side".
+        const score = primary + Math.abs(perpendicular) * 2
+        if (score < bestScore) {
+          bestScore = score
+          best = candidate
+        }
+      }
+
+      if (best) {
+        event.preventDefault()
+        document
+          .querySelector<HTMLElement>(`.react-flow__node[data-id="${best.id}"]`)
+          ?.focus()
+      }
+    },
+    [displayNodesWithSelectedHighlight, handleNodeClick],
+  )
+
   const handleDragOver = useCallback((event: React.DragEvent) => {
     event.preventDefault()
     setIsDragOver(true)
@@ -394,6 +517,7 @@ export function GraphCanvas({
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
+      onKeyDown={handleCanvasKeyDown}
     >
       <ReactFlow
         nodes={displayNodesWithSelectedHighlight}

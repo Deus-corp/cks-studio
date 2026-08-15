@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react'
 import {
   BrowserRouter,
   Link,
@@ -7,14 +8,39 @@ import {
 } from 'react-router-dom'
 import { ErrorBoundary } from '@/components/common/ErrorBoundary'
 import { ConnectionStatus } from '@/components/mcp/ConnectionStatus'
-import { AgentsPage } from './pages/AgentsPage'
-import { ChatsPage } from './pages/ChatsPage'
-import { DeadLetterPage } from './pages/DeadLetterPage'
-import { DiffPage } from './pages/DiffPage'
-import { GalleryPage } from './pages/GalleryPage'
 import { GraphPage } from './pages/GraphPage'
-import { PipelinePage } from './pages/PipelinePage'
-import { SettingsPage } from './pages/SettingsPage'
+
+// GraphPage ("/") is the default landing route and is kept mounted for
+// the app's whole lifetime (see AppContent below), so it's imported
+// eagerly. Every other page -- and everything it pulls in (GraphGallery
+// + compare/merge UI, VersionDiff, DeadLetterPanel, RunHistoryPanel,
+// AgentsPage, ChatsPage/QuickAiPanel's full chat view, SettingsPage) --
+// is only reachable by navigating to it, so each gets its own chunk via
+// React.lazy and is fetched on first visit rather than shipping in the
+// main entry bundle.
+const PipelinePage = lazy(() =>
+  import('./pages/PipelinePage').then((m) => ({ default: m.PipelinePage })),
+)
+const GalleryPage = lazy(() =>
+  import('./pages/GalleryPage').then((m) => ({ default: m.GalleryPage })),
+)
+const DiffPage = lazy(() =>
+  import('./pages/DiffPage').then((m) => ({ default: m.DiffPage })),
+)
+const SettingsPage = lazy(() =>
+  import('./pages/SettingsPage').then((m) => ({ default: m.SettingsPage })),
+)
+const AgentsPage = lazy(() =>
+  import('./pages/AgentsPage').then((m) => ({ default: m.AgentsPage })),
+)
+const DeadLetterPage = lazy(() =>
+  import('./pages/DeadLetterPage').then((m) => ({
+    default: m.DeadLetterPage,
+  })),
+)
+const ChatsPage = lazy(() =>
+  import('./pages/ChatsPage').then((m) => ({ default: m.ChatsPage })),
+)
 
 const NAV_LINKS = [
   { to: '/', label: 'Graph', nav: 'graph' },
@@ -125,6 +151,22 @@ function NavBar() {
   )
 }
 
+/** Minimal loading state for lazy-loaded pages -- shown only for the
+ *  brief window while a route's chunk is fetched (typically already
+ *  cached after the first visit). Deliberately plain rather than
+ *  reusing GraphSkeleton, which is shaped around the graph canvas. */
+function PageLoadingFallback() {
+  return (
+    <div
+      role="status"
+      aria-live="polite"
+      className="h-full flex items-center justify-center text-text-tertiary text-sm"
+    >
+      Loading…
+    </div>
+  )
+}
+
 export function App() {
   return (
     <BrowserRouter>
@@ -179,15 +221,17 @@ export function AppContent() {
       </div>
       <div className={isGraphRoute ? 'hidden' : 'h-full'}>
         <ErrorBoundary>
-          <Routes>
-            <Route path="/pipeline" element={<PipelinePage />} />
-            <Route path="/gallery" element={<GalleryPage />} />
-            <Route path="/diff" element={<DiffPage />} />
-            <Route path="/settings" element={<SettingsPage />} />
-            <Route path="/agents" element={<AgentsPage />} />
-            <Route path="/dead-letter" element={<DeadLetterPage />} />
-            <Route path="/chat" element={<ChatsPage />} />
-          </Routes>
+          <Suspense fallback={<PageLoadingFallback />}>
+            <Routes>
+              <Route path="/pipeline" element={<PipelinePage />} />
+              <Route path="/gallery" element={<GalleryPage />} />
+              <Route path="/diff" element={<DiffPage />} />
+              <Route path="/settings" element={<SettingsPage />} />
+              <Route path="/agents" element={<AgentsPage />} />
+              <Route path="/dead-letter" element={<DeadLetterPage />} />
+              <Route path="/chat" element={<ChatsPage />} />
+            </Routes>
+          </Suspense>
         </ErrorBoundary>
       </div>
     </div>

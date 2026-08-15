@@ -1,7 +1,8 @@
 // Copyright (c) 2026 Deus Corp. Licensed under MIT.
 
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import { registerGraph } from '@/services/mcpTools'
+import { useModalA11y } from '@/shared/hooks/useModalA11y'
 
 type Visibility = 'private' | 'team' | 'public'
 
@@ -19,6 +20,8 @@ type Visibility = 'private' | 'team' | 'public'
  */
 export function PublishToGalleryButton({ sessionId }: { sessionId: string }) {
   const [isOpen, setIsOpen] = useState(false)
+  const titleId = useId()
+  const dialogRef = useModalA11y<HTMLFormElement>(() => resetAndClose(), isOpen)
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
   const [tags, setTags] = useState('')
@@ -90,7 +93,7 @@ export function PublishToGalleryButton({ sessionId }: { sessionId: string }) {
           className="fixed inset-0 z-30 flex items-center justify-center bg-surface-0/60 backdrop-blur-sm"
           role="dialog"
           aria-modal="true"
-          aria-label="Publish to Gallery"
+          aria-labelledby={titleId}
         >
           <button
             type="button"
@@ -99,10 +102,15 @@ export function PublishToGalleryButton({ sessionId }: { sessionId: string }) {
             aria-label="Close publish dialog"
           />
           <form
+            ref={dialogRef}
+            tabIndex={-1}
             onSubmit={handleSubmit}
-            className="relative z-10 w-96 bg-surface-1 border border-border-subtle rounded-lg p-4 flex flex-col gap-3 shadow-xl"
+            className="relative z-10 w-96 bg-surface-1 border border-border-subtle rounded-lg p-4 flex flex-col gap-3 shadow-xl outline-none"
           >
-            <h2 className="text-sm font-semibold text-text-primary">
+            <h2
+              id={titleId}
+              className="text-sm font-semibold text-text-primary"
+            >
               Publish to Gallery
             </h2>
             <p className="text-xs text-text-tertiary">

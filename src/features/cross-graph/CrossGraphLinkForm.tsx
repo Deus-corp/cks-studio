@@ -1,6 +1,6 @@
 // Copyright (c) 2026 Deus Corp. Licensed under MIT.
 
-import { useEffect, useState } from 'react'
+import { useEffect, useId, useState } from 'react'
 import { getFullGraph, linkGraphs, listGraphs } from '@/services/mcpTools'
 import type { GraphRegistryEntry } from '@/shared/types/graph'
 
@@ -43,6 +43,7 @@ export function CrossGraphLinkForm({
   const [isLinking, setIsLinking] = useState(false)
   const [linkError, setLinkError] = useState<string | null>(null)
   const [linkSuccess, setLinkSuccess] = useState<string | null>(null)
+  const headingId = useId()
 
   // Load the registry once on mount, so the target-graph dropdown is
   // populated without requiring the user to know a session id by heart
@@ -141,9 +142,22 @@ export function CrossGraphLinkForm({
   return (
     <form
       onSubmit={handleSubmit}
+      // This panel opens/closes in place (see createMode in GraphPage)
+      // rather than as an overlay -- it doesn't block the rest of the
+      // page, so a full focus-trap isn't warranted, but it still behaves
+      // like the other create-mode forms: Escape cancels it, same as a
+      // dialog's Escape-to-close, without requiring a mouse trip to the
+      // Cancel button.
+      onKeyDown={(e) => {
+        if (e.key === 'Escape') {
+          e.preventDefault()
+          onCancel?.()
+        }
+      }}
+      aria-labelledby={headingId}
       className="p-4 border-t border-border-subtle bg-surface-1 space-y-3"
     >
-      <h3 className="text-sm font-semibold text-text-primary">
+      <h3 id={headingId} className="text-sm font-semibold text-text-primary">
         Cross-graph link
       </h3>
       <p className="text-xs text-text-tertiary">

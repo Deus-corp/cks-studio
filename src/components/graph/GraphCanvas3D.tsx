@@ -875,6 +875,42 @@ export function GraphCanvas3D({
     )
   }, [])
 
+  // Keyboard zoom (+/- or =/-, mirroring the un-shifted "=" key that
+  // shares a physical key with "+" on most layouts) as a keyboard
+  // equivalent of the mouse-wheel zoom OrbitControls already provides.
+  // Full keyboard orbit/pan is intentionally out of scope here (see the
+  // module comment) -- 3d-force-graph's OrbitControls don't expose a
+  // simple "rotate by N degrees" call the way cameraPosition gives us a
+  // simple "move toward/away from origin" one for zoom, so replicating
+  // mouse-drag orbit behavior from the keyboard would need meaningfully
+  // more code for a feature that's a lot less central than zoom.
+  const ZOOM_STEP = 0.85
+  const handleZoomKey = useCallback((direction: 'in' | 'out') => {
+    const graph = graphRef.current
+    if (!graph) return
+    const pos = graph.cameraPosition()
+    if (!pos) return
+    const factor = direction === 'in' ? ZOOM_STEP : 1 / ZOOM_STEP
+    graph.cameraPosition({
+      x: pos.x * factor,
+      y: pos.y * factor,
+      z: pos.z * factor,
+    })
+  }, [])
+
+  const handleContainerKeyDown = useCallback(
+    (event: React.KeyboardEvent) => {
+      if (event.key === '+' || event.key === '=') {
+        event.preventDefault()
+        handleZoomKey('in')
+      } else if (event.key === '-' || event.key === '_') {
+        event.preventDefault()
+        handleZoomKey('out')
+      }
+    },
+    [handleZoomKey],
+  )
+
   // Mount/unmount the three.js scene once. Data is pushed in via
   // .graphData() in the effect below rather than recreated here, so
   // resizing the container or reacting to theme changes doesn't tear
@@ -1741,7 +1777,13 @@ export function GraphCanvas3D({
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
     >
-      <div ref={containerRef} className="w-full h-full overflow-hidden" />
+      <div
+        ref={containerRef}
+        className="w-full h-full overflow-hidden"
+        role="img"
+        aria-label="3D force-directed graph view. Use mouse or trackpad to orbit, pan, and zoom. Press plus or minus to zoom in and out. Press Cmd or Ctrl+K to search for a node."
+        onKeyDown={handleContainerKeyDown}
+      />
 
       <div className="absolute top-3 right-3 z-10 flex items-center gap-2">
         <button

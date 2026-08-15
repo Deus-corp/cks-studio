@@ -79,7 +79,7 @@ describe('AppContent — persistent GraphPage across navigation', () => {
     expect(graphPageMountCount).toBe(1)
   })
 
-  it('hides GraphPage (via the `hidden` class) rather than removing it when on another route', () => {
+  it('hides GraphPage (via the `hidden` class) rather than removing it when on another route', async () => {
     render(
       <MemoryRouter initialEntries={['/settings']}>
         <AppContent />
@@ -87,7 +87,12 @@ describe('AppContent — persistent GraphPage across navigation', () => {
     )
     const graphWrapper = screen.getByTestId('graph-page').parentElement
     expect(graphWrapper).toHaveClass('hidden')
-    expect(screen.getByTestId('settings-page')).toBeInTheDocument()
+    // SettingsPage is React.lazy-loaded (see App.tsx) -- its chunk
+    // resolves asynchronously even though it's mocked synchronously
+    // here, so the Suspense fallback ("Loading…") renders first. Assert
+    // past that instead of assuming SettingsPage is present on the
+    // first render.
+    expect(await screen.findByTestId('settings-page')).toBeInTheDocument()
   })
 
   it('shows GraphPage and hides the other-routes wrapper when on "/"', () => {

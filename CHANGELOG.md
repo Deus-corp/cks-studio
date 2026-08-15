@@ -6,6 +6,27 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 
 ---
 
+## [0.13.0] - 2026-08-15
+
+### Added
+- **Accessibility: modal focus management** – new `useModalA11y` hook shared by dialogs (CompareGraphsModal, PublishToGallery) to trap focus, handle Escape, move focus into the dialog on open, and restore focus on close.
+- **Accessibility: keyboard navigation on 2D graph** – arrow keys move focus between nodes based on spatial layout, Enter/Space selects the focused node, Ctrl/Cmd+Enter toggles multi-select, and focus ring is now visible on nodes.
+- **Accessibility: 3D keyboard zoom** – the 3D canvas is focusable with an accessible label and supports plus/minus for zooming.
+- **Accessibility: labelled dialogs** – PublishToGallery and CompareGraphsModal now use proper dialog semantics with `aria-labelledby`.
+- **Performance: route-level code-splitting** – all non-Graph pages are now `React.lazy` loaded, reducing the main entry chunk.
+- **Performance: lazy html-to-image** – PNG/SVG export utilities now dynamically import `html-to-image` only when an export is triggered.
+- **Performance: memoisation** – `GraphCard` and `MiniTurnBubble` are memoized; `RunHistoryPanel` uses `useMemo` for derived lists; `GraphGallery` uses a stable `useCallback` for compare selection.
+
+### Changed
+- `App.tsx` now lazy-loads Pipeline, Gallery, Diff, Settings, Agents, Dead Letter, and Chat pages.
+- `GraphCanvas` keyboard handling and focus styles updated.
+- `CrossGraphLinkForm` supports Escape-to-cancel and is labelled with `aria-labelledby`.
+
+### Tests
+- Added tests for keyboard navigation, modal a11y, focus trap/restore, and lazy route rendering.
+
+---
+
 ## [0.12.0] - 2026-08-15
 
 ### Changed

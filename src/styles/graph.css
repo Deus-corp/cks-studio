@@ -69,3 +69,19 @@
   filter: brightness(1.08);
   transform: translateY(-1px);
 }
+
+/* xyflow's own stylesheet sets `outline: none` on
+ * `.react-flow__node.selectable:focus-visible` (see
+ * node_modules/@xyflow/react/dist/style.css), which silently swallowed
+ * the app-wide `:focus-visible` ring from styles/index.css for every
+ * graph node -- Tab-ing through the canvas moved focus with no visible
+ * indicator at all. Restated here (after xyflow's stylesheet, which is
+ * imported above GraphCanvas's own styles) so keyboard focus on a node
+ * is visible again, using a box-shadow ring rather than outline since
+ * outline doesn't follow the node's border-radius. */
+.react-flow__node.selectable:focus-visible {
+  box-shadow:
+    0 0 0 2px var(--color-surface-0),
+    0 0 0 4px var(--color-accent);
+  z-index: 10;
+}

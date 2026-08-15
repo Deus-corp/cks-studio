@@ -1,6 +1,6 @@
 // Copyright (c) 2025 Deus Corp. Licensed under MIT.
 
-import { useEffect, useMemo, useState } from 'react'
+import { memo, useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { HealthIndicator } from '@/components/common/HealthIndicator'
 import { CompareGraphsModal } from '@/features/cross-graph/CompareGraphsModal'
@@ -37,7 +37,11 @@ function GraphCard({
   graph: GraphRegistryEntry
   compareMode: boolean
   isSelected: boolean
-  onToggleSelect: () => void
+  /** Takes the graph name rather than being pre-bound per-card, so the
+   *  gallery can pass one stable (useCallback'd) function to every card
+   *  instead of a fresh closure per card per render -- see the memo()
+   *  wrap below, which this makes actually effective. */
+  onToggleSelect: (name: string) => void
 }) {
   const navigate = useNavigate()
   const { setSessionId } = useSessionStore()
@@ -93,7 +97,7 @@ function GraphCard({
             <input
               type="checkbox"
               checked={isSelected}
-              onChange={onToggleSelect}
+              onChange={() => onToggleSelect(graph.name)}
               aria-label={`Select ${graph.name} for comparison`}
               className="mt-1"
             />
@@ -193,6 +197,17 @@ function GraphCard({
   )
 }
 
+// Re-renders only when this card's own props actually change -- without
+// this, every keystroke in the gallery's search/tag inputs (GraphGallery
+// re-rendering) re-rendered every visible GraphCard too, even though
+// only `graphs`/`sortedGraphs` changing (a real data update) should
+// affect card contents. `graph` itself is a fresh object per store
+// update even when unrelated fields changed elsewhere in the gallery
+// state, so this is a plain re-render-avoidance memo, not a deep-equal
+// one -- it still re-renders whenever this card's own `graph` reference
+// changes (i.e. whenever this graph's data actually changed).
+const MemoizedGraphCard = memo(GraphCard)
+
 /**
  * Graph Gallery (Memory Agent v1/v2): просмотр графов, зарегистрированных
  * через register_graph. По умолчанию показывает только public=true графы
@@ -226,7 +241,7 @@ export function GraphGallery() {
     setSelectedForCompare([])
   }
 
-  const handleToggleSelect = (name: string) => {
+  const handleToggleSelect = useCallback((name: string) => {
     setSelectedForCompare((prev) => {
       if (prev.includes(name)) return prev.filter((n) => n !== name)
       // Cap at 2: compare_graphs takes exactly two sides -- selecting a
@@ -236,7 +251,7 @@ export function GraphGallery() {
       const next = [...prev, name]
       return next.length > 2 ? next.slice(next.length - 2) : next
     })
-  }
+  }, [])
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: load читает query/tag/publicOnly из своего замыкания на момент вызова
   useEffect(() => {
@@ -369,12 +384,12 @@ export function GraphGallery() {
 
       <div className="flex-1 overflow-y-auto p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 content-start">
         {sortedGraphs.map((graph) => (
-          <GraphCard
+          <MemoizedGraphCard
             key={graph.name}
             graph={graph}
             compareMode={compareMode}
             isSelected={selectedForCompare.includes(graph.name)}
-            onToggleSelect={() => handleToggleSelect(graph.name)}
+            onToggleSelect={handleToggleSelect}
           />
         ))}
       </div>

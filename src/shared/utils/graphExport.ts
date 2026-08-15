@@ -2,7 +2,15 @@
 
 import type { Node } from '@xyflow/react'
 import { getNodesBounds, getViewportForBounds } from '@xyflow/react'
-import { toPng, toSvg } from 'html-to-image'
+
+// html-to-image is only needed when the user actually triggers a PNG/SVG
+// export, but GraphPage (which imports exportGraphAsPng/exportGraphAsSvg
+// transitively) is mounted for the entire lifetime of the app -- see
+// App.tsx's AppContent comment. A static import here would put the whole
+// library in the main entry chunk for every visit, even sessions that
+// never export anything. Dynamic-importing it inside each export
+// function (cached by the browser/bundler after the first call) keeps
+// it in its own chunk, loaded only on first actual export click.
 
 /**
  * Экспортирует текущий граф в PNG/SVG.
@@ -134,6 +142,7 @@ function downloadDataUrl(dataUrl: string, fileName: string): void {
 }
 
 export async function exportGraphAsPng(options: ExportOptions): Promise<void> {
+  const { toPng } = await import('html-to-image')
   const { backgroundColor = '#111827' } = options
   const dataUrl = await withFramedViewport(
     options,
@@ -153,6 +162,7 @@ export async function exportGraphAsPng(options: ExportOptions): Promise<void> {
 }
 
 export async function exportGraphAsSvg(options: ExportOptions): Promise<void> {
+  const { toSvg } = await import('html-to-image')
   const { backgroundColor = '#111827' } = options
   const dataUrl = await withFramedViewport(
     options,

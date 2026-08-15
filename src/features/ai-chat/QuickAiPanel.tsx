@@ -1,6 +1,6 @@
 // Copyright (c) 2026 Deus Corp. Licensed under MIT.
 
-import { useState } from 'react'
+import { memo, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useSessionStore } from '@/services/sessionStore'
 import { useSettingsStore } from '@/shared/stores/settingsStore'
@@ -28,6 +28,7 @@ function MiniTurnBubble({ turn }: { turn: ChatTurn }) {
     </div>
   )
 }
+const MemoizedMiniTurnBubble = memo(MiniTurnBubble)
 
 /**
  * Compact chat panel for quick questions from the Graph page, without
@@ -51,7 +52,7 @@ export function QuickAiPanel() {
   const navigate = useNavigate()
 
   const hasSession = Boolean(sessionId.trim())
-  const visibleTurns = turns.slice(-VISIBLE_TURN_COUNT)
+  const visibleTurns = useMemo(() => turns.slice(-VISIBLE_TURN_COUNT), [turns])
 
   const handleSend = () => {
     const text = input.trim()
@@ -130,7 +131,7 @@ export function QuickAiPanel() {
             )}
             {visibleTurns.map((turn, i) => (
               // biome-ignore lint/suspicious/noArrayIndexKey: turns have no stable id
-              <MiniTurnBubble key={i} turn={turn} />
+              <MemoizedMiniTurnBubble key={i} turn={turn} />
             ))}
             {isSending && (
               <div className="flex justify-start">
