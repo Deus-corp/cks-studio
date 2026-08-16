@@ -5,9 +5,9 @@ import { useNavigate } from 'react-router-dom'
 import { HealthIndicator } from '@/components/common/HealthIndicator'
 import { IconButton } from '@/components/common/IconButton'
 import { CompareGraphsModal } from '@/features/cross-graph/CompareGraphsModal'
-import { cloneGraph } from '@/services/mcpTools'
+import { cloneGraph, updateGraphLifecycle } from '@/services/mcpTools'
 import { useSessionStore } from '@/services/sessionStore'
-import type { GraphRegistryEntry } from '@/shared/types/graph'
+import type { GraphRegistryEntry, LifecycleState } from '@/shared/types/graph'
 import { formatDateTime } from '@/shared/utils/formatUtils'
 import { GraphPreview } from './GraphPreview'
 import { useGalleryStore } from './galleryStore'
@@ -17,6 +17,119 @@ import {
   SORT_OPTIONS,
   sortGraphs,
 } from './galleryUtils'
+
+// Color coding for each lifecycle state, mirrored from the spec:
+// draft: gray, published: blue, active: green, stale: amber,
+// under_review: purple, archived: red/gray.
+const LIFECYCLE_COLORS: Record<LifecycleState, string> = {
+  draft: 'text-text-secondary bg-surface-2',
+  published: 'text-blue-600 dark:text-blue-400 bg-blue-500/10',
+  active: 'text-success bg-success/10',
+  stale: 'text-amber-600 dark:text-amber-400 bg-amber-500/10',
+  under_review: 'text-purple-600 dark:text-purple-400 bg-purple-500/10',
+  archived: 'text-danger bg-danger/10',
+}
+
+const LIFECYCLE_LABELS: Record<LifecycleState, string> = {
+  draft: 'Draft',
+  published: 'Published',
+  active: 'Active',
+  stale: 'Stale',
+  under_review: 'Under review',
+  archived: 'Archived',
+}
+
+// Mirrors cks_mcp/tools/update_graph_lifecycle/handler.py's
+// ALLOWED_TRANSITIONS -- kept in sync manually since this is a UI
+// convenience (which options to offer) rather than the source of
+// truth; the server re-validates every request regardless.
+const ALLOWED_LIFECYCLE_TRANSITIONS: Record<LifecycleState, LifecycleState[]> =
+  {
+    draft: ['published', 'archived'],
+    published: ['active', 'under_review', 'archived'],
+    active: ['stale', 'under_review', 'archived'],
+    stale: ['under_review', 'active', 'archived'],
+    under_review: ['active', 'published', 'archived'],
+    archived: [],
+  }
+
+/** Same default the server applies when lifecycle_state is absent
+ *  (older graph, or a server predating this field). */
+function resolveLifecycleState(graph: GraphRegistryEntry): LifecycleState {
+  if (graph.lifecycle_state) return graph.lifecycle_state
+  return graph.public ? 'published' : 'draft'
+}
+
+function LifecycleBadge({
+  graph,
+  onChanged,
+}: {
+  graph: GraphRegistryEntry
+  onChanged: () => void
+}) {
+  const currentState = resolveLifecycleState(graph)
+  const [isOpen, setIsOpen] = useState(false)
+  const [isUpdating, setIsUpdating] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const options = ALLOWED_LIFECYCLE_TRANSITIONS[currentState]
+
+  const handleTransition = async (state: LifecycleState) => {
+    setIsOpen(false)
+    setIsUpdating(true)
+    setError(null)
+    try {
+      const result = await updateGraphLifecycle({ name: graph.name, state })
+      if ('error' in result) {
+        setError(result.message)
+      } else {
+        onChanged()
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Unknown error')
+    } finally {
+      setIsUpdating(false)
+    }
+  }
+
+  return (
+    <div className="relative inline-flex flex-col items-start gap-0.5">
+      <button
+        type="button"
+        onClick={() => options.length > 0 && setIsOpen((v) => !v)}
+        disabled={isUpdating || options.length === 0}
+        title={
+          options.length > 0
+            ? 'Change lifecycle state'
+            : 'This is a terminal lifecycle state'
+        }
+        className={`text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded ${LIFECYCLE_COLORS[currentState]} ${
+          options.length > 0
+            ? 'cursor-pointer hover:opacity-80'
+            : 'cursor-default'
+        }`}
+      >
+        {isUpdating ? 'Updating…' : LIFECYCLE_LABELS[currentState]}
+      </button>
+
+      {isOpen && options.length > 0 && (
+        <div className="absolute top-full left-0 mt-1 z-10 bg-surface-1 border border-border-subtle rounded shadow-lg py-1 min-w-[9rem]">
+          {options.map((state) => (
+            <button
+              key={state}
+              type="button"
+              onClick={() => handleTransition(state)}
+              className="w-full text-left text-xs px-2 py-1 hover:bg-surface-2 text-text-primary"
+            >
+              {LIFECYCLE_LABELS[state]}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {error && <p className="text-[10px] text-danger">{error}</p>}
+    </div>
+  )
+}
 
 function HealthBadge({ name }: { name: string }) {
   const { health, healthLoading, loadHealth } = useGalleryStore()
@@ -110,19 +223,24 @@ function GraphCard({
             <p className="text-xs text-text-tertiary">{graph.session_id}</p>
           </div>
         </div>
-        {graph.public && (
-          <span className="text-[10px] uppercase tracking-wide text-accent bg-accent-muted px-1.5 py-0.5 rounded">
-            Public
-          </span>
-        )}
-        {!graph.public && graph.visibility === 'team' && (
-          <span
-            className="text-[10px] uppercase tracking-wide text-text-secondary bg-surface-2 px-1.5 py-0.5 rounded"
-            title={graph.team ? `Team: ${graph.team}` : undefined}
-          >
-            Team{graph.team ? `: ${graph.team}` : ''}
-          </span>
-        )}
+        <div className="flex flex-col items-end gap-1">
+          <LifecycleBadge graph={graph} onChanged={load} />
+          <div className="flex items-center gap-1">
+            {graph.public && (
+              <span className="text-[10px] uppercase tracking-wide text-accent bg-accent-muted px-1.5 py-0.5 rounded">
+                Public
+              </span>
+            )}
+            {!graph.public && graph.visibility === 'team' && (
+              <span
+                className="text-[10px] uppercase tracking-wide text-text-secondary bg-surface-2 px-1.5 py-0.5 rounded"
+                title={graph.team ? `Team: ${graph.team}` : undefined}
+              >
+                Team{graph.team ? `: ${graph.team}` : ''}
+              </span>
+            )}
+          </div>
+        </div>
       </div>
 
       <IconButton

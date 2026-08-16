@@ -33,6 +33,7 @@ const {
   cloneGraphMock,
   compareGraphsMock,
   mergeGraphsMock,
+  updateGraphLifecycleMock,
 } = vi.hoisted(() => ({
   listGraphsMock: vi.fn(),
   searchGraphsMock: vi.fn(),
@@ -40,6 +41,7 @@ const {
   cloneGraphMock: vi.fn(),
   compareGraphsMock: vi.fn(),
   mergeGraphsMock: vi.fn(),
+  updateGraphLifecycleMock: vi.fn(),
 }))
 
 vi.mock('@/services/mcpTools', () => ({
@@ -49,6 +51,7 @@ vi.mock('@/services/mcpTools', () => ({
   cloneGraph: cloneGraphMock,
   compareGraphs: compareGraphsMock,
   mergeGraphs: mergeGraphsMock,
+  updateGraphLifecycle: updateGraphLifecycleMock,
 }))
 
 function graph(

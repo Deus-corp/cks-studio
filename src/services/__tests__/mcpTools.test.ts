@@ -16,6 +16,7 @@ const {
   compareGraphs,
   mergeGraphs,
   linkGraphs,
+  updateGraphLifecycle,
 } = await import('../mcpTools')
 
 describe('normalizeCompactSubgraphResponse', () => {
@@ -417,5 +418,76 @@ describe('linkGraphs', () => {
         relationType: 'depends_on',
       }),
     ).rejects.toThrow('Cannot link (graph A already updated; graph B failed).')
+  })
+})
+
+describe('updateGraphLifecycle', () => {
+  it('calls update_graph_lifecycle with name/state and returns a success result', async () => {
+    callToolMock.mockResolvedValueOnce({
+      updated: true,
+      name: 'my-graph',
+      previous_state: 'draft',
+      new_state: 'published',
+    })
+
+    const result = await updateGraphLifecycle({
+      name: 'my-graph',
+      state: 'published',
+    })
+
+    expect(callToolMock).toHaveBeenCalledWith('update_graph_lifecycle', {
+      name: 'my-graph',
+      state: 'published',
+    })
+    expect(result).toEqual({
+      updated: true,
+      name: 'my-graph',
+      previous_state: 'draft',
+      new_state: 'published',
+    })
+  })
+
+  it('returns the no-op shape without throwing when already in the requested state', async () => {
+    callToolMock.mockResolvedValueOnce({
+      updated: false,
+      reason: 'already in requested state',
+      name: 'my-graph',
+      previous_state: 'active',
+      new_state: 'active',
+    })
+
+    const result = await updateGraphLifecycle({
+      name: 'my-graph',
+      state: 'active',
+    })
+
+    expect('error' in result).toBe(false)
+    if (!('error' in result)) {
+      expect(result.updated).toBe(false)
+      if (!result.updated) {
+        expect(result.reason).toBe('already in requested state')
+      }
+    }
+  })
+
+  it('returns the structured error shape without throwing on a disallowed transition', async () => {
+    callToolMock.mockResolvedValueOnce({
+      error: 'invalid_state_transition',
+      message: "Graph 'my-graph' cannot transition from 'draft' to 'active'.",
+      name: 'my-graph',
+      previous_state: 'draft',
+      requested_state: 'active',
+      allowed: ['published', 'archived'],
+    })
+
+    const result = await updateGraphLifecycle({
+      name: 'my-graph',
+      state: 'active',
+    })
+
+    expect('error' in result && result.error).toBe('invalid_state_transition')
+    if ('allowed' in result) {
+      expect(result.allowed).toEqual(['published', 'archived'])
+    }
   })
 })

@@ -68,7 +68,24 @@ export interface GraphRegistryEntry {
    * session id with no registered name).
    */
   source_graph_name?: string | null
+  /**
+   * Graph Lifecycle (first slice): one of 'draft', 'published',
+   * 'active', 'stale', 'under_review', 'archived'. See
+   * cks_mcp/tools/update_graph_lifecycle for the allowed-transition
+   * map. Falls back to 'draft' (or 'published' when `public`) on
+   * older servers that don't send this field yet.
+   */
+  lifecycle_state?: LifecycleState
 }
+
+/** Graph Lifecycle states, see `GraphRegistryEntry.lifecycle_state`. */
+export type LifecycleState =
+  | 'draft'
+  | 'published'
+  | 'active'
+  | 'stale'
+  | 'under_review'
+  | 'archived'
 
 /**
  * Ответ clone_graph (см. cks_mcp/tools/clone_graph/handler.py). session_id

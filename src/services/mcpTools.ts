@@ -15,6 +15,7 @@ import type {
   GraphHealthResult,
   GraphHealthUnavailable,
   GraphRegistryEntry,
+  LifecycleState,
   LinkGraphsResult,
   ListVersionsResult,
   MergeGraphsResult,
@@ -190,6 +191,63 @@ export async function registerGraph(params: {
     visibility?: string
     team?: string | null
   }
+}
+
+/** Success shape returned by update_graph_lifecycle on a real transition. */
+export interface UpdateGraphLifecycleResult {
+  updated: true
+  name: string
+  previous_state: LifecycleState
+  new_state: LifecycleState
+}
+
+/**
+ * Non-error, no-op shape: the graph was already in the requested
+ * state, so nothing changed.
+ */
+export interface UpdateGraphLifecycleNoop {
+  updated: false
+  reason: string
+  name: string
+  previous_state: LifecycleState
+  new_state: LifecycleState
+}
+
+/**
+ * Error shape returned when the requested transition isn't in the
+ * allowed-transition map (see cks_mcp/tools/update_graph_lifecycle/handler.py).
+ */
+export interface UpdateGraphLifecycleError {
+  error: string
+  message: string
+  name: string
+  previous_state?: LifecycleState
+  requested_state?: LifecycleState
+  allowed?: LifecycleState[]
+}
+
+/**
+ * Transitions a registered graph's lifecycle_state via the
+ * update_graph_lifecycle MCP tool. Only registered graphs have a
+ * lifecycle state -- calling this for an unregistered name returns
+ * the 'graph_not_found' error shape.
+ */
+export async function updateGraphLifecycle(params: {
+  name: string
+  state: LifecycleState
+}): Promise<
+  | UpdateGraphLifecycleResult
+  | UpdateGraphLifecycleNoop
+  | UpdateGraphLifecycleError
+> {
+  const result = await callTool('update_graph_lifecycle', {
+    name: params.name,
+    state: params.state,
+  })
+  return result as unknown as
+    | UpdateGraphLifecycleResult
+    | UpdateGraphLifecycleNoop
+    | UpdateGraphLifecycleError
 }
 
 /**

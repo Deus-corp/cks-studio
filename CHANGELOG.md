@@ -6,6 +6,22 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 
 ---
 
+## [0.15.0] - 2026-08-16
+
+### Added
+- **Graph Lifecycle UI** – gallery cards now show a color-coded lifecycle badge (`draft`, `published`, `active`, `stale`, `under_review`, `archived`).
+- **Lifecycle transition dropdown** – clicking the badge opens a menu offering only the allowed next states; selecting one calls `update_graph_lifecycle`, reloads the gallery, and shows inline errors on failure.
+- **MCP wrapper `updateGraphLifecycle`** – typed client for the new backend tool, returning discriminated success/noop/error shapes instead of throwing.
+
+### Changed
+- `GraphRegistryEntry` now includes `lifecycle_state` and a `LifecycleState` union type.
+- `GraphGallery` renders lifecycle badges and handles team/public badges more consistently.
+
+### Tests
+- Added wrapper tests and UI tests for lifecycle badge, transition flow, terminal `archived`, and inline error display.
+
+---
+
 ## [0.14.1] - 2026-08-15
 
 ### Changed

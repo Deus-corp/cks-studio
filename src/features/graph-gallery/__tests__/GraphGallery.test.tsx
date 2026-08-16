@@ -31,11 +31,13 @@ const {
   searchGraphsMock,
   checkGraphHealthMock,
   cloneGraphMock,
+  updateGraphLifecycleMock,
 } = vi.hoisted(() => ({
   listGraphsMock: vi.fn(),
   searchGraphsMock: vi.fn(),
   checkGraphHealthMock: vi.fn(),
   cloneGraphMock: vi.fn(),
+  updateGraphLifecycleMock: vi.fn(),
 }))
 
 vi.mock('@/services/mcpTools', () => ({
@@ -43,6 +45,7 @@ vi.mock('@/services/mcpTools', () => ({
   searchGraphs: searchGraphsMock,
   checkGraphHealth: checkGraphHealthMock,
   cloneGraph: cloneGraphMock,
+  updateGraphLifecycle: updateGraphLifecycleMock,
 }))
 
 function graph(
@@ -214,5 +217,101 @@ describe('GraphGallery', () => {
         expect.objectContaining({ publicOnly: true }),
       )
     })
+  })
+
+  it('shows the lifecycle badge with the correct default label per graph', async () => {
+    listGraphsMock.mockResolvedValue([
+      graph({ name: 'draft-graph', public: false, lifecycle_state: undefined }),
+      graph({
+        name: 'published-graph',
+        public: true,
+        lifecycle_state: undefined,
+      }),
+      graph({ name: 'active-graph', lifecycle_state: 'active' }),
+    ])
+
+    renderGallery()
+
+    await screen.findByText('Draft')
+    await screen.findByText('Published')
+    await screen.findByText('Active')
+  })
+
+  it('opens the transition menu and calls updateGraphLifecycle, then reloads the gallery', async () => {
+    listGraphsMock.mockResolvedValue([
+      graph({ name: 'graph-a', lifecycle_state: 'draft' }),
+    ])
+    updateGraphLifecycleMock.mockResolvedValue({
+      updated: true,
+      name: 'graph-a',
+      previous_state: 'draft',
+      new_state: 'published',
+    })
+
+    renderGallery()
+
+    const badge = await screen.findByRole('button', { name: 'Draft' })
+    fireEvent.click(badge)
+
+    const publishedOption = await screen.findByRole('button', {
+      name: 'Published',
+    })
+    fireEvent.click(publishedOption)
+
+    await waitFor(() => {
+      expect(updateGraphLifecycleMock).toHaveBeenCalledWith({
+        name: 'graph-a',
+        state: 'published',
+      })
+    })
+    // Gallery reloads to reflect the new state.
+    await waitFor(() => {
+      expect(listGraphsMock).toHaveBeenCalledTimes(2)
+    })
+  })
+
+  it('only offers allowed transitions, and archived has none', async () => {
+    listGraphsMock.mockResolvedValue([
+      graph({ name: 'graph-a', lifecycle_state: 'archived' }),
+    ])
+
+    renderGallery()
+
+    const badge = await screen.findByText('Archived')
+    // Archived is terminal: no dropdown should open on click.
+    fireEvent.click(badge)
+    expect(screen.queryByRole('button', { name: 'Draft' })).toBeNull()
+  })
+
+  it('shows an inline error when the lifecycle transition is rejected by the server', async () => {
+    listGraphsMock.mockResolvedValue([
+      graph({ name: 'graph-a', lifecycle_state: 'draft' }),
+    ])
+    updateGraphLifecycleMock.mockResolvedValue({
+      error: 'invalid_state_transition',
+      message: "Graph 'graph-a' cannot transition from 'draft' to 'active'.",
+      name: 'graph-a',
+      previous_state: 'draft',
+      requested_state: 'active',
+      allowed: ['published', 'archived'],
+    })
+
+    renderGallery()
+
+    const badge = await screen.findByRole('button', { name: 'Draft' })
+    fireEvent.click(badge)
+
+    // 'active' isn't a valid option from 'draft', so drive the same
+    // failure path via the mocked response for a disallowed option
+    // that *is* offered (simulating a race where the server's rules
+    // changed since the menu was rendered).
+    const publishedOption = await screen.findByRole('button', {
+      name: 'Published',
+    })
+    fireEvent.click(publishedOption)
+
+    await screen.findByText(
+      "Graph 'graph-a' cannot transition from 'draft' to 'active'.",
+    )
   })
 })
