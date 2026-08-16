@@ -34,6 +34,7 @@ function defaultState() {
     error: null as ChatError | null,
     selectedModel: null as string | null,
     send: vi.fn(),
+    retry: vi.fn(),
   }
 }
 
@@ -138,6 +139,42 @@ describe('QuickAiPanel', () => {
     fireEvent.click(screen.getByRole('button', { name: /quick ai/i }))
 
     expect(screen.getByText('Could not reach cks-mcp.')).toBeInTheDocument()
+  })
+
+  it('shows a Retry button for a retriable error and calls retry() when clicked', () => {
+    useSessionStore.getState().setSessionId('sess-1')
+    const retry = vi.fn()
+    useAiChatMock.mockReturnValue(
+      aiChatState({
+        error: { kind: 'network', message: 'Could not reach cks-mcp.' },
+        retry,
+      }),
+    )
+    renderPanel()
+
+    fireEvent.click(screen.getByRole('button', { name: /quick ai/i }))
+    fireEvent.click(screen.getByRole('button', { name: /^retry$/i }))
+
+    expect(retry).toHaveBeenCalledTimes(1)
+  })
+
+  it('does not show a Retry button for a no_session error', () => {
+    useSessionStore.getState().setSessionId('sess-1')
+    useAiChatMock.mockReturnValue(
+      aiChatState({
+        error: {
+          kind: 'no_session',
+          message: 'Connect to a session on the Graph page first.',
+        },
+      }),
+    )
+    renderPanel()
+
+    fireEvent.click(screen.getByRole('button', { name: /quick ai/i }))
+
+    expect(
+      screen.queryByRole('button', { name: /^retry$/i }),
+    ).not.toBeInTheDocument()
   })
 
   it('navigates to /chat when "Open full Chat" is clicked', () => {

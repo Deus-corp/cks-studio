@@ -1,8 +1,9 @@
 // Copyright (c) 2026 Deus Corp. Licensed under MIT.
 
-import { useCallback, useId, useState } from 'react'
+import { useCallback, useEffect, useId, useState } from 'react'
 import { registerGraph } from '@/services/mcpTools'
 import { useModalA11y } from '@/shared/hooks/useModalA11y'
+import { usePublishDialogStore } from './publishDialogStore'
 
 type Visibility = 'private' | 'team' | 'public'
 
@@ -40,6 +41,20 @@ export function PublishToGalleryButton({ sessionId }: { sessionId: string }) {
   }, [])
 
   const dialogRef = useModalA11y<HTMLFormElement>(resetAndClose, isOpen)
+
+  // "Save graph" in the logo menu (App.tsx) opens this same dialog from
+  // outside the Graph page's side panel -- see publishDialogStore for
+  // why that's a tiny shared flag rather than lifting this component's
+  // whole form state up.
+  const openRequested = usePublishDialogStore((s) => s.openRequested)
+  const clearOpenRequest = usePublishDialogStore((s) => s.clearRequest)
+  useEffect(() => {
+    if (openRequested) {
+      setPublishedName(null)
+      setIsOpen(true)
+      clearOpenRequest()
+    }
+  }, [openRequested, clearOpenRequest])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

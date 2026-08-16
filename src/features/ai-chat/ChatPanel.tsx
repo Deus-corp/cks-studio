@@ -115,7 +115,18 @@ function LLMStatusBanner({ status }: { status: LLMStatus | null }) {
  * llmBannerAlreadyShown is true, so the same warning never appears twice
  * on screen at once.
  */
-function ChatErrorBanner({ error }: { error: ChatError }) {
+function ChatErrorBanner({
+  error,
+  onRetry,
+  isRetrying,
+}: {
+  error: ChatError
+  /** Omitted for error kinds that aren't a simple "resend the same
+   *  message" fix (no_session, llm_provider_unavailable) -- those need
+   *  the user to do something first, not just click retry. */
+  onRetry?: () => void
+  isRetrying?: boolean
+}) {
   if (error.kind === 'no_session') {
     return (
       <div className="px-4 py-2 border-t border-border-subtle bg-yellow-950/40 text-yellow-400 text-xs">
@@ -152,11 +163,47 @@ function ChatErrorBanner({ error }: { error: ChatError }) {
   }
 
   // 'llm_call_failed', 'network', and 'other' are all genuine failures
-  // (not "you need to configure something") -- red, not yellow.
+  // (not "you need to configure something") -- red, not yellow. These
+  // are also the kinds retry() knows how to resend, so offer a Retry
+  // button alongside the message.
   return (
-    <p className="text-red-400 text-xs px-4 py-2 border-t border-border-subtle">
-      {error.message}
-    </p>
+    <div className="flex items-center justify-between gap-2 text-red-400 text-xs px-4 py-2 border-t border-border-subtle">
+      <p>{error.message}</p>
+      {onRetry && (
+        <button
+          type="button"
+          onClick={onRetry}
+          disabled={isRetrying}
+          className="shrink-0 flex items-center gap-1 text-red-400 hover:text-red-300 border border-red-400/40 hover:border-red-300/60 rounded px-2 py-1 disabled:opacity-50"
+          title="Resend the last message"
+        >
+          <svg
+            width="11"
+            height="11"
+            viewBox="0 0 24 24"
+            fill="none"
+            aria-hidden="true"
+            className={isRetrying ? 'animate-spin' : undefined}
+          >
+            <path
+              d="M4 4v6h6M20 20v-6h-6"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+            <path
+              d="M5.5 15a8 8 0 0013.9 3.4M18.5 9A8 8 0 004.6 5.6"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+          {isRetrying ? 'Retrying…' : 'Retry'}
+        </button>
+      )}
+    </div>
   )
 }
 
@@ -167,7 +214,7 @@ function TurnBubble({ turn }: { turn: ChatTurn }) {
       <div
         className={`max-w-[80%] rounded-lg px-3 py-2 text-sm whitespace-pre-wrap break-words ${
           isUser
-            ? 'bg-accent text-white'
+            ? 'bg-chat-user-bg text-text-primary'
             : 'bg-surface-1 border border-border-subtle text-text-primary'
         }`}
       >
@@ -240,7 +287,7 @@ function ModelSelect({
  * AgentPanel.tsx/AgentsPage.tsx.
  */
 export function ChatPanel() {
-  const { turns, isSending, error, selectedModel, send } = useAiChat()
+  const { turns, isSending, error, selectedModel, send, retry } = useAiChat()
   const setSelectedModel = useChatStore((s) => s.setSelectedModel)
   const { status: llmStatus } = useLLMStatus()
   const {
@@ -338,7 +385,19 @@ export function ChatPanel() {
         )}
       </div>
 
-      {showErrorBanner && <ChatErrorBanner error={error} />}
+      {showErrorBanner && (
+        <ChatErrorBanner
+          error={error}
+          onRetry={
+            error.kind === 'llm_call_failed' ||
+            error.kind === 'network' ||
+            error.kind === 'other'
+              ? retry
+              : undefined
+          }
+          isRetrying={isSending}
+        />
+      )}
 
       <form
         onSubmit={handleSubmit}

@@ -17,6 +17,7 @@ const {
   mergeGraphs,
   linkGraphs,
   updateGraphLifecycle,
+  unregisterGraph,
 } = await import('../mcpTools')
 
 describe('normalizeCompactSubgraphResponse', () => {
@@ -489,5 +490,32 @@ describe('updateGraphLifecycle', () => {
     if ('allowed' in result) {
       expect(result.allowed).toEqual(['published', 'archived'])
     }
+  })
+})
+
+describe('unregisterGraph', () => {
+  it('calls unregister_graph with name and returns a success result', async () => {
+    callToolMock.mockResolvedValueOnce({
+      unregistered: true,
+      name: 'my-graph',
+    })
+
+    const result = await unregisterGraph({ name: 'my-graph' })
+
+    expect(callToolMock).toHaveBeenCalledWith('unregister_graph', {
+      name: 'my-graph',
+    })
+    expect(result).toEqual({ unregistered: true, name: 'my-graph' })
+  })
+
+  it('returns the structured error shape without throwing when the graph is not found', async () => {
+    callToolMock.mockResolvedValueOnce({
+      error: 'graph_not_found',
+      message: "No graph is registered under name 'nope'.",
+    })
+
+    const result = await unregisterGraph({ name: 'nope' })
+
+    expect('error' in result && result.error).toBe('graph_not_found')
   })
 })

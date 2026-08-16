@@ -32,12 +32,14 @@ const {
   checkGraphHealthMock,
   cloneGraphMock,
   updateGraphLifecycleMock,
+  unregisterGraphMock,
 } = vi.hoisted(() => ({
   listGraphsMock: vi.fn(),
   searchGraphsMock: vi.fn(),
   checkGraphHealthMock: vi.fn(),
   cloneGraphMock: vi.fn(),
   updateGraphLifecycleMock: vi.fn(),
+  unregisterGraphMock: vi.fn(),
 }))
 
 vi.mock('@/services/mcpTools', () => ({
@@ -46,6 +48,7 @@ vi.mock('@/services/mcpTools', () => ({
   checkGraphHealth: checkGraphHealthMock,
   cloneGraph: cloneGraphMock,
   updateGraphLifecycle: updateGraphLifecycleMock,
+  unregisterGraph: unregisterGraphMock,
 }))
 
 function graph(
@@ -137,6 +140,82 @@ describe('GraphGallery', () => {
 
     await screen.findByText('Graph "graph-a" is not registered')
     expect(navigateMock).not.toHaveBeenCalled()
+  })
+
+  it('deleting a graph shows a confirmation, then calls unregisterGraph and reloads the gallery', async () => {
+    listGraphsMock
+      .mockResolvedValueOnce([
+        graph({ name: 'graph-a' }),
+        graph({ name: 'graph-b', tags: 'genomics' }),
+      ])
+      .mockResolvedValueOnce([graph({ name: 'graph-b', tags: 'genomics' })])
+    unregisterGraphMock.mockResolvedValue({
+      unregistered: true,
+      name: 'graph-a',
+    })
+
+    renderGallery()
+
+    const deleteButtons = await screen.findAllByRole('button', {
+      name: 'Delete from gallery',
+    })
+    fireEvent.click(deleteButtons[0])
+
+    // Confirmation prompt shown, tool not called yet.
+    await screen.findByText(/Remove "graph-a" from the Gallery/)
+    expect(unregisterGraphMock).not.toHaveBeenCalled()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Remove' }))
+
+    await waitFor(() => {
+      expect(unregisterGraphMock).toHaveBeenCalledWith({ name: 'graph-a' })
+    })
+
+    // Gallery reloads after a successful delete.
+    await waitFor(() => {
+      expect(listGraphsMock).toHaveBeenCalledTimes(2)
+    })
+  })
+
+  it('cancelling the delete confirmation does not call unregisterGraph', async () => {
+    listGraphsMock.mockResolvedValue([graph({ name: 'graph-a' })])
+
+    renderGallery()
+
+    const deleteButton = await screen.findByRole('button', {
+      name: 'Delete from gallery',
+    })
+    fireEvent.click(deleteButton)
+
+    await screen.findByText(/Remove "graph-a" from the Gallery/)
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+
+    await waitFor(() => {
+      expect(
+        screen.queryByText(/Remove "graph-a" from the Gallery/),
+      ).not.toBeInTheDocument()
+    })
+    expect(unregisterGraphMock).not.toHaveBeenCalled()
+  })
+
+  it('shows an inline error message when deleting fails', async () => {
+    listGraphsMock.mockResolvedValue([graph({ name: 'graph-a' })])
+    unregisterGraphMock.mockResolvedValue({
+      error: 'graph_not_found',
+      message: "No graph is registered under name 'graph-a'.",
+    })
+
+    renderGallery()
+
+    const deleteButton = await screen.findByRole('button', {
+      name: 'Delete from gallery',
+    })
+    fireEvent.click(deleteButton)
+    fireEvent.click(await screen.findByRole('button', { name: 'Remove' }))
+
+    await screen.findByText("No graph is registered under name 'graph-a'.")
+    // The gallery is not reloaded on failure.
+    expect(listGraphsMock).toHaveBeenCalledTimes(1)
   })
 
   it('clicking a tag chip filters and reloads the gallery by that tag', async () => {

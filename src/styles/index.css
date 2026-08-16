@@ -56,6 +56,12 @@
   --color-danger: #ef4444;
   --color-warning: #f59e0b;
 
+  /* User chat bubble background (QuickAiPanel / ChatPanel). Deliberately
+     its own token rather than reusing --color-accent: the previous
+     --color-accent-as-bubble look read too "loud" for a wall of text,
+     so this is a quieter, dedicated surface tone per theme instead. */
+  --color-chat-user-bg: #1c263d;
+
   /* Per-route nav tints (Task: distinguish top-nav destinations). Each
      link gets its own hue instead of the single shared --color-accent,
      so the bar reads as seven distinct destinations at a glance rather
@@ -196,6 +202,10 @@ body {
   --color-accent: #3b64e0;
   --color-accent-strong: #2a4fc4;
   --color-accent-muted: #3b64e01a;
+
+  /* User chat bubble background, light theme -- soft blue-tinted white
+     rather than the accent's saturated blue used elsewhere. */
+  --color-chat-user-bg: #f7f9ff;
 
   /* Same brand mark as dark theme, dimmed slightly less since it now
      sits on a light ground. */

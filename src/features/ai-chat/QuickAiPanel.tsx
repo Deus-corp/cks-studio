@@ -20,7 +20,7 @@ function MiniTurnBubble({ turn }: { turn: ChatTurn }) {
       <div
         className={`max-w-[85%] rounded-lg px-2.5 py-1.5 text-xs whitespace-pre-wrap break-words ${
           isUser
-            ? 'bg-accent text-white'
+            ? 'bg-chat-user-bg text-text-primary'
             : 'bg-surface-2 border border-border-subtle text-text-primary'
         }`}
       >
@@ -49,7 +49,7 @@ export function QuickAiPanel() {
   )
   const [input, setInput] = useState('')
   const sessionId = useSessionStore((s) => s.sessionId)
-  const { turns, isSending, error, send } = useAiChat()
+  const { turns, isSending, error, send, retry } = useAiChat()
   const navigate = useNavigate()
 
   const hasSession = Boolean(sessionId.trim())
@@ -159,9 +159,22 @@ export function QuickAiPanel() {
           </div>
 
           {error && (
-            <p className="px-3 py-1.5 text-[11px] text-red-400 border-t border-border-subtle">
-              {error.message}
-            </p>
+            <div className="flex items-center justify-between gap-2 px-3 py-1.5 border-t border-border-subtle">
+              <p className="text-[11px] text-red-400">{error.message}</p>
+              {(error.kind === 'llm_call_failed' ||
+                error.kind === 'network' ||
+                error.kind === 'other') && (
+                <button
+                  type="button"
+                  onClick={() => retry()}
+                  disabled={isSending}
+                  title="Resend the last message"
+                  className="shrink-0 text-[11px] text-red-400 hover:text-red-300 border border-red-400/40 hover:border-red-300/60 rounded px-1.5 py-0.5 disabled:opacity-50"
+                >
+                  {isSending ? 'Retrying…' : 'Retry'}
+                </button>
+              )}
+            </div>
           )}
 
           <div className="flex items-end gap-1.5 border-t border-border-subtle p-2">

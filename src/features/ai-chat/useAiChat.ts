@@ -5,6 +5,7 @@ import { useGraphStore } from '@/features/graph-explorer/graphExplorerStore'
 import {
   type AiChatResult,
   aiChat,
+  type ChatMessage,
   type ExecutedToolCall,
   getFullGraph,
   toolCallsMutatedGraph,
@@ -121,31 +122,29 @@ export function useAiChat() {
   const setNodes = useGraphStore((s) => s.setNodes)
   const setEdges = useGraphStore((s) => s.setEdges)
   const [error, setError] = useState<ChatError | null>(null)
+  // Model used for the most recent attempt (initial send or retry), so a
+  // retry re-uses the same override rather than silently switching back
+  // to whatever's currently selected in the model dropdown.
+  const [lastModel, setLastModel] = useState<string | null | undefined>(
+    undefined,
+  )
 
-  const send = useCallback(
-    // `model` overrides the store's selectedModel for this one call, if
-    // given; ChatPanel normally doesn't pass it and relies on the store
-    // value set by its <select>, but tests/callers can force a value.
-    async (text: string, model?: string | null) => {
-      // Checked before ai_chat is ever called (not after a failed round-
-      // trip) so a user without a session gets the "go connect one" nudge
-      // instantly, with no server involved.
-      if (!sessionId.trim()) {
-        setError({
-          kind: 'no_session',
-          message: 'Connect to a session on the Graph page first.',
-        })
-        return
-      }
-
+  /**
+   * Sends `pendingMessages` (the full running transcript, already
+   * including the turn being attempted) to ai_chat and handles the
+   * result. Shared by `send` (which first appends a new user turn) and
+   * `retry` (which re-attempts the same trailing user turn already in
+   * `rawMessages`/`turns` after a failure) so a retry can't duplicate
+   * the user's message.
+   */
+  const attempt = useCallback(
+    async (
+      pendingMessages: ChatMessage[],
+      model: string | null | undefined,
+    ) => {
       setError(null)
-      appendUserTurn(text)
       setSending(true)
       try {
-        const pendingMessages = [
-          ...rawMessages,
-          { role: 'user' as const, content: text },
-        ]
         const result = await aiChat(
           sessionId,
           pendingMessages,
@@ -201,9 +200,7 @@ export function useAiChat() {
     },
     [
       sessionId,
-      rawMessages,
       selectedModel,
-      appendUserTurn,
       appendAssistantTurn,
       setSending,
       setNodes,
@@ -212,5 +209,45 @@ export function useAiChat() {
     ],
   )
 
-  return { turns, isSending, error, selectedModel, send }
+  const send = useCallback(
+    // `model` overrides the store's selectedModel for this one call, if
+    // given; ChatPanel normally doesn't pass it and relies on the store
+    // value set by its <select>, but tests/callers can force a value.
+    async (text: string, model?: string | null) => {
+      // Checked before ai_chat is ever called (not after a failed round-
+      // trip) so a user without a session gets the "go connect one" nudge
+      // instantly, with no server involved.
+      if (!sessionId.trim()) {
+        setError({
+          kind: 'no_session',
+          message: 'Connect to a session on the Graph page first.',
+        })
+        return
+      }
+
+      appendUserTurn(text)
+      setLastModel(model)
+      const pendingMessages = [
+        ...rawMessages,
+        { role: 'user' as const, content: text },
+      ]
+      await attempt(pendingMessages, model)
+    },
+    [sessionId, rawMessages, appendUserTurn, attempt],
+  )
+
+  /**
+   * Re-attempts the most recent turn after a failure, without appending
+   * a second copy of the user's message: `rawMessages` already ends
+   * with it (from the `send()` call that failed), same as `turns`.
+   * No-op if there's no error to retry, or the trailing turn somehow
+   * isn't a user turn (nothing sensible to resend).
+   */
+  const retry = useCallback(async () => {
+    if (!error || error.kind === 'no_session') return
+    if (turns.length === 0 || turns[turns.length - 1].role !== 'user') return
+    await attempt(rawMessages, lastModel)
+  }, [error, turns, rawMessages, lastModel, attempt])
+
+  return { turns, isSending, error, selectedModel, send, retry }
 }

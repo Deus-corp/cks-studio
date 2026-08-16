@@ -141,6 +141,32 @@ function downloadDataUrl(dataUrl: string, fileName: string): void {
   link.click()
 }
 
+/**
+ * Downloads a session's canonical JSON (as returned by serialize_knowledge,
+ * see mcpTools.getFullGraphAsJson) as a .json file. Deliberately separate
+ * from exportGraphAsPng/exportGraphAsSvg above: those need a mounted
+ * ReactFlow canvas (useReactFlow().getNodes() for measured node sizes),
+ * so they only work inside GraphCanvas. This one just needs the raw
+ * session data, so it can be triggered from anywhere -- e.g. the logo
+ * menu's "Export graph" item (App.tsx), without navigating to the Graph
+ * page or waiting on canvas measurement.
+ */
+export function downloadGraphAsJson(
+  serializedJson: string,
+  fileName = 'cks-graph.json',
+): void {
+  const blob = new Blob([serializedJson], { type: 'application/json' })
+  const url = URL.createObjectURL(blob)
+  try {
+    downloadDataUrl(url, fileName)
+  } finally {
+    // Revoke on a timeout, not synchronously -- some browsers cancel an
+    // in-flight download if the object URL is revoked before the click
+    // handler's navigation actually starts.
+    setTimeout(() => URL.revokeObjectURL(url), 1000)
+  }
+}
+
 export async function exportGraphAsPng(options: ExportOptions): Promise<void> {
   const { toPng } = await import('html-to-image')
   const { backgroundColor = '#111827' } = options

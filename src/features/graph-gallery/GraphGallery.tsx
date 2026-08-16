@@ -5,7 +5,11 @@ import { useNavigate } from 'react-router-dom'
 import { HealthIndicator } from '@/components/common/HealthIndicator'
 import { IconButton } from '@/components/common/IconButton'
 import { CompareGraphsModal } from '@/features/cross-graph/CompareGraphsModal'
-import { cloneGraph, updateGraphLifecycle } from '@/services/mcpTools'
+import {
+  cloneGraph,
+  unregisterGraph,
+  updateGraphLifecycle,
+} from '@/services/mcpTools'
 import { useSessionStore } from '@/services/sessionStore'
 import type { GraphRegistryEntry, LifecycleState } from '@/shared/types/graph'
 import { formatDateTime } from '@/shared/utils/formatUtils'
@@ -164,6 +168,9 @@ function GraphCard({
   const [cloneError, setCloneError] = useState<string | null>(null)
   const [cloneMessage, setCloneMessage] = useState<string | null>(null)
   const [showPreview, setShowPreview] = useState(false)
+  const [confirmingDelete, setConfirmingDelete] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
 
   const handleOpen = () => {
     setSessionId(graph.session_id)
@@ -195,6 +202,27 @@ function GraphCard({
     setTag('')
     setQuery(graph.source_graph_name)
     load()
+  }
+
+  const handleDelete = async () => {
+    setIsDeleting(true)
+    setDeleteError(null)
+    try {
+      const result = await unregisterGraph({ name: graph.name })
+      if ('error' in result) {
+        setDeleteError(result.message)
+        setConfirmingDelete(false)
+        return
+      }
+      // Успех: карточка исчезает вместе с перезагрузкой списка,
+      // так что отдельное сообщение об успехе тут не нужно.
+      await load()
+    } catch (e) {
+      setDeleteError(e instanceof Error ? e.message : 'Unknown error')
+      setConfirmingDelete(false)
+    } finally {
+      setIsDeleting(false)
+    }
   }
 
   return (
@@ -355,13 +383,75 @@ function GraphCard({
           >
             Open in Graph
           </button>
+          <IconButton
+            onClick={() => setConfirmingDelete(true)}
+            disabled={isDeleting}
+            label="Delete from gallery"
+            title="Remove this graph from the Gallery (the session itself is kept)"
+            className="!bg-surface-2 hover:!bg-danger/10 hover:!text-danger"
+            icon={
+              isDeleting ? (
+                <div className="h-3 w-3 animate-spin rounded-full border-2 border-current border-t-transparent" />
+              ) : (
+                <svg
+                  width="13"
+                  height="13"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  aria-hidden="true"
+                >
+                  <path
+                    d="M4 7h16M9 7V4.5A1.5 1.5 0 0110.5 3h3A1.5 1.5 0 0115 4.5V7m2 0v12.5A1.5 1.5 0 0115.5 21h-7A1.5 1.5 0 017 19.5V7h10z"
+                    stroke="currentColor"
+                    strokeWidth="1.6"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                  <path
+                    d="M10 11v6M14 11v6"
+                    stroke="currentColor"
+                    strokeWidth="1.6"
+                    strokeLinecap="round"
+                  />
+                </svg>
+              )
+            }
+          />
         </div>
       </div>
+
+      {confirmingDelete && (
+        <div className="flex items-center justify-between gap-2 bg-danger/10 border border-danger/30 rounded px-2 py-1.5">
+          <p className="text-[10px] text-danger">
+            Remove "{graph.name}" from the Gallery? The session itself won't be
+            deleted.
+          </p>
+          <div className="flex items-center gap-1 shrink-0">
+            <button
+              type="button"
+              onClick={handleDelete}
+              disabled={isDeleting}
+              className="text-[10px] bg-danger hover:bg-danger/90 text-white px-2 py-1 rounded disabled:opacity-50"
+            >
+              {isDeleting ? 'Removing…' : 'Remove'}
+            </button>
+            <button
+              type="button"
+              onClick={() => setConfirmingDelete(false)}
+              disabled={isDeleting}
+              className="text-[10px] bg-surface-2 hover:bg-surface-3 text-text-primary px-2 py-1 rounded disabled:opacity-50"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
 
       {cloneMessage && (
         <p className="text-[10px] text-success">{cloneMessage}</p>
       )}
       {cloneError && <p className="text-[10px] text-danger">{cloneError}</p>}
+      {deleteError && <p className="text-[10px] text-danger">{deleteError}</p>}
     </div>
   )
 }

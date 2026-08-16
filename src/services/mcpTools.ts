@@ -132,6 +132,45 @@ export async function getFullGraph(sessionId: string): Promise<SubgraphResult> {
   return { nodes: [], edges: [] }
 }
 
+/**
+ * Fetches a session's canonical JSON representation as a raw string via
+ * serialize_knowledge, for download (see graphExport.downloadGraphAsJson)
+ * -- the same tool/shape getFullGraph above parses into nodes/edges, but
+ * this returns the untouched string so a round-trip export/import is
+ * byte-for-byte what the server produced, not a re-serialization of our
+ * own parsed-and-reshaped copy.
+ */
+export async function getFullGraphAsJson(sessionId: string): Promise<string> {
+  const result = await callTool('serialize_knowledge', {
+    session_id: sessionId,
+  })
+  return (result.serialized as string | undefined) ?? '{"objects": []}'
+}
+
+/** Error shape returned by validate_knowledge when json_data doesn't
+ *  parse, or the resulting structure fails validation. */
+export interface ImportGraphError {
+  error: string
+  message: string
+}
+
+/**
+ * Imports a previously-exported (or hand-written) canonical JSON graph
+ * via validate_knowledge -- the same tool ai_chat's own
+ * SESSION_CREATING_TOOLS path already relies on (see useAiChat.ts) to
+ * mint a brand-new session from json_data. Used by the logo menu's
+ * "Import graph" item (App.tsx) to load a .json file exported via
+ * getFullGraphAsJson/downloadGraphAsJson above.
+ */
+export async function importGraphFromJson(
+  jsonData: string,
+): Promise<{ session_id: string } | ImportGraphError> {
+  const result = await callTool('validate_knowledge', {
+    json_data: jsonData,
+  })
+  return result as unknown as { session_id: string } | ImportGraphError
+}
+
 // ---------------------------------------------------------------------------
 // Graph Gallery (Memory Agent v1/v2): list_graphs / search_graphs / register_graph
 // ---------------------------------------------------------------------------
@@ -191,6 +230,33 @@ export async function registerGraph(params: {
     visibility?: string
     team?: string | null
   }
+}
+
+/** Success shape returned by unregister_graph. */
+export interface UnregisterGraphResult {
+  unregistered: true
+  name: string
+}
+
+/** Error shape returned when no graph is registered under that name. */
+export interface UnregisterGraphError {
+  error: string
+  message: string
+}
+
+/**
+ * Removes a graph from the registry (Gallery) via the unregister_graph
+ * MCP tool. Only removes the name -> session_id mapping -- the
+ * underlying session and its Knowledge Structure are left untouched
+ * and remain addressable by session id (e.g. via cloneGraph).
+ */
+export async function unregisterGraph(params: {
+  name: string
+}): Promise<UnregisterGraphResult | UnregisterGraphError> {
+  const result = await callTool('unregister_graph', {
+    name: params.name,
+  })
+  return result as unknown as UnregisterGraphResult | UnregisterGraphError
 }
 
 /** Success shape returned by update_graph_lifecycle on a real transition. */

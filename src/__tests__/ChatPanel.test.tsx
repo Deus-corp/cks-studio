@@ -55,6 +55,7 @@ function defaultChatState() {
     error: null as ChatError | null,
     selectedModel: null as string | null,
     send: vi.fn(),
+    retry: vi.fn(),
   }
 }
 
@@ -231,6 +232,44 @@ describe('ChatPanel — error banners', () => {
     expect(screen.queryByText(/No active session/)).not.toBeInTheDocument()
     expect(
       screen.queryByText(/Could not reach cks-mcp/),
+    ).not.toBeInTheDocument()
+  })
+
+  it('shows a Retry button for a network error and calls retry() when clicked', () => {
+    const retryMock = vi.fn()
+    useAiChatMock.mockReturnValue(
+      chatState({
+        error: {
+          kind: 'network',
+          message: 'Could not reach cks-mcp. Is the server running?',
+        },
+        retry: retryMock,
+      }),
+    )
+    useLLMStatusMock.mockReturnValue(llmStatusState())
+
+    renderChatPanel()
+
+    const retryButton = screen.getByRole('button', { name: /retry/i })
+    fireEvent.click(retryButton)
+    expect(retryMock).toHaveBeenCalledTimes(1)
+  })
+
+  it('does not show a Retry button for a no_session error', () => {
+    useAiChatMock.mockReturnValue(
+      chatState({
+        error: {
+          kind: 'no_session',
+          message: 'Connect to a session on the Graph page first.',
+        },
+      }),
+    )
+    useLLMStatusMock.mockReturnValue(llmStatusState())
+
+    renderChatPanel()
+
+    expect(
+      screen.queryByRole('button', { name: /retry/i }),
     ).not.toBeInTheDocument()
   })
 })
