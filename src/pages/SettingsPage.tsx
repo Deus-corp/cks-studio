@@ -131,6 +131,8 @@ function providerLabel(provider: LLMStatus['provider']): string {
       return 'Local Ollama'
     case 'anthropic':
       return 'Anthropic'
+    case 'openai_compatible':
+      return 'OpenAI-compatible'
     default:
       return 'Not configured'
   }
@@ -144,6 +146,8 @@ function providerLabel(provider: LLMStatus['provider']): string {
 function providerIsUp(status: LLMStatus): boolean {
   if (status.provider === 'ollama') return status.ollama_available
   if (status.provider === 'anthropic') return status.anthropic_configured
+  if (status.provider === 'openai_compatible')
+    return status.openai_compatible_configured
   return false
 }
 

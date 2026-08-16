@@ -6,6 +6,17 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 
 ---
 
+## [0.16.1] - 2026-08-16
+
+### Fixed
+- **Quick AI / Chat session switch** – when `ai_chat` calls `validate_knowledge` or `construct_knowledge` without a `session_id`, the studio now detects the newly created session, switches the connected session, and reloads the graph accordingly.
+- **OpenAI-compatible LLM status** – `get_llm_status` now recognises `openai_compatible` as a valid provider. Settings no longer shows “Not configured” when using an OpenAI-compatible endpoint; provider label and model display correctly.
+
+### Added
+- Tests for session switching from Quick AI and for OpenAI-compatible status display.
+
+---
+
 ## [0.16.0] - 2026-08-16
 
 ### Fixed

@@ -30,6 +30,7 @@ function ollamaStatus(overrides: Partial<LLMStatus> = {}): LLMStatus {
     provider: 'ollama',
     ollama_available: true,
     anthropic_configured: false,
+    openai_compatible_configured: false,
     model: 'llama3.2',
     ...overrides,
   }
@@ -81,6 +82,28 @@ describe('SettingsPage — LLM Provider status', () => {
       expect(screen.getByText('claude-sonnet-4-5-20250929')).toBeInTheDocument()
     })
     expect(screen.getAllByText('Anthropic').length).toBeGreaterThan(0)
+  })
+
+  it('shows "OpenAI-compatible" and its model when openai_compatible is the active provider', async () => {
+    getLLMStatusMock.mockResolvedValue(
+      ollamaStatus({
+        provider: 'openai_compatible',
+        ollama_available: false,
+        anthropic_configured: false,
+        openai_compatible_configured: true,
+        model: 'gpt-4o',
+      }),
+    )
+    renderAiTab()
+
+    await waitFor(() => {
+      expect(screen.getByText('gpt-4o')).toBeInTheDocument()
+    })
+    expect(screen.getAllByText('OpenAI-compatible').length).toBeGreaterThan(0)
+    // Configured and reachable: no "Not configured" fallback and no
+    // Ollama/Anthropic setup instructions leaking into this state.
+    expect(screen.queryByText('Not configured')).not.toBeInTheDocument()
+    expect(screen.queryByText(/Start Ollama/)).not.toBeInTheDocument()
   })
 
   it('shows "Not configured" plus setup instructions when provider is none', async () => {
