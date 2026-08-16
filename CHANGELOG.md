@@ -6,6 +6,24 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 
 ---
 
+## [0.17.0] - 2026-08-16
+
+### Added
+- **Logo dropdown menu** – clicking the CKS logo opens a file-style menu with Create graph, Save graph, Load graph, Export graph, and Import graph. Export/Import work with canonical CKS JSON, not PNG/SVG.
+- **Delete graph from Gallery** – each gallery card now has a trash icon with confirmation, backed by the new `unregister_graph` MCP tool.
+- **Retry button in chat** – failed chat messages in both Quick AI and full Chat now show a Retry action for retriable errors (network/llm_call_failed/other). `useAiChat` now separates send and attempt logic so retrying does not duplicate messages.
+- **Theme-aware user chat bubbles** – user messages now use `--color-chat-user-bg` (`#1c263d` dark, `#f7f9ff` light) instead of the old blue accent.
+
+### Changed
+- `PublishToGalleryButton` can be opened programmatically via a new `publishDialogStore`.
+- `graphExport` now has a JSON blob download helper for canonical CKS export.
+- `mcpTools` adds `getFullGraphAsJson`, `importGraphFromJson`, and `unregisterGraph` wrappers.
+
+### Tests
+- Added tests for logo menu actions, import/export, delete gallery flow, chat retry, and session switching.
+
+---
+
 ## [0.16.1] - 2026-08-16
 
 ### Fixed

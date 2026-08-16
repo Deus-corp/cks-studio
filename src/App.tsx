@@ -7,6 +7,7 @@ import {
   useLocation,
 } from 'react-router-dom'
 import { ErrorBoundary } from '@/components/common/ErrorBoundary'
+import { LogoMenu } from '@/components/layout/LogoMenu'
 import { ConnectionStatus } from '@/components/mcp/ConnectionStatus'
 import { GraphPage } from './pages/GraphPage'
 
@@ -53,69 +54,14 @@ const NAV_LINKS = [
   { to: '/settings', label: 'Settings', nav: 'settings' },
 ]
 
-/** Небольшая метка-«граф» слева от вордмарка — единственный декоративный
- *  элемент во всей шапке (см. frontend-design: тратить выразительность в
- *  одном месте), три узла + два ребра как отсылка к предмету инструмента.
- *  Красится в цвет бренд-«печати» сайта (--color-brand-strong, #e8a33d),
- *  а не в общий --color-accent — тот остаётся синим и используется для
- *  фокус-рингов/навигации/выделения, логотип же теперь единственное
- *  место в шапке, окрашенное в амбер, вслед за cks-website. */
-function LogoMark() {
-  return (
-    <svg
-      width="18"
-      height="18"
-      viewBox="0 0 18 18"
-      fill="none"
-      aria-hidden="true"
-      className="text-brand-strong"
-    >
-      <line
-        x1="4"
-        y1="4"
-        x2="14"
-        y2="7"
-        stroke="currentColor"
-        strokeWidth="1.4"
-        opacity="0.6"
-      />
-      <line
-        x1="4"
-        y1="4"
-        x2="8"
-        y2="14"
-        stroke="currentColor"
-        strokeWidth="1.4"
-        opacity="0.6"
-      />
-      <line
-        x1="8"
-        y1="14"
-        x2="14"
-        y2="7"
-        stroke="currentColor"
-        strokeWidth="1.4"
-        opacity="0.6"
-      />
-      <circle cx="4" cy="4" r="2.5" fill="currentColor" />
-      <circle cx="14" cy="7" r="2.5" fill="currentColor" />
-      <circle cx="8" cy="14" r="2.5" fill="currentColor" />
-    </svg>
-  )
-}
-
 function NavBar() {
   const { pathname } = useLocation()
 
   return (
     <nav className="flex items-center gap-1 bg-surface-1/90 backdrop-blur border-b border-border-subtle px-4 py-2 sticky top-0 z-20">
-      <Link
-        to="/"
-        className="flex items-center gap-2 mr-4 text-text-primary font-display font-bold text-sm tracking-tight hover:text-accent-strong transition-colors"
-      >
-        <LogoMark />
-        CKS Studio
-      </Link>
+      <div className="mr-4">
+        <LogoMenu />
+      </div>
 
       <div className="flex items-center gap-0.5">
         {NAV_LINKS.map(({ to, label, nav }) => {
