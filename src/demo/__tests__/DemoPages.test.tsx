@@ -83,7 +83,7 @@ describe('DemoSettingsPage', () => {
   it('lists component versions read from the bundled graph', () => {
     render(<DemoSettingsPage />)
     expect(screen.getByText('cks-core')).toBeInTheDocument()
-    expect(screen.getByText('v1.21.1')).toBeInTheDocument()
+    expect(screen.getByText('v1.22.0')).toBeInTheDocument()
     expect(screen.getByText('cks-studio')).toBeInTheDocument()
   })
 
