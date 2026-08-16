@@ -287,7 +287,8 @@ function ModelSelect({
  * AgentPanel.tsx/AgentsPage.tsx.
  */
 export function ChatPanel() {
-  const { turns, isSending, error, selectedModel, send, retry } = useAiChat()
+  const { turns, isSending, error, selectedModel, send, retry, clearChat } =
+    useAiChat()
   const setSelectedModel = useChatStore((s) => s.setSelectedModel)
   const { status: llmStatus } = useLLMStatus()
   const {
@@ -361,6 +362,24 @@ export function ChatPanel() {
         <span className="text-xs text-text-tertiary">
           Talks to cks-mcp's ai_chat tool, scoped to the connected session.
         </span>
+        <button
+          type="button"
+          onClick={() => {
+            if (turns.length === 0) return
+            if (
+              typeof window !== 'undefined' &&
+              !window.confirm("Clear this session's chat history?")
+            ) {
+              return
+            }
+            clearChat()
+          }}
+          disabled={turns.length === 0}
+          title="Clear chat history for this session"
+          className="ml-auto text-xs bg-surface-2 hover:bg-surface-3 text-text-secondary hover:text-text-primary px-2 py-1 rounded disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          Clear chat
+        </button>
       </div>
 
       <LLMStatusBanner status={llmStatus} />

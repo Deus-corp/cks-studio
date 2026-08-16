@@ -171,6 +171,25 @@ export async function importGraphFromJson(
   return result as unknown as { session_id: string } | ImportGraphError
 }
 
+/**
+ * Creates a brand-new, empty session via validate_knowledge with an
+ * empty `objects` array -- the same tool importGraphFromJson above
+ * uses, just with a canned empty document instead of a user-supplied
+ * one. Used by the logo menu's "Create graph" item (LogoMenu.tsx) so
+ * clicking it actually gets a usable session_id back (previously it
+ * just cleared sessionId client-side, leaving no session for Quick AI
+ * or the create-node/relation forms to target until the user typed one
+ * in by hand).
+ */
+export async function createEmptySession(): Promise<
+  { session_id: string } | ImportGraphError
+> {
+  const result = await callTool('validate_knowledge', {
+    json_data: JSON.stringify({ objects: [] }),
+  })
+  return result as unknown as { session_id: string } | ImportGraphError
+}
+
 // ---------------------------------------------------------------------------
 // Graph Gallery (Memory Agent v1/v2): list_graphs / search_graphs / register_graph
 // ---------------------------------------------------------------------------
@@ -888,9 +907,11 @@ interface ListDeadLetteredConflictsResponse {
 
 export async function listDeadLetteredConflicts(
   taskType?: 'gossip_conflict' | 'inference_conflict',
+  sessionId?: string,
 ): Promise<ListDeadLetteredConflictsResponse> {
   const result = await callTool('list_dead_lettered_conflicts', {
     ...(taskType ? { task_type: taskType } : {}),
+    ...(sessionId ? { session_id: sessionId } : {}),
   })
   return result as unknown as ListDeadLetteredConflictsResponse
 }

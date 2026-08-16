@@ -16,6 +16,26 @@ import { useProcessesPolling } from './useProcessesPolling'
 
 const MAX_ERROR_LENGTH = 140
 
+// Dead standalone-agent processes never get deleted from the shared
+// cks_agent_liveness table (see cks-runtime ADR-014) -- it's a history
+// of every instance that ever started, not just the current ones. Left
+// unfiltered, list_processes' rows accumulate forever and the panel
+// fills up with "stopped" cards whose heartbeat is weeks/months old.
+// A process that's still alive (per list_processes' own TTL-based
+// status) is always shown, on any host -- ADR-014/ADR-016 explicitly
+// allow multiple concurrent instances of the same kind across nodes in
+// a multi-node deployment, so we must not collapse those. A stopped
+// process is only worth surfacing for a little while after it exits
+// (useful context: "this just died"); past that window it's noise.
+const STALE_STOPPED_THRESHOLD_MS = 24 * 60 * 60 * 1000
+
+function isStaleStoppedProcess(process: ProcessStatus): boolean {
+  if (process.status === 'alive') return false
+  const heartbeatMs = Date.parse(process.last_heartbeat_at)
+  if (Number.isNaN(heartbeatMs)) return true
+  return Date.now() - heartbeatMs > STALE_STOPPED_THRESHOLD_MS
+}
+
 /** All standalone agent kinds cks-runtime knows about (see
  *  ProcessStatus['process_kind']), used to render a placeholder card for
  *  any kind that has never sent a heartbeat -- otherwise an agent that
@@ -495,20 +515,27 @@ export function AgentPanel() {
           )}
 
           <div className="p-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 items-stretch">
-            {processes.map((process) => (
-              <ProcessCard
-                key={process.instance_id}
-                process={process}
-                isBusy={busyProcesses.has(process.instance_id)}
-                stopRequested={stopRequestedInstances.has(process.instance_id)}
-                actionError={processActionErrors[process.instance_id] ?? null}
-                onRequestStop={handleRequestStop}
-              />
-            ))}
+            {processes
+              .filter((p) => !isStaleStoppedProcess(p))
+              .map((process) => (
+                <ProcessCard
+                  key={process.instance_id}
+                  process={process}
+                  isBusy={busyProcesses.has(process.instance_id)}
+                  stopRequested={stopRequestedInstances.has(
+                    process.instance_id,
+                  )}
+                  actionError={processActionErrors[process.instance_id] ?? null}
+                  onRequestStop={handleRequestStop}
+                />
+              ))}
             {!processesError &&
               !processesLoading &&
               KNOWN_PROCESS_KINDS.filter(
-                ({ kind }) => !processes.some((p) => p.process_kind === kind),
+                ({ kind }) =>
+                  !processes.some(
+                    (p) => p.process_kind === kind && !isStaleStoppedProcess(p),
+                  ),
               ).map(({ kind, label }) => (
                 <UnknownProcessCard key={kind} label={label} />
               ))}

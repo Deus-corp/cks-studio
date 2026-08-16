@@ -30,6 +30,10 @@ interface UseDeadLetterPollingResult {
  */
 export function useDeadLetterPolling(
   intervalMs = DEFAULT_INTERVAL_MS,
+  /** When set, only dead-lettered tasks for this session are fetched
+   *  (passed through to list_dead_lettered_conflicts' session_id
+   *  filter). Undefined/empty means "all sessions". */
+  sessionId?: string,
 ): UseDeadLetterPollingResult {
   const [tasks, setTasks] = useState<DeadLetterTask[]>([])
   const [supported, setSupported] = useState(true)
@@ -45,7 +49,7 @@ export function useDeadLetterPolling(
     const seq = ++requestSeq.current
     setIsLoading(true)
     try {
-      const result = await listDeadLetteredConflicts()
+      const result = await listDeadLetteredConflicts(undefined, sessionId)
       if (seq !== requestSeq.current) return
       setTasks(result.tasks)
       setSupported(result.supported)
@@ -57,7 +61,7 @@ export function useDeadLetterPolling(
     } finally {
       if (seq === requestSeq.current) setIsLoading(false)
     }
-  }, [])
+  }, [sessionId])
 
   useEffect(() => {
     refresh()

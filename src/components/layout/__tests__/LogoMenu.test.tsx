@@ -21,14 +21,20 @@ vi.mock('react-router-dom', async () => {
   }
 })
 
-const { getFullGraphAsJsonMock, importGraphFromJsonMock } = vi.hoisted(() => ({
+const {
+  getFullGraphAsJsonMock,
+  importGraphFromJsonMock,
+  createEmptySessionMock,
+} = vi.hoisted(() => ({
   getFullGraphAsJsonMock: vi.fn(),
   importGraphFromJsonMock: vi.fn(),
+  createEmptySessionMock: vi.fn(),
 }))
 
 vi.mock('@/services/mcpTools', () => ({
   getFullGraphAsJson: getFullGraphAsJsonMock,
   importGraphFromJson: importGraphFromJsonMock,
+  createEmptySession: createEmptySessionMock,
 }))
 
 const { downloadGraphAsJsonMock } = vi.hoisted(() => ({
@@ -111,18 +117,40 @@ describe('LogoMenu', () => {
     expect(screen.queryByRole('menu')).not.toBeInTheDocument()
   })
 
-  it('"Create graph" clears session/graph state and navigates home', () => {
+  it('"Create graph" creates a new empty session via validate_knowledge, adopts it, and navigates home', async () => {
     useSessionStore.setState({ sessionId: 'sess-1' })
+    createEmptySessionMock.mockResolvedValue({ session_id: 'new-empty-sess' })
     renderMenu()
     openMenu()
 
     fireEvent.click(screen.getByRole('menuitem', { name: /create graph/i }))
 
-    expect(useSessionStore.getState().sessionId).toBe('')
+    expect(createEmptySessionMock).toHaveBeenCalled()
+    await vi.waitFor(() => {
+      expect(useSessionStore.getState().sessionId).toBe('new-empty-sess')
+    })
     expect(useGraphStore.getState().nodes).toEqual([])
     expect(useGraphStore.getState().edges).toEqual([])
     expect(useGraphStore.getState().selectedNodeId).toBeNull()
     expect(navigateMock).toHaveBeenCalledWith('/')
+  })
+
+  it('"Create graph" shows an inline error and keeps the old session if the backend call fails', async () => {
+    useSessionStore.setState({ sessionId: 'sess-1' })
+    createEmptySessionMock.mockResolvedValue({
+      error: 'server_error',
+      message: 'Could not create a new session.',
+    })
+    renderMenu()
+    openMenu()
+
+    fireEvent.click(screen.getByRole('menuitem', { name: /create graph/i }))
+
+    expect(
+      await screen.findByText(/could not create a new session/i),
+    ).toBeInTheDocument()
+    expect(useSessionStore.getState().sessionId).toBe('sess-1')
+    expect(navigateMock).not.toHaveBeenCalledWith('/')
   })
 
   it('"Save graph" requests the publish dialog to open and navigates home', () => {

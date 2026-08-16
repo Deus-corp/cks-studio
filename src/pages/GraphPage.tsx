@@ -1,5 +1,5 @@
 import type { Node } from '@xyflow/react'
-import { lazy, Suspense, useCallback, useEffect, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import { IconButton } from '@/components/common/IconButton'
 import { GraphCanvas } from '@/components/graph/GraphCanvas'
 import { GraphSkeleton } from '@/components/graph/GraphSkeleton'
@@ -61,6 +61,7 @@ export function GraphPage() {
     addNodes,
     addEdges,
     selectedNodeId,
+    selectNode,
     edges,
     setHighlightedEdges,
     clearHighlight,
@@ -68,13 +69,30 @@ export function GraphPage() {
     setViewMode,
   } = useGraphStore()
 
+  // Guards against a stale-response race: if the user switches sessions
+  // (or an SSE-triggered refresh fires) while a getFullGraph() request for
+  // a *previous* session is still in flight, that older response must not
+  // be allowed to overwrite the graph store once it resolves -- otherwise
+  // the canvas flickers back to the old session's nodes/edges (or drops a
+  // node that only existed in the new session) for one render before the
+  // next refresh corrects it. We snapshot the session id the request was
+  // made for and only commit the result if it still matches the *current*
+  // session id (read fresh from the store ref, not the closed-over value)
+  // once the request resolves.
+  const currentSessionIdRef = useRef(sessionId)
+  currentSessionIdRef.current = sessionId
+
   const handleConnect = useCallback(async () => {
-    if (!sessionId.trim()) return
+    const targetSessionId = sessionId.trim()
+    if (!targetSessionId) return
     setIsLoading(true)
     setStatus('connecting')
     setError(null)
     try {
-      const subgraph = await getFullGraph(sessionId.trim())
+      const subgraph = await getFullGraph(targetSessionId)
+      // The session changed while this request was in flight -- discard
+      // the result instead of applying stale data over the new session.
+      if (currentSessionIdRef.current.trim() !== targetSessionId) return
       if (!subgraph.nodes || subgraph.nodes.length === 0) {
         setError(
           'No objects found in this session. Please check session_id and try again.',
@@ -88,9 +106,12 @@ export function GraphPage() {
       setStatus('connected')
       recordConnection()
     } catch (e) {
+      if (currentSessionIdRef.current.trim() !== targetSessionId) return
       setError(e instanceof Error ? e.message : 'Unknown error')
     } finally {
-      setIsLoading(false)
+      if (currentSessionIdRef.current.trim() === targetSessionId) {
+        setIsLoading(false)
+      }
     }
   }, [sessionId, setStatus, setError, setNodes, setEdges, recordConnection])
 
@@ -603,7 +624,19 @@ export function GraphPage() {
           {createMode === 'node' && (
             <CreateNodeForm
               sessionId={sessionId}
-              onCreated={() => setCreateMode('none')}
+              onCreated={(node) => {
+                // Select the just-created node, not whatever was
+                // selected before -- without this, a freshly created
+                // node (e.g. a manually authored InferenceStep) isn't
+                // the active selection, so "Why this belief?" and
+                // other selection-scoped actions silently target the
+                // *old* selection (or nothing, if none) instead of the
+                // node the user just made. See the "Why this belief?
+                // does nothing" bug report.
+                selectNode(node.id)
+                setSelectedNode(node)
+                setCreateMode('none')
+              }}
               onCancel={() => setCreateMode('none')}
             />
           )}

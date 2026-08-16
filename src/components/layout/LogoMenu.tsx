@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom'
 import { useGraphStore } from '@/features/graph-explorer/graphExplorerStore'
 import { usePublishDialogStore } from '@/features/graph-gallery/publishDialogStore'
 import {
+  createEmptySession,
   getFullGraphAsJson,
   type ImportGraphError,
   importGraphFromJson,
@@ -42,6 +43,8 @@ export function LogoMenu() {
   const [importError, setImportError] = useState<string | null>(null)
   const [importMessage, setImportMessage] = useState<string | null>(null)
   const [isImporting, setIsImporting] = useState(false)
+  const [createError, setCreateError] = useState<string | null>(null)
+  const [isCreating, setIsCreating] = useState(false)
 
   const containerRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -91,6 +94,7 @@ export function LogoMenu() {
     setExportError(null)
     setImportError(null)
     setImportMessage(null)
+    setCreateError(null)
     setIsOpen(true)
   }
 
@@ -102,11 +106,26 @@ export function LogoMenu() {
     clearHighlight()
   }
 
-  function handleCreateGraph() {
-    setSessionId('')
-    resetGraphState()
-    navigate('/')
-    setIsOpen(false)
+  async function handleCreateGraph() {
+    setCreateError(null)
+    setIsCreating(true)
+    try {
+      const result = await createEmptySession()
+      if (isImportError(result)) {
+        setCreateError(result.message || result.error)
+        return
+      }
+      setSessionId(result.session_id)
+      resetGraphState()
+      navigate('/')
+      setIsOpen(false)
+    } catch (err) {
+      setCreateError(
+        err instanceof Error ? err.message : 'Failed to create a new graph.',
+      )
+    } finally {
+      setIsCreating(false)
+    }
   }
 
   function handleSaveGraph() {
@@ -196,7 +215,11 @@ export function LogoMenu() {
           aria-label="CKS Studio menu"
           className="absolute left-0 top-[calc(100%+6px)] z-30 w-64 bg-surface-1 border border-border rounded-lg shadow-2xl overflow-hidden py-1"
         >
-          <MenuItem label="Create graph" onSelect={handleCreateGraph} />
+          <MenuItem
+            label={isCreating ? 'Creating…' : 'Create graph'}
+            onSelect={handleCreateGraph}
+            disabled={isCreating}
+          />
           <MenuItem label="Save graph" onSelect={handleSaveGraph} />
           <MenuItem label="Load graph" onSelect={handleLoadGraph} />
           <MenuItem
@@ -210,8 +233,13 @@ export function LogoMenu() {
             disabled={isImporting}
           />
 
-          {(exportError || importError || importMessage) && (
+          {(exportError || importError || importMessage || createError) && (
             <div className="px-3 pt-1.5 pb-1 text-[11px] leading-snug border-t border-border-subtle mt-1">
+              {createError && (
+                <p role="alert" className="text-danger">
+                  {createError}
+                </p>
+              )}
               {exportError && (
                 <p role="alert" className="text-danger">
                   {exportError}

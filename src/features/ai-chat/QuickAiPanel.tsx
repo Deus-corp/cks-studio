@@ -49,7 +49,7 @@ export function QuickAiPanel() {
   )
   const [input, setInput] = useState('')
   const sessionId = useSessionStore((s) => s.sessionId)
-  const { turns, isSending, error, send, retry } = useAiChat()
+  const { turns, isSending, error, send, retry, clearChat } = useAiChat()
   const navigate = useNavigate()
 
   const hasSession = Boolean(sessionId.trim())
@@ -96,6 +96,31 @@ export function QuickAiPanel() {
           Quick AI
         </span>
         <div className="flex items-center gap-1">
+          <IconButton
+            onClick={clearChat}
+            disabled={turns.length === 0}
+            label="Clear chat"
+            title="Clear chat history for this session"
+            size="sm"
+            className="!shadow-none !border-transparent !bg-transparent text-text-tertiary hover:!text-text-secondary hover:!bg-surface-2 disabled:opacity-40"
+            icon={
+              <svg
+                width="13"
+                height="13"
+                viewBox="0 0 24 24"
+                fill="none"
+                aria-hidden="true"
+              >
+                <path
+                  d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            }
+          />
           <IconButton
             onClick={() => navigate('/chat')}
             label="Open full Chat"

@@ -9,6 +9,7 @@ import {
   rejectResolution,
   reviewDeadLetter,
 } from '@/services/mcpTools'
+import { useSessionStore } from '@/services/sessionStore'
 import { useSettingsStore } from '@/shared/stores/settingsStore'
 import { useDeadLetterPolling } from './useDeadLetterPolling'
 
@@ -302,8 +303,18 @@ function TaskDetail({
  */
 export function DeadLetterPanel() {
   const pollingIntervalMs = useSettingsStore((s) => s.pollingIntervalMs)
+  const connectedSessionId = useSessionStore((s) => s.sessionId)
+  // Defaults to filtering by the currently connected session -- the
+  // reported bug was tasks from *other* sessions showing up unlabelled
+  // in what the user expected to be a current-session view. Toggling
+  // this off falls back to the unfiltered (all-sessions) list.
+  const [filterToCurrentSession, setFilterToCurrentSession] = useState(true)
+  const sessionFilter =
+    filterToCurrentSession && connectedSessionId.trim()
+      ? connectedSessionId.trim()
+      : undefined
   const { tasks, supported, lastFetchedAt, error, isLoading, refresh } =
-    useDeadLetterPolling(pollingIntervalMs)
+    useDeadLetterPolling(pollingIntervalMs, sessionFilter)
   const [selectedTaskId, setSelectedTaskId] = useState<number | null>(null)
 
   const handleResolved = () => {
@@ -336,11 +347,27 @@ export function DeadLetterPanel() {
         </button>
       </div>
 
-      <p className="text-xs text-text-tertiary px-4 py-2">
-        Conflict tasks a Critic agent gave up on, for manual review and
-        resolution (see review_dead_letter / approve_resolution /
-        reject_resolution).
-      </p>
+      <div className="flex items-center justify-between gap-2 px-4 py-2">
+        <p className="text-xs text-text-tertiary">
+          Conflict tasks a Critic agent gave up on, for manual review and
+          resolution (see review_dead_letter / approve_resolution /
+          reject_resolution).
+        </p>
+        <label className="flex items-center gap-1.5 text-xs text-text-secondary whitespace-nowrap">
+          <input
+            type="checkbox"
+            checked={filterToCurrentSession}
+            onChange={(e) => setFilterToCurrentSession(e.target.checked)}
+            disabled={!connectedSessionId.trim()}
+          />
+          Current session only
+        </label>
+      </div>
+      {filterToCurrentSession && connectedSessionId.trim() && (
+        <p className="text-xs text-text-tertiary px-4 pb-2 -mt-1 truncate">
+          Filtering to session: {connectedSessionId.trim()}
+        </p>
+      )}
 
       {error && (
         <p className="text-danger text-xs px-4 py-2">

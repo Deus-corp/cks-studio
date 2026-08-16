@@ -6,6 +6,22 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 
 ---
 
+## [0.18.0] - 2026-08-16
+
+### Added
+- **Persistent chat per session** – chat history is now stored per `session_id` and survives tab switches and reloads. Added a “Clear chat” button to both Quick AI and full Chat.
+- **Create graph creates a session** – the logo menu’s Create graph action now immediately creates a new empty session via `validate_knowledge`, so AI Chat is instantly available without loading a graph from the gallery.
+- **Dead Letter session filter** – the Dead Letter Inbox now offers a “Current session only” toggle, filtering tasks by the active session id.
+- **Liveness cleanup UI** – AgentPanel hides stale stopped agent processes and surfaces placeholder cards for known agent kinds, while old liveness rows are pruned server-side.
+
+### Fixed
+- **Graph flicker / session race** – switching tabs or sessions no longer causes nodes to temporarily disappear due to stale async responses.
+- **Why this belief? after object creation** – newly created nodes/relations are now automatically selected, so the inference panel can be opened immediately instead of appearing to do nothing.
+- **Start Pipeline message/state** – success messages no longer linger indefinitely and Stop behavior is cleaner.
+- **Publish input focus** – typing in the gallery publish dialog no longer selects all text on every keystroke.
+
+---
+
 ## [0.17.0] - 2026-08-16
 
 ### Added

@@ -1,6 +1,6 @@
 // Copyright (c) 2025 Deus Corp. Licensed under MIT.
 
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useGraphStore } from '@/features/graph-explorer/graphExplorerStore'
 import {
   type AiChatResult,
@@ -118,10 +118,22 @@ export function useAiChat() {
     appendUserTurn,
     appendAssistantTurn,
     setSending,
+    setActiveSession,
+    clearHistory,
   } = useChatStore()
   const setNodes = useGraphStore((s) => s.setNodes)
   const setEdges = useGraphStore((s) => s.setEdges)
   const [error, setError] = useState<ChatError | null>(null)
+
+  // Load (or start) this session's saved chat history whenever the
+  // connected session changes -- without this, switching sessions on
+  // the Graph page reset the chat transcript to empty instead of
+  // showing the session it's now connected to (see chatStore.ts's
+  // historyBySessionId).
+  useEffect(() => {
+    setActiveSession(sessionId.trim())
+  }, [sessionId, setActiveSession])
+
   // Model used for the most recent attempt (initial send or retry), so a
   // retry re-uses the same override rather than silently switching back
   // to whatever's currently selected in the model dropdown.
@@ -249,5 +261,13 @@ export function useAiChat() {
     await attempt(rawMessages, lastModel)
   }, [error, turns, rawMessages, lastModel, attempt])
 
-  return { turns, isSending, error, selectedModel, send, retry }
+  /** Clears the current session's saved chat history (and any pending
+   *  error banner) -- exposed to ChatPanel/QuickAiPanel's "Clear chat"
+   *  button. */
+  const clearChat = useCallback(() => {
+    clearHistory(sessionId.trim() || undefined)
+    setError(null)
+  }, [clearHistory, sessionId])
+
+  return { turns, isSending, error, selectedModel, send, retry, clearChat }
 }
