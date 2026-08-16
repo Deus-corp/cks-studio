@@ -136,16 +136,16 @@ export function CreateRelationForm({
   return (
     <form
       onSubmit={handleSubmit}
-      className="p-4 border-t border-gray-800 bg-gray-900 space-y-3"
+      className="p-4 border-t border-border-subtle bg-surface-1 space-y-3"
     >
-      <h3 className="text-sm font-semibold text-gray-200">New relation</h3>
+      <h3 className="text-sm font-semibold text-text-primary">New relation</h3>
 
       <div>
-        <div className="block text-xs text-gray-500 mb-1">
+        <div className="block text-xs text-text-tertiary mb-1">
           Participants ({participants.length}/2)
         </div>
         {participants.length === 0 && (
-          <p className="text-xs text-gray-500 italic">
+          <p className="text-xs text-text-tertiary italic">
             Click a source node, then a target node on the canvas.
           </p>
         )}
@@ -154,20 +154,20 @@ export function CreateRelationForm({
             node ? (
               <li
                 key={node.id}
-                className="flex items-center justify-between text-xs bg-gray-800 rounded px-2 py-1"
+                className="flex items-center justify-between text-xs bg-surface-2 rounded px-2 py-1"
               >
                 <span>
-                  <span className="text-amber-400 font-semibold mr-1">
+                  <span className="text-warning font-semibold mr-1">
                     {idx === 0 ? 'source' : 'target'}:
                   </span>
-                  <span className="text-gray-200">
+                  <span className="text-text-primary">
                     {(node.data.label as string) ?? node.id}
                   </span>
                 </span>
                 <button
                   type="button"
                   onClick={() => handleRemoveParticipant(node.id)}
-                  className="text-gray-500 hover:text-red-400"
+                  className="text-text-tertiary hover:text-danger"
                   aria-label={`Remove ${node.id} from relation`}
                 >
                   ×
@@ -177,7 +177,7 @@ export function CreateRelationForm({
           )}
         </ul>
         {participants.length === 1 && (
-          <p className="text-xs text-gray-500 italic mt-1">
+          <p className="text-xs text-text-tertiary italic mt-1">
             Click a target node on the canvas.
           </p>
         )}
@@ -186,7 +186,7 @@ export function CreateRelationForm({
       <div>
         <label
           htmlFor="new-relation-type"
-          className="block text-xs text-gray-500 mb-1"
+          className="block text-xs text-text-tertiary mb-1"
         >
           Relation type
         </label>
@@ -196,7 +196,7 @@ export function CreateRelationForm({
           value={relationType}
           onChange={(e) => setRelationType(e.target.value)}
           placeholder="e.g. derives, supports, contradicts"
-          className="w-full bg-gray-800 border border-gray-700 rounded px-2 py-1 text-sm text-gray-200"
+          className="w-full bg-surface-2 border border-border rounded px-2 py-1 text-sm text-text-primary"
           required
         />
       </div>
@@ -204,7 +204,7 @@ export function CreateRelationForm({
       <div>
         <label
           htmlFor="new-relation-name"
-          className="block text-xs text-gray-500 mb-1"
+          className="block text-xs text-text-tertiary mb-1"
         >
           Name (optional, defaults to type)
         </label>
@@ -213,14 +213,14 @@ export function CreateRelationForm({
           type="text"
           value={relationName}
           onChange={(e) => setRelationName(e.target.value)}
-          className="w-full bg-gray-800 border border-gray-700 rounded px-2 py-1 text-sm text-gray-200"
+          className="w-full bg-surface-2 border border-border rounded px-2 py-1 text-sm text-text-primary"
         />
       </div>
 
       <div>
         <label
           htmlFor="new-relation-structure"
-          className="block text-xs text-gray-500 mb-1"
+          className="block text-xs text-text-tertiary mb-1"
         >
           Structure (JSON, optional)
         </label>
@@ -229,26 +229,26 @@ export function CreateRelationForm({
           value={structureText}
           onChange={(e) => setStructureText(e.target.value)}
           rows={4}
-          className="w-full bg-gray-800 border border-gray-700 rounded px-2 py-1 text-xs font-mono text-gray-200"
+          className="w-full bg-surface-2 border border-border rounded px-2 py-1 text-xs font-mono text-text-primary"
         />
         {structureError && (
-          <p className="text-red-400 text-xs mt-1">{structureError}</p>
+          <p className="text-danger text-xs mt-1">{structureError}</p>
         )}
       </div>
 
-      {errorMessage && <p className="text-red-400 text-xs">{errorMessage}</p>}
+      {errorMessage && <p className="text-danger text-xs">{errorMessage}</p>}
 
       {diagnostics.length > 0 && (
         <ul className="space-y-1">
           {diagnostics.map((d) => (
             <li
               key={`${d.code}-${d.location ?? ''}`}
-              className="text-xs bg-red-950/50 border border-red-900 rounded px-2 py-1"
+              className="text-xs bg-danger/10 border border-danger/30 rounded px-2 py-1"
             >
-              <span className="uppercase text-red-400 mr-1">{d.severity}</span>
-              <span className="text-red-200">{d.message}</span>
+              <span className="uppercase text-danger mr-1">{d.severity}</span>
+              <span className="text-danger">{d.message}</span>
               {d.location && (
-                <span className="text-red-400/70"> ({d.location})</span>
+                <span className="text-danger/70"> ({d.location})</span>
               )}
             </li>
           ))}
@@ -260,12 +260,10 @@ export function CreateRelationForm({
           {warnings.map((w) => (
             <li
               key={`${w.code}-${w.location ?? ''}`}
-              className="text-xs bg-amber-950/50 border border-amber-900 rounded px-2 py-1"
+              className="text-xs bg-warning/10 border border-warning/30 rounded px-2 py-1"
             >
-              <span className="uppercase text-amber-400 mr-1">
-                {w.severity}
-              </span>
-              <span className="text-amber-200">{w.message}</span>
+              <span className="uppercase text-warning mr-1">{w.severity}</span>
+              <span className="text-warning">{w.message}</span>
             </li>
           ))}
         </ul>
@@ -275,14 +273,14 @@ export function CreateRelationForm({
         <button
           type="submit"
           disabled={isSubmitDisabled}
-          className="flex-1 rounded bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="flex-1 rounded bg-accent px-3 py-1.5 text-sm font-medium text-white hover:bg-accent-strong disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {status === 'pending' ? 'Creating…' : 'Create'}
         </button>
         <button
           type="button"
           onClick={handleCancel}
-          className="rounded bg-gray-700 px-3 py-1.5 text-sm text-gray-300 hover:bg-gray-600"
+          className="rounded bg-surface-2 px-3 py-1.5 text-sm text-text-secondary hover:bg-surface-3"
         >
           Cancel
         </button>

@@ -16,6 +16,47 @@ import { useProcessesPolling } from './useProcessesPolling'
 
 const MAX_ERROR_LENGTH = 140
 
+/** All standalone agent kinds cks-runtime knows about (see
+ *  ProcessStatus['process_kind']), used to render a placeholder card for
+ *  any kind that has never sent a heartbeat -- otherwise an agent that
+ *  simply hasn't been started yet is indistinguishable from one that
+ *  doesn't exist. */
+const KNOWN_PROCESS_KINDS: Array<{
+  kind: ProcessStatus['process_kind']
+  label: string
+}> = [
+  { kind: 'critic', label: 'Critic' },
+  { kind: 'enrichment', label: 'Enrichment' },
+  { kind: 'fork_resolution', label: 'Fork Resolution' },
+  { kind: 'pipeline', label: 'Pipeline' },
+]
+
+function UnknownProcessCard({ label }: { label: string }) {
+  return (
+    <div className="flex flex-col bg-surface-1 border border-border-subtle rounded p-3 space-y-2 h-full">
+      <div className="flex items-center gap-2">
+        <span
+          className="w-2 h-2 rounded-full inline-block flex-shrink-0 bg-text-tertiary"
+          title="not running"
+        />
+        <span className="text-sm font-medium text-text-primary truncate">
+          {label}
+        </span>
+      </div>
+
+      <p className="text-xs text-text-tertiary">
+        not running / no heartbeat yet
+      </p>
+
+      <div className="mt-auto pt-2 border-t border-border-subtle/60">
+        <p className="text-[11px] text-text-tertiary italic">
+          Started manually as a separate OS process — not managed from this UI.
+        </p>
+      </div>
+    </div>
+  )
+}
+
 function truncateError(message: string): string {
   if (message.length <= MAX_ERROR_LENGTH) return message
   return `${message.slice(0, MAX_ERROR_LENGTH)}…`
@@ -453,12 +494,6 @@ export function AgentPanel() {
             </p>
           )}
 
-          {!processesError && processes.length === 0 && !processesLoading && (
-            <p className="text-xs text-text-tertiary px-4 py-2">
-              No standalone processes have sent a heartbeat yet.
-            </p>
-          )}
-
           <div className="p-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 items-stretch">
             {processes.map((process) => (
               <ProcessCard
@@ -470,6 +505,13 @@ export function AgentPanel() {
                 onRequestStop={handleRequestStop}
               />
             ))}
+            {!processesError &&
+              !processesLoading &&
+              KNOWN_PROCESS_KINDS.filter(
+                ({ kind }) => !processes.some((p) => p.process_kind === kind),
+              ).map(({ kind, label }) => (
+                <UnknownProcessCard key={kind} label={label} />
+              ))}
           </div>
         </section>
       </div>

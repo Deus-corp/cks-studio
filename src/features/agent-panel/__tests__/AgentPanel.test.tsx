@@ -118,12 +118,13 @@ describe('AgentPanel', () => {
     ).toBeInTheDocument()
   })
 
-  it('shows the process empty-state message when no processes have reported', () => {
+  it('shows placeholder cards for all known standalone agents when none have reported', () => {
     render(<AgentPanel />)
 
-    expect(
-      screen.getByText(/No standalone processes have sent a heartbeat yet/),
-    ).toBeInTheDocument()
+    expect(screen.getByText('Critic')).toBeInTheDocument()
+    expect(screen.getByText('Enrichment')).toBeInTheDocument()
+    expect(screen.getByText('Fork Resolution')).toBeInTheDocument()
+    expect(screen.getByText('Pipeline')).toBeInTheDocument()
   })
 
   it('renders a process card for each standalone process, including task info', () => {

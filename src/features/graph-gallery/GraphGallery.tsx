@@ -272,7 +272,9 @@ function GraphCard({
           </svg>
         }
       />
-      {showPreview && <GraphPreview sessionId={graph.session_id} />}
+      {showPreview && (
+        <GraphPreview sessionId={graph.session_id} onOpen={handleOpen} />
+      )}
 
       {graph.source_graph_name && (
         <button

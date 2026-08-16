@@ -49,6 +49,13 @@ function ensureMermaidInitialized(mermaid: MermaidModule) {
   mermaidInitialized = true
 }
 
+/** Above this many nodes reported by visualize_graph (whether or not the
+ *  response was itself truncated to fit maxObjects), a Mermaid thumbnail
+ *  squeezed into the small preview card stops being readable -- labels
+ *  overlap and edges cross everywhere. Past this point we skip rendering
+ *  entirely and just point the user at the full graph view instead. */
+const LARGE_GRAPH_NODE_THRESHOLD = 50
+
 /**
  * Mini Mermaid visualization of a gallery graph, via visualize_graph
  * (mode='structure') -- the same Mermaid export an MCP client already
@@ -58,10 +65,20 @@ function ensureMermaidInitialized(mermaid: MermaidModule) {
  * only mount this once a card is actually visible/expanded rather than
  * for the whole grid up front.
  */
-export function GraphPreview({ sessionId }: { sessionId: string }) {
+export function GraphPreview({
+  sessionId,
+  onOpen,
+}: {
+  sessionId: string
+  /** Opens the full graph, offered as an escape hatch for graphs too
+   *  large to render legibly in the small preview card. */
+  onOpen?: () => void
+}) {
   const [svg, setSvg] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [isLarge, setIsLarge] = useState(false)
+  const [totalNodes, setTotalNodes] = useState<number | null>(null)
   const mountedRef = useRef(true)
   const renderId = useId().replace(/:/g, '-')
 
@@ -70,16 +87,35 @@ export function GraphPreview({ sessionId }: { sessionId: string }) {
     setIsLoading(true)
     setError(null)
     setSvg(null)
+    setIsLarge(false)
+    setTotalNodes(null)
 
     async function run() {
       try {
-        const mermaid = await loadMermaid()
-        ensureMermaidInitialized(mermaid)
         const result = await visualizeGraph({
           sessionId,
           depth: 1,
           maxObjects: 12,
         })
+
+        // A graph can be "large" either because the response says so
+        // directly (truncated to fit maxObjects) or because it wasn't
+        // truncated but still has more nodes than a thumbnail can show
+        // legibly (e.g. a shallow, wide graph within the cap).
+        const tooLarge =
+          result.is_truncated ||
+          result.total_found_nodes > LARGE_GRAPH_NODE_THRESHOLD
+
+        if (tooLarge) {
+          if (mountedRef.current) {
+            setIsLarge(true)
+            setTotalNodes(result.total_found_nodes)
+          }
+          return
+        }
+
+        const mermaid = await loadMermaid()
+        ensureMermaidInitialized(mermaid)
         const { svg: rendered } = await mermaid.render(
           `graph-preview-${renderId}`,
           result.mermaid,
@@ -112,6 +148,26 @@ export function GraphPreview({ sessionId }: { sessionId: string }) {
     return (
       <div className="h-24 flex items-center justify-center text-[10px] text-text-tertiary bg-surface-2/50 rounded px-2 text-center">
         Preview unavailable
+      </div>
+    )
+  }
+
+  if (isLarge) {
+    return (
+      <div className="h-24 flex flex-col items-center justify-center gap-1 text-[10px] text-text-tertiary bg-surface-2/50 rounded px-2 text-center">
+        <span>
+          Large graph{totalNodes ? ` (${totalNodes}+ objects)` : ''} — open it
+          to explore
+        </span>
+        {onOpen && (
+          <button
+            type="button"
+            onClick={onOpen}
+            className="text-accent hover:underline"
+          >
+            Open graph
+          </button>
+        )}
       </div>
     )
   }

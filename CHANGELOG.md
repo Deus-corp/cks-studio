@@ -6,6 +6,23 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 
 ---
 
+## [0.16.0] - 2026-08-16
+
+### Fixed
+- **Light-theme forms** – New object and New relation forms no longer use hardcoded dark colors; they now follow theme tokens (`bg-surface-*`, `border-border*`, `text-text-*`, `text-danger`, `text-warning`).
+- **Start Pipeline UX** – success message now auto-dismisses after 5 seconds and clears on selection changes. Stop button is hidden when no pipeline process has ever reported a heartbeat.
+- **Publish input focus** – fixed a bug where typing in the graph name field selected the whole text on every keystroke. The publish modal now preserves input focus.
+- **Large graph preview** – gallery preview now shows a “Large graph — open it to explore” message with an Open graph button when the graph exceeds a readable size.
+
+### Added
+- **Known standalone agents** – AgentPanel now shows all known standalone agent kinds (Critic, Enrichment, Fork Resolution, Pipeline) even before they first send a heartbeat, with a “not running / no heartbeat yet” placeholder card.
+
+### Changed
+- Standalone Processes section no longer shows a generic empty message; missing known agents are represented individually.
+- `GraphPreview` accepts an optional `onOpen` handler for the large-graph fallback.
+
+---
+
 ## [0.15.0] - 2026-08-16
 
 ### Added
