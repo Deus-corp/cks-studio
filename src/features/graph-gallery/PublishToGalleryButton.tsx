@@ -1,6 +1,6 @@
 // Copyright (c) 2026 Deus Corp. Licensed under MIT.
 
-import { useId, useState } from 'react'
+import { useCallback, useId, useState } from 'react'
 import { registerGraph } from '@/services/mcpTools'
 import { useModalA11y } from '@/shared/hooks/useModalA11y'
 
@@ -21,7 +21,6 @@ type Visibility = 'private' | 'team' | 'public'
 export function PublishToGalleryButton({ sessionId }: { sessionId: string }) {
   const [isOpen, setIsOpen] = useState(false)
   const titleId = useId()
-  const dialogRef = useModalA11y<HTMLFormElement>(() => resetAndClose(), isOpen)
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
   const [tags, setTags] = useState('')
@@ -31,10 +30,16 @@ export function PublishToGalleryButton({ sessionId }: { sessionId: string }) {
   const [error, setError] = useState<string | null>(null)
   const [publishedName, setPublishedName] = useState<string | null>(null)
 
-  const resetAndClose = () => {
+  // Stable identity across renders -- useModalA11y's focus-trap effect
+  // depends on this callback, so a fresh arrow function here on every
+  // keystroke (state update -> re-render) would re-run that effect and
+  // re-steal focus from the name input on every character typed.
+  const resetAndClose = useCallback(() => {
     setIsOpen(false)
     setError(null)
-  }
+  }, [])
+
+  const dialogRef = useModalA11y<HTMLFormElement>(resetAndClose, isOpen)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
