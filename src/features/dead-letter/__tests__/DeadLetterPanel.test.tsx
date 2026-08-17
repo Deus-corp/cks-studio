@@ -90,6 +90,40 @@ describe('DeadLetterPanel', () => {
     expect(screen.getByText('inference_conflict')).toBeInTheDocument()
   })
 
+  it('renders without crashing when tasks is missing from the response', async () => {
+    // Simulates an unexpected/partial MCP response shape (e.g. a
+    // tool-level error or a backend that omits `tasks`) -- the panel
+    // must not throw on `tasks.map` and should fall back to an empty
+    // list instead.
+    listDeadLetteredConflictsMock.mockResolvedValue({
+      supported: true,
+    })
+
+    render(<DeadLetterPanel />)
+
+    expect(
+      await screen.findByText(
+        'No dead-lettered tasks — nothing needs review right now.',
+      ),
+    ).toBeInTheDocument()
+  })
+
+  it('renders without crashing when tasks is explicitly null', async () => {
+    listDeadLetteredConflictsMock.mockResolvedValue({
+      tasks: null,
+      count: 0,
+      supported: true,
+    })
+
+    render(<DeadLetterPanel />)
+
+    expect(
+      await screen.findByText(
+        'No dead-lettered tasks — nothing needs review right now.',
+      ),
+    ).toBeInTheDocument()
+  })
+
   it('loads and shows task details via reviewDeadLetter on selection', async () => {
     listDeadLetteredConflictsMock.mockResolvedValue({
       tasks: [task()],

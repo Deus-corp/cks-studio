@@ -51,7 +51,10 @@ export function useDeadLetterPolling(
     try {
       const result = await listDeadLetteredConflicts(undefined, sessionId)
       if (seq !== requestSeq.current) return
-      setTasks(result.tasks)
+      // Defensive: listDeadLetteredConflicts already normalizes this,
+      // but never let a missing/non-array `tasks` reach state -- a
+      // stale/mocked response shape should not crash the panel.
+      setTasks(Array.isArray(result.tasks) ? result.tasks : [])
       setSupported(result.supported)
       setLastFetchedAt(new Date())
       setError(null)

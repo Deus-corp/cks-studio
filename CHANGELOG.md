@@ -6,6 +6,24 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 
 ---
 
+## [0.18.1] - 2026-08-17
+
+### Fixed
+- **Dead Letter crash** – `DeadLetterPanel` and `listDeadLetteredConflicts` now safely normalize missing or `null` `tasks` to an empty array. Switching tabs after an error no longer leaves the ErrorBoundary fallback stuck.
+- **Quick AI Clear chat confirmation** – clearing quick chat history now asks for confirmation, matching the full Chat panel.
+- **Gallery card action alignment** – `Check health` / `Open in Graph` row is now pinned to the bottom of each card, so buttons don’t shift vertically based on description/tags.
+- **AI chat truncation handling** – when `ai_chat` reaches its tool-call iteration limit, the studio now detects the truncated state and shows a Continue button instead of leaving the turn looking like a normal finished reply.
+
+### Added
+- **Continue truncated chat** – `useAiChat` now exposes `continueTruncated()`, and both ChatPanel and QuickAiPanel render a Continue action for truncated assistant turns.
+- **Structured `truncated` flag** – `AiChatResult` now includes `truncated?: boolean`, with fallback detection by reply text for older backends.
+- **Tests** for dead-letter empty states, quick chat confirmation, truncated chat behavior, and MCP wrapper normalization.
+
+### Changed
+- `mcpTools.listDeadLetteredConflicts` now returns normalized shape `{ tasks, count, supported }`.
+
+---
+
 ## [0.18.0] - 2026-08-16
 
 ### Added

@@ -18,7 +18,65 @@ const {
   linkGraphs,
   updateGraphLifecycle,
   unregisterGraph,
+  listDeadLetteredConflicts,
 } = await import('../mcpTools')
+
+describe('listDeadLetteredConflicts', () => {
+  it('returns tasks/count/supported as-is for a well-formed response', async () => {
+    callToolMock.mockResolvedValueOnce({
+      tasks: [
+        {
+          task_id: 1,
+          task_type: 'gossip_conflict',
+          session_id: 's1',
+          payload: {},
+          retry_count: 0,
+        },
+      ],
+      count: 1,
+      supported: true,
+    })
+
+    const result = await listDeadLetteredConflicts()
+
+    expect(result.tasks).toHaveLength(1)
+    expect(result.count).toBe(1)
+    expect(result.supported).toBe(true)
+  })
+
+  it('normalizes a missing `tasks` field to an empty array instead of undefined', async () => {
+    // e.g. a tool-level error object, or a backend response that omits
+    // `tasks` -- must not propagate `undefined` to callers (DeadLetterPanel
+    // does `tasks.map(...)` directly on this).
+    callToolMock.mockResolvedValueOnce({ supported: true })
+
+    const result = await listDeadLetteredConflicts()
+
+    expect(result.tasks).toEqual([])
+    expect(result.count).toBe(0)
+    expect(result.supported).toBe(true)
+  })
+
+  it('normalizes `tasks: null` to an empty array', async () => {
+    callToolMock.mockResolvedValueOnce({
+      tasks: null,
+      count: 0,
+      supported: true,
+    })
+
+    const result = await listDeadLetteredConflicts()
+
+    expect(result.tasks).toEqual([])
+  })
+
+  it('defaults `supported` to true when missing', async () => {
+    callToolMock.mockResolvedValueOnce({ tasks: [] })
+
+    const result = await listDeadLetteredConflicts()
+
+    expect(result.supported).toBe(true)
+  })
+})
 
 describe('normalizeCompactSubgraphResponse', () => {
   it('unwraps nodes/edges from the real query_subgraph_tool compact_mode shape', () => {

@@ -391,7 +391,7 @@ export function DeadLetterPanel() {
 
       <div className="flex-1 flex min-h-0">
         <div className="w-80 border-r border-border-subtle overflow-y-auto">
-          {tasks.map((task) => (
+          {(tasks ?? []).map((task) => (
             <TaskRow
               key={task.task_id}
               task={task}

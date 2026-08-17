@@ -13,7 +13,15 @@ import { useAiChat } from './useAiChat'
  *  this is meant for quick, disposable questions, not a scrollback. */
 const VISIBLE_TURN_COUNT = 6
 
-function MiniTurnBubble({ turn }: { turn: ChatTurn }) {
+function MiniTurnBubble({
+  turn,
+  onContinue,
+  isSending,
+}: {
+  turn: ChatTurn
+  onContinue?: () => void
+  isSending?: boolean
+}) {
   const isUser = turn.role === 'user'
   return (
     <div className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
@@ -25,6 +33,19 @@ function MiniTurnBubble({ turn }: { turn: ChatTurn }) {
         }`}
       >
         {turn.text}
+        {!isUser && turn.truncated && onContinue && (
+          <div className="mt-1.5">
+            <button
+              type="button"
+              onClick={onContinue}
+              disabled={isSending}
+              title="Ask the LLM to continue from here"
+              className="text-[11px] text-text-secondary hover:text-text-primary border border-border-subtle hover:border-border rounded px-1.5 py-0.5 disabled:opacity-50"
+            >
+              {isSending ? 'Continuing…' : 'Continue'}
+            </button>
+          </div>
+        )}
       </div>
     </div>
   )
@@ -49,7 +70,8 @@ export function QuickAiPanel() {
   )
   const [input, setInput] = useState('')
   const sessionId = useSessionStore((s) => s.sessionId)
-  const { turns, isSending, error, send, retry, clearChat } = useAiChat()
+  const { turns, isSending, error, send, retry, continueTruncated, clearChat } =
+    useAiChat()
   const navigate = useNavigate()
 
   const hasSession = Boolean(sessionId.trim())
@@ -97,7 +119,16 @@ export function QuickAiPanel() {
         </span>
         <div className="flex items-center gap-1">
           <IconButton
-            onClick={clearChat}
+            onClick={() => {
+              if (turns.length === 0) return
+              if (
+                typeof window !== 'undefined' &&
+                !window.confirm("Clear this session's chat history?")
+              ) {
+                return
+              }
+              clearChat()
+            }}
             disabled={turns.length === 0}
             label="Clear chat"
             title="Clear chat history for this session"
@@ -171,8 +202,15 @@ export function QuickAiPanel() {
               </p>
             )}
             {visibleTurns.map((turn, i) => (
-              // biome-ignore lint/suspicious/noArrayIndexKey: turns have no stable id
-              <MemoizedMiniTurnBubble key={i} turn={turn} />
+              <MemoizedMiniTurnBubble
+                // biome-ignore lint/suspicious/noArrayIndexKey: turns have no stable id
+                key={i}
+                turn={turn}
+                onContinue={
+                  i === visibleTurns.length - 1 ? continueTruncated : undefined
+                }
+                isSending={isSending}
+              />
             ))}
             {isSending && (
               <div className="flex justify-start">

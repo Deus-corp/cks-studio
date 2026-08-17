@@ -338,7 +338,12 @@ function GraphCard({
         Updated {formatDateTime(graph.updated_at)}
       </p>
 
-      <div className="flex items-center justify-between mt-1 gap-2">
+      {/* mt-auto pins this row to the bottom of the flex-column card
+       *  regardless of how much content (description, tags, fork
+       *  link, etc.) rendered above it -- without this the row's
+       *  vertical position shifted per-card based on whether
+       *  description/tags were present. */}
+      <div className="flex items-center justify-between mt-auto gap-2">
         <HealthBadge name={graph.name} />
         <div className="flex items-center gap-1.5">
           <IconButton

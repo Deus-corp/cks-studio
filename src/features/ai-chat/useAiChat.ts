@@ -60,6 +60,17 @@ function classifyAiChatErrorCode(code: string, rawMessage: string): ChatError {
   return { kind: 'other', message }
 }
 
+/** ai_chat's iteration-cap fallback reply text (see cks_mcp.tools.ai_chat.
+ *  handler) -- used as a fallback detector when talking to an older
+ *  cks-mcp build that doesn't yet send the structured `truncated` flag,
+ *  so the Retry/Continue affordance still works either way. */
+const ITERATION_LIMIT_REPLY =
+  'Reached the tool-call iteration limit without a final answer.'
+
+function isTruncatedResult(result: AiChatResult): boolean {
+  return result.truncated === true || result.reply === ITERATION_LIMIT_REPLY
+}
+
 /**
  * Sends chat turns to cks-mcp's ai_chat tool and keeps the Graph tab's
  * canvas in sync when a turn's tool calls mutated the graph (ADR-001 §5:
@@ -168,7 +179,12 @@ export function useAiChat() {
           return
         }
 
-        appendAssistantTurn(result.reply, result.tool_calls, result.messages)
+        appendAssistantTurn(
+          result.reply,
+          result.tool_calls,
+          result.messages,
+          isTruncatedResult(result),
+        )
 
         // Quick AI / full Chat can create a brand-new session (e.g.
         // validate_knowledge/construct_knowledge called with no
@@ -261,6 +277,22 @@ export function useAiChat() {
     await attempt(rawMessages, lastModel)
   }, [error, turns, rawMessages, lastModel, attempt])
 
+  /**
+   * Resumes the most recent turn after it hit ai_chat's tool-call
+   * iteration cap (ChatTurn.truncated), by resending the same running
+   * transcript -- which already ends with that truncated assistant
+   * turn, not a user turn -- so the LLM continues from where it left
+   * off instead of the user's message being duplicated. Distinct from
+   * retry() above, which only fires after a hard error and expects the
+   * trailing turn to still be the user's.
+   */
+  const continueTruncated = useCallback(async () => {
+    if (turns.length === 0) return
+    const last = turns[turns.length - 1]
+    if (last.role !== 'assistant' || !last.truncated) return
+    await attempt(rawMessages, lastModel)
+  }, [turns, rawMessages, lastModel, attempt])
+
   /** Clears the current session's saved chat history (and any pending
    *  error banner) -- exposed to ChatPanel/QuickAiPanel's "Clear chat"
    *  button. */
@@ -269,5 +301,14 @@ export function useAiChat() {
     setError(null)
   }, [clearHistory, sessionId])
 
-  return { turns, isSending, error, selectedModel, send, retry, clearChat }
+  return {
+    turns,
+    isSending,
+    error,
+    selectedModel,
+    send,
+    retry,
+    continueTruncated,
+    clearChat,
+  }
 }

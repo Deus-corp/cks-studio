@@ -913,7 +913,19 @@ export async function listDeadLetteredConflicts(
     ...(taskType ? { task_type: taskType } : {}),
     ...(sessionId ? { session_id: sessionId } : {}),
   })
-  return result as unknown as ListDeadLetteredConflictsResponse
+  // callTool's return type is a loosely-typed Record<string, unknown> --
+  // if the tool ever comes back with an unexpected/partial shape (e.g. a
+  // tool-level error object without a `tasks` field, or a backend that
+  // omits `tasks` when there's nothing to report), normalize here so
+  // callers can always rely on `tasks` being an array. Without this,
+  // `undefined` propagates straight into DeadLetterPanel's `tasks.map`.
+  const raw = result as Partial<ListDeadLetteredConflictsResponse>
+  const tasks = Array.isArray(raw.tasks) ? raw.tasks : []
+  return {
+    tasks,
+    count: typeof raw.count === 'number' ? raw.count : tasks.length,
+    supported: raw.supported ?? true,
+  }
 }
 
 /** {'tool': <resolution tool name>, 'arguments': {...}} -- ready to pass
@@ -1016,6 +1028,12 @@ export interface AiChatResult {
   reply: string
   tool_calls: ExecutedToolCall[]
   messages: ChatMessage[]
+  /** Set when this result is ai_chat's iteration-cap fallback reply
+   *  ("Reached the tool-call iteration limit without a final answer.")
+   *  rather than a genuine final answer -- lets callers offer a
+   *  Retry/Continue action instead of treating this as a normal,
+   *  finished turn. See cks_mcp.tools.ai_chat.handler. */
+  truncated?: boolean
 }
 
 /** Names of tools whose successful execution means the graph may have

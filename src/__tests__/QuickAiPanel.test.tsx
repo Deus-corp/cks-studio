@@ -35,6 +35,8 @@ function defaultState() {
     selectedModel: null as string | null,
     send: vi.fn(),
     retry: vi.fn(),
+    continueTruncated: vi.fn(),
+    clearChat: vi.fn(),
   }
 }
 
@@ -202,5 +204,70 @@ describe('QuickAiPanel', () => {
     expect(
       screen.queryByPlaceholderText(/ask anything/i),
     ).not.toBeInTheDocument()
+  })
+
+  describe('clear chat confirmation (bug #2)', () => {
+    // jsdom doesn't implement window.confirm by default -- assign a
+    // stub directly rather than vi.spyOn (which requires the property
+    // to already exist as a function).
+    afterEach(() => {
+      // @ts-expect-error -- test cleanup only
+      delete window.confirm
+    })
+
+    it('does not clear when the confirmation is declined', () => {
+      useSessionStore.getState().setSessionId('sess-1')
+      const clearChat = vi.fn()
+      window.confirm = vi.fn(() => false)
+      useAiChatMock.mockReturnValue(
+        aiChatState({
+          turns: [{ role: 'user', text: 'Hi' }],
+          clearChat,
+        }),
+      )
+      renderPanel()
+
+      fireEvent.click(screen.getByRole('button', { name: /quick ai/i }))
+      fireEvent.click(screen.getByTitle('Clear chat history for this session'))
+
+      expect(window.confirm).toHaveBeenCalledWith(
+        "Clear this session's chat history?",
+      )
+      expect(clearChat).not.toHaveBeenCalled()
+    })
+
+    it('clears once the confirmation is accepted', () => {
+      useSessionStore.getState().setSessionId('sess-1')
+      const clearChat = vi.fn()
+      window.confirm = vi.fn(() => true)
+      useAiChatMock.mockReturnValue(
+        aiChatState({
+          turns: [{ role: 'user', text: 'Hi' }],
+          clearChat,
+        }),
+      )
+      renderPanel()
+
+      fireEvent.click(screen.getByRole('button', { name: /quick ai/i }))
+      fireEvent.click(screen.getByTitle('Clear chat history for this session'))
+
+      expect(clearChat).toHaveBeenCalledTimes(1)
+    })
+
+    it('does not prompt at all when there is no history to clear', () => {
+      useSessionStore.getState().setSessionId('sess-1')
+      const clearChat = vi.fn()
+      window.confirm = vi.fn(() => true)
+      useAiChatMock.mockReturnValue(aiChatState({ turns: [], clearChat }))
+      renderPanel()
+
+      fireEvent.click(screen.getByRole('button', { name: /quick ai/i }))
+      // Disabled when there's nothing to clear -- fireEvent.click on a
+      // disabled button is a no-op in the DOM, matching real behavior.
+      fireEvent.click(screen.getByTitle('Clear chat history for this session'))
+
+      expect(window.confirm).not.toHaveBeenCalled()
+      expect(clearChat).not.toHaveBeenCalled()
+    })
   })
 })

@@ -166,7 +166,12 @@ export function AppContent() {
         </ErrorBoundary>
       </div>
       <div className={isGraphRoute ? 'hidden' : 'h-full'}>
-        <ErrorBoundary>
+        {/* key={pathname} forces a remount of the boundary (and its
+         *  subtree) on every route change, so an error caught on one
+         *  page doesn't keep showing the fallback after navigating
+         *  away to a different, unrelated page -- the user would
+         *  otherwise have to click "Try again" first. */}
+        <ErrorBoundary key={pathname}>
           <Suspense fallback={<PageLoadingFallback />}>
             <Routes>
               <Route path="/pipeline" element={<PipelinePage />} />

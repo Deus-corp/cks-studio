@@ -29,6 +29,12 @@ export interface ChatTurn {
   role: 'user' | 'assistant'
   text: string
   toolCalls?: ExecutedToolCall[]
+  /** True when this assistant turn is ai_chat's "reached the tool-call
+   *  iteration limit without a final answer" result (see ADR-011 /
+   *  cks_mcp.tools.ai_chat.handler) -- a distinct, retriable condition
+   *  from a hard error. Drives the Retry/Continue affordance next to
+   *  this specific message in ChatPanel/QuickAiPanel. */
+  truncated?: boolean
 }
 
 interface SessionChatHistory {
@@ -66,6 +72,7 @@ interface ChatState {
     text: string,
     toolCalls: ExecutedToolCall[],
     rawMessages: ChatMessage[],
+    truncated?: boolean,
   ) => void
   setSending: (v: boolean) => void
   setError: (e: string | null) => void
@@ -134,11 +141,11 @@ export const useChatStore = create<ChatState>()(
               : s.historyBySessionId,
           }
         }),
-      appendAssistantTurn: (text, toolCalls, rawMessages) =>
+      appendAssistantTurn: (text, toolCalls, rawMessages, truncated) =>
         set((s) => {
           const turns = [
             ...s.turns,
-            { role: 'assistant' as const, text, toolCalls },
+            { role: 'assistant' as const, text, toolCalls, truncated },
           ]
           return {
             turns,

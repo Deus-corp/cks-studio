@@ -207,7 +207,18 @@ function ChatErrorBanner({
   )
 }
 
-function TurnBubble({ turn }: { turn: ChatTurn }) {
+function TurnBubble({
+  turn,
+  onContinue,
+  isSending,
+}: {
+  turn: ChatTurn
+  /** Only meaningful (and only rendered) for the trailing turn when
+   *  turn.truncated is set -- resends the transcript so the LLM can
+   *  pick up where it left off. See useAiChat.continueTruncated. */
+  onContinue?: () => void
+  isSending?: boolean
+}) {
   const isUser = turn.role === 'user'
   return (
     <div className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
@@ -221,6 +232,42 @@ function TurnBubble({ turn }: { turn: ChatTurn }) {
         {turn.text}
         {!isUser && turn.toolCalls && (
           <ToolCallsDisclosure calls={turn.toolCalls} />
+        )}
+        {!isUser && turn.truncated && onContinue && (
+          <div className="mt-2">
+            <button
+              type="button"
+              onClick={onContinue}
+              disabled={isSending}
+              className="text-xs flex items-center gap-1 text-text-secondary hover:text-text-primary border border-border-subtle hover:border-border rounded px-2 py-1 disabled:opacity-50"
+              title="Ask the LLM to continue from here"
+            >
+              <svg
+                width="11"
+                height="11"
+                viewBox="0 0 24 24"
+                fill="none"
+                aria-hidden="true"
+                className={isSending ? 'animate-spin' : undefined}
+              >
+                <path
+                  d="M4 4v6h6M20 20v-6h-6"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+                <path
+                  d="M5.5 15a8 8 0 0013.9 3.4M18.5 9A8 8 0 004.6 5.6"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+              {isSending ? 'Continuing…' : 'Continue'}
+            </button>
+          </div>
         )}
       </div>
     </div>
@@ -287,8 +334,16 @@ function ModelSelect({
  * AgentPanel.tsx/AgentsPage.tsx.
  */
 export function ChatPanel() {
-  const { turns, isSending, error, selectedModel, send, retry, clearChat } =
-    useAiChat()
+  const {
+    turns,
+    isSending,
+    error,
+    selectedModel,
+    send,
+    retry,
+    continueTruncated,
+    clearChat,
+  } = useAiChat()
   const setSelectedModel = useChatStore((s) => s.setSelectedModel)
   const { status: llmStatus } = useLLMStatus()
   const {
@@ -392,8 +447,13 @@ export function ChatPanel() {
           </p>
         )}
         {turns.map((turn, i) => (
-          // biome-ignore lint/suspicious/noArrayIndexKey: turns have no stable id
-          <TurnBubble key={i} turn={turn} />
+          <TurnBubble
+            // biome-ignore lint/suspicious/noArrayIndexKey: turns have no stable id
+            key={i}
+            turn={turn}
+            onContinue={i === turns.length - 1 ? continueTruncated : undefined}
+            isSending={isSending}
+          />
         ))}
         {isSending && (
           <div className="flex justify-start">
