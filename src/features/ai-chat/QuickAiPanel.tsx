@@ -6,6 +6,7 @@ import { IconButton } from '@/components/common/IconButton'
 import { useSessionStore } from '@/services/sessionStore'
 import { useSettingsStore } from '@/shared/stores/settingsStore'
 import type { ChatTurn } from './chatStore'
+import { MessageActions } from './MessageActions'
 import { useAiChat } from './useAiChat'
 
 /** How many of the most recent turns the compact history shows -- the
@@ -16,10 +17,14 @@ const VISIBLE_TURN_COUNT = 6
 function MiniTurnBubble({
   turn,
   onContinue,
+  onRepeat,
   isSending,
 }: {
   turn: ChatTurn
   onContinue?: () => void
+  /** See TurnBubble's onRepeat in ChatPanel.tsx -- same contract, only
+   *  ever passed for user turns. */
+  onRepeat?: (text: string) => void
   isSending?: boolean
 }) {
   const isUser = turn.role === 'user'
@@ -46,6 +51,16 @@ function MiniTurnBubble({
             </button>
           </div>
         )}
+        <div
+          className={`mt-1 flex ${isUser ? 'justify-end' : 'justify-start'}`}
+        >
+          <MessageActions
+            text={turn.text}
+            onRetry={isUser ? () => onRepeat?.(turn.text) : undefined}
+            isRetrying={isSending}
+            size="sm"
+          />
+        </div>
       </div>
     </div>
   )
@@ -209,6 +224,10 @@ export function QuickAiPanel() {
                 onContinue={
                   i === visibleTurns.length - 1 ? continueTruncated : undefined
                 }
+                onRepeat={(text) => {
+                  if (isSending) return
+                  send(text)
+                }}
                 isSending={isSending}
               />
             ))}

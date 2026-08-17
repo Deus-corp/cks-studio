@@ -354,3 +354,58 @@ describe('ChatPanel — model select', () => {
     expect(sendMock).not.toHaveBeenCalled()
   })
 })
+
+describe('ChatPanel — per-message actions', () => {
+  it("shows a Retry action for a user turn that calls send() with that turn's text", () => {
+    const sendMock = vi.fn()
+    useAiChatMock.mockReturnValue(
+      chatState({
+        turns: [{ role: 'user', text: 'summarize the ADRs' }],
+        send: sendMock,
+      }),
+    )
+    useLLMStatusMock.mockReturnValue(llmStatusState())
+    useLLMModelsMock.mockReturnValue(llmModelsState())
+
+    renderChatPanel()
+
+    fireEvent.click(screen.getByRole('button', { name: /retry/i }))
+    expect(sendMock).toHaveBeenCalledTimes(1)
+    expect(sendMock).toHaveBeenCalledWith('summarize the ADRs')
+  })
+
+  it('does not show a Retry action for an assistant turn', () => {
+    useAiChatMock.mockReturnValue(
+      chatState({
+        turns: [
+          { role: 'user', text: 'hi' },
+          { role: 'assistant', text: 'hello there' },
+        ],
+      }),
+    )
+    useLLMStatusMock.mockReturnValue(llmStatusState())
+    useLLMModelsMock.mockReturnValue(llmModelsState())
+
+    renderChatPanel()
+
+    // Exactly one Retry action across both turns -- the user turn's.
+    expect(screen.getAllByRole('button', { name: /retry/i })).toHaveLength(1)
+  })
+
+  it('every turn gets a Copy action', () => {
+    useAiChatMock.mockReturnValue(
+      chatState({
+        turns: [
+          { role: 'user', text: 'hi' },
+          { role: 'assistant', text: 'hello there' },
+        ],
+      }),
+    )
+    useLLMStatusMock.mockReturnValue(llmStatusState())
+    useLLMModelsMock.mockReturnValue(llmModelsState())
+
+    renderChatPanel()
+
+    expect(screen.getAllByRole('button', { name: /^copy$/i })).toHaveLength(2)
+  })
+})

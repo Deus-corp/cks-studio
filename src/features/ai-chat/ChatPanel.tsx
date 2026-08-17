@@ -7,6 +7,7 @@ import { useLLMStatus } from '@/features/llm-status/useLLMStatus'
 import type { ExecutedToolCall, LLMStatus } from '@/services/mcpTools'
 import type { ChatTurn } from './chatStore'
 import { useChatStore } from './chatStore'
+import { MessageActions } from './MessageActions'
 import type { ChatError } from './useAiChat'
 import { useAiChat } from './useAiChat'
 
@@ -210,6 +211,7 @@ function ChatErrorBanner({
 function TurnBubble({
   turn,
   onContinue,
+  onRepeat,
   isSending,
 }: {
   turn: ChatTurn
@@ -217,6 +219,12 @@ function TurnBubble({
    *  turn.truncated is set -- resends the transcript so the LLM can
    *  pick up where it left off. See useAiChat.continueTruncated. */
   onContinue?: () => void
+  /** Resends this exact user turn's text as a brand-new message --
+   *  distinct from onContinue (resumes a truncated assistant turn) and
+   *  from ChatErrorBanner's Retry (resends the failed transcript
+   *  as-is). Only ever passed for user turns -- see the call site
+   *  below -- so it never duplicates either of those. */
+  onRepeat?: (text: string) => void
   isSending?: boolean
 }) {
   const isUser = turn.role === 'user'
@@ -269,6 +277,15 @@ function TurnBubble({
             </button>
           </div>
         )}
+        <div
+          className={`mt-1.5 flex ${isUser ? 'justify-end' : 'justify-start'}`}
+        >
+          <MessageActions
+            text={turn.text}
+            onRetry={isUser ? () => onRepeat?.(turn.text) : undefined}
+            isRetrying={isSending}
+          />
+        </div>
       </div>
     </div>
   )
@@ -452,6 +469,10 @@ export function ChatPanel() {
             key={i}
             turn={turn}
             onContinue={i === turns.length - 1 ? continueTruncated : undefined}
+            onRepeat={(text) => {
+              if (isSending) return
+              send(text)
+            }}
             isSending={isSending}
           />
         ))}

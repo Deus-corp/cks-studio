@@ -271,3 +271,35 @@ describe('QuickAiPanel', () => {
     })
   })
 })
+
+describe('QuickAiPanel — per-message actions', () => {
+  it("shows a Retry action for a user turn that calls send() with that turn's text", () => {
+    useSessionStore.getState().setSessionId('sess-1')
+    const send = vi.fn()
+    useAiChatMock.mockReturnValue(
+      aiChatState({ turns: [{ role: 'user', text: 'list open ADRs' }], send }),
+    )
+    renderPanel()
+    fireEvent.click(screen.getByRole('button', { name: /quick ai/i }))
+
+    fireEvent.click(screen.getByRole('button', { name: /retry/i }))
+    expect(send).toHaveBeenCalledTimes(1)
+    expect(send).toHaveBeenCalledWith('list open ADRs')
+  })
+
+  it('does not show a Retry action for an assistant turn', () => {
+    useSessionStore.getState().setSessionId('sess-1')
+    useAiChatMock.mockReturnValue(
+      aiChatState({
+        turns: [
+          { role: 'user', text: 'hi' },
+          { role: 'assistant', text: 'hello there' },
+        ],
+      }),
+    )
+    renderPanel()
+    fireEvent.click(screen.getByRole('button', { name: /quick ai/i }))
+
+    expect(screen.getAllByRole('button', { name: /retry/i })).toHaveLength(1)
+  })
+})

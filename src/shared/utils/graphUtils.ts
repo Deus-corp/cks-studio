@@ -32,8 +32,23 @@ export function cksToReactFlow(data: SubgraphResult): {
     },
   }))
 
-  const edges: Edge[] = data.edges.map((rel: EdgeData, idx: number) => ({
-    id: `edge-${rel.source}-${rel.target}-${idx}`,
+  const edges: Edge[] = data.edges.map((rel: EdgeData) => ({
+    // Content-based, not `-${idx}`: `idx` restarts at 0 every time this
+    // function runs (e.g. once per "Explore neighbourhood" click), so two
+    // edges from *different* calls that happen to share the same
+    // source/target pair but a different relation_type (a common shape --
+    // e.g. an ADR "implements" a Tool and is separately "tested_by" it)
+    // could previously be assigned the identical id ("edge-A-B-0" both
+    // times). graphExplorerStore's addEdges already dedupes on
+    // `${source}->${target}:${label}`, so distinct-content edges like
+    // that both survive the merge -- but with a colliding id they'd get
+    // the same React key inside <ReactFlow>, and React silently drops one
+    // of the two duplicate-keyed elements from the DOM. Reusing the same
+    // string the store already uses as its dedupe key keeps `id` unique
+    // for every edge that's actually allowed to coexist, and keeps this
+    // format aligned with that dedupe key by construction instead of by
+    // convention.
+    id: `edge-${rel.source}->${rel.target}:${rel.relation_type}`,
     source: rel.source,
     target: rel.target,
     label: rel.relation_type,

@@ -6,8 +6,15 @@ import {
   type Node,
   Panel,
   ReactFlow,
+  useReactFlow,
 } from '@xyflow/react'
-import { useCallback, useLayoutEffect, useRef, useState } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from 'react'
 import '@xyflow/react/dist/style.css'
 import { IconButton } from '@/components/common/IconButton'
 import { ExportControls } from '@/components/graph/ExportControls'
@@ -27,6 +34,52 @@ import {
   findPathBetweenNodes,
   looksLikeSubgraphResult,
 } from '@/shared/utils/graphUtils'
+
+/** "Explore neighbourhood" (and any other action that grows the graph,
+ *  e.g. a chat tool call adding nodes) re-runs dagre over the *entire*
+ *  node set, not just the new nodes -- dagre has no notion of "keep
+ *  these existing nodes where they were", so a rank it assigns
+ *  differently once new siblings/children exist can shift the
+ *  previously-selected node's x/y well outside the viewport the user
+ *  was already looking at. Nothing was lost from the store (nodes/edges
+ *  still contains it, `selectedNodeId` is untouched -- see GraphPage's
+ *  handleExplore), so nothing here shows up as a data bug; it just
+ *  reads as "the selected node disappeared" until something forces a
+ *  re-fit (reported workaround: switching tabs and back, which remounts
+ *  enough of the surrounding chrome to trigger react-flow's own resize
+ *  handling and implicitly recenter). This effect makes that recenter
+ *  happen automatically and immediately: any time the node count grows
+ *  and there's a selected node, pan/zoom just enough to bring it back
+ *  into view instead of waiting on an unrelated user action to do it by
+ *  accident. Renders inside <ReactFlow> (not GraphPage) because
+ *  useReactFlow() needs a ReactFlowProvider ancestor, which <ReactFlow>
+ *  supplies to its own children automatically. */
+function SelectionViewportKeeper() {
+  const nodes = useGraphStore((s: GraphState) => s.nodes)
+  const selectedNodeId = useGraphStore((s: GraphState) => s.selectedNodeId)
+  const { fitView, getNode } = useReactFlow()
+  const prevNodeCountRef = useRef(nodes.length)
+
+  useEffect(() => {
+    const grew = nodes.length > prevNodeCountRef.current
+    prevNodeCountRef.current = nodes.length
+    if (!grew || !selectedNodeId) return
+    // getNode (not just "is selectedNodeId in `nodes`") because
+    // react-flow's internal lookup is what fitView actually reads from --
+    // it's populated slightly after the `nodes` prop updates, so this
+    // guards against calling fitView one tick too early with an id it
+    // doesn't know yet.
+    if (!getNode(selectedNodeId)) return
+    fitView({
+      nodes: [{ id: selectedNodeId }],
+      duration: 300,
+      padding: 0.5,
+      maxZoom: 1.2,
+    })
+  }, [nodes.length, selectedNodeId, fitView, getNode])
+
+  return null
+}
 
 export function GraphCanvas({
   onNodeSelect,
@@ -683,6 +736,7 @@ export function GraphCanvas({
           onOpenChange={setIsSearchOpen}
           onSelect={(id) => selectNode(id)}
         />
+        <SelectionViewportKeeper />
       </ReactFlow>
 
       {nodes.length === 0 && !isLoading && <GraphEmptyState />}

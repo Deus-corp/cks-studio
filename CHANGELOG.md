@@ -6,6 +6,18 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 
 ---
 
+## [0.18.3] - 2026-08-17
+
+### Added
+- **Per-message actions in chat** – each chat bubble (full Chat and Quick AI) now has Copy, Retry (user turns only), and Share actions. Share uses the Web Share API when available and falls back to copying the text.
+- **Explore neighbourhood viewport keeper** – after exploring a node, the selected node is automatically brought back into view if the layout moves it outside the current viewport.
+
+### Fixed
+- **Duplicate edge IDs** – `cksToReactFlow` now derives edge IDs from content (`source->target:relation_type`) instead of a per-call index, preventing React key collisions and silently dropped edges when multiple edges between the same nodes differ by relation type.
+- **Explore neighbourhood no longer appears to drop the selected node** – the node remains in the store and viewport fix makes it visible immediately.
+
+---
+
 ## [0.18.2] - 2026-08-17
 
 ### Fixed
