@@ -7,6 +7,14 @@
  * Focus toggle) -- see GraphCanvas.tsx / ExportControls.tsx. Previously
  * this used --color-surface-2 with no blur, which read as a visibly
  * different (lighter/flatter) panel next to those buttons. */
+/* box-shadow matches Tailwind's shadow-lg utility (used by every other
+ * toolbar button/panel: ExportControls, Search, Focus toggle, IconButton,
+ * ...) exactly, so this block doesn't look like it's floating with a
+ * noticeably heavier shadow than its neighbours -- see the "2D control
+ * block has a larger shadow than other buttons" bug report. Previously
+ * this was a hand-picked `0 4px 16px rgba(0,0,0,0.4)`, visibly darker/
+ * larger than shadow-lg's `0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px
+ * -4px rgb(0 0 0 / 0.1)`. */
 .react-flow__controls {
   background: color-mix(in srgb, var(--color-surface-1) 95%, transparent);
   backdrop-filter: blur(4px);
@@ -14,8 +22,15 @@
   border: 1px solid var(--color-border-subtle);
   border-radius: 8px;
   overflow: hidden;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  box-shadow:
+    0 10px 15px -3px rgb(0 0 0 / 0.1),
+    0 4px 6px -4px rgb(0 0 0 / 0.1);
 }
+
+/* Same visual treatment applied to the 3D canvas's own zoom/fit/
+ * fullscreen controls block (GraphCanvas3D) -- it reuses these classes
+ * directly (see graphControls3D helpers there) instead of duplicating
+ * the styling, so 2D and 3D controls stay in sync by construction. */
 
 .react-flow__controls-button {
   background: transparent;

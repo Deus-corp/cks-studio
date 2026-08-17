@@ -36,6 +36,14 @@ describe('StartPipelineButton', () => {
     ).toBeDisabled()
   })
 
+  it('has the same shadow treatment as other sidebar buttons', () => {
+    render(<StartPipelineButton sessionId="sess-1" />)
+
+    expect(screen.getByRole('button', { name: /start pipeline/i })).toHaveClass(
+      'shadow-lg',
+    )
+  })
+
   it('is enabled once nodes are selected, and shows the selection count', () => {
     useGraphStore.getState().setMultiSelect(['node-a', 'node-b'])
 

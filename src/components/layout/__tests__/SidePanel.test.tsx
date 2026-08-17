@@ -135,6 +135,37 @@ describe('SidePanel', () => {
     expect(screen.getByText('modus_ponens')).toBeInTheDocument()
   })
 
+  it('shows an Inference section when a manually authored InferenceStep uses structure.conclusion', () => {
+    const node = makeNode({
+      id: 'rose',
+      data: { label: 'Роза', cksType: 'Plant', structure: {} },
+    })
+    const step: Node = {
+      id: 'step-manual-1',
+      type: 'cksNode',
+      position: { x: 0, y: 0 },
+      data: {
+        label: 'Manual step',
+        cksType: 'InferenceStep',
+        structure: {
+          conclusion: 'rose',
+          operator: 'manual',
+          confidence: 1,
+          justification: 'Added by hand during testing',
+        },
+      },
+    }
+    useGraphStore.setState({ nodes: [node, step], edges: [] })
+
+    render(<SidePanel node={node} />)
+
+    fireEvent.click(screen.getByRole('button', { name: /^inference$/i }))
+    expect(screen.getByText('manual')).toBeInTheDocument()
+    expect(
+      screen.getByText(/added by hand during testing/i),
+    ).toBeInTheDocument()
+  })
+
   it('hides the Provenance section entirely when there is no provenance data', () => {
     const node = makeNode()
     useGraphStore.setState({ nodes: [node], edges: [] })

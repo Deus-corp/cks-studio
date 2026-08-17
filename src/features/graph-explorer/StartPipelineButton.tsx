@@ -184,7 +184,7 @@ export function StartPipelineButton({ sessionId }: { sessionId: string }) {
               ? 'Select one or more nodes (Ctrl/Cmd+click) to start a pipeline'
               : `Start a pipeline run for ${count} selected object${count === 1 ? '' : 's'}`
           }
-          className="flex-1 min-w-0 rounded bg-surface-3 border border-border-subtle px-3 py-2 text-xs font-medium text-text-primary hover:bg-border hover:border-border disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5 transition-colors"
+          className="flex-1 min-w-0 rounded bg-surface-3 border border-border-subtle px-3 py-2 text-xs font-medium text-text-primary hover:bg-border hover:border-border disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none flex items-center justify-center gap-1.5 shadow-lg transition-colors"
         >
           {isStarting ? (
             <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-t-transparent shrink-0" />

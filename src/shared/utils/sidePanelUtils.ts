@@ -72,7 +72,11 @@ export function findReasoningNodesFor(
  * Inference chain info for `node`: if the node itself is an
  * `InferenceStep`, its own structure fields; otherwise, any
  * `InferenceStep` nodes in the graph that conclude it (edge pointing at
- * it, or `structure.object_id`/`structure.concludes` naming it).
+ * it, or `structure.object_id`/`structure.concludes`/`structure.conclusion`
+ * naming it -- `conclusion` is the field name agents actually write when
+ * manually authoring a step, see cks-mcp's construct_knowledge output;
+ * `concludes`/`object_id` were kept for older or hand-authored graphs
+ * that used those names instead).
  * Returns an empty array when nothing is found -- callers render the
  * "No inference chain found" empty state in that case.
  */
@@ -106,7 +110,8 @@ export function findInferenceStepsFor(
       return (
         linkedBySelf.has(n.id) ||
         s.object_id === node.id ||
-        s.concludes === node.id
+        s.concludes === node.id ||
+        s.conclusion === node.id
       )
     })
     .map((n) => {

@@ -899,6 +899,16 @@ export function GraphCanvas3D({
     })
   }, [])
 
+  // "Fit view" for the controls block below -- same zoomToFit call the
+  // focus-mode effect uses to frame a cluster (see focusNode/focus
+  // effect above), but with no node filter so it frames the whole
+  // graph, mirroring react-flow's fitView button in the 2D controls.
+  const handleFitAll = useCallback(() => {
+    const graph = graphRef.current
+    if (!graph) return
+    graph.zoomToFit(700, 80)
+  }, [])
+
   const handleContainerKeyDown = useCallback(
     (event: React.KeyboardEvent) => {
       if (event.key === '+' || event.key === '=') {
@@ -1829,11 +1839,77 @@ export function GraphCanvas3D({
             </svg>
           }
         />
-        <IconButton
-          onClick={toggleFullscreen}
-          label={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
-          icon={<FullscreenIcon isFullscreen={isFullscreen} />}
-        />
+        {/* Zoom/fit/fullscreen block -- reuses react-flow's own
+         *  .react-flow__controls / .react-flow__controls-button classes
+         *  (see styles/graph.css) instead of a standalone fullscreen-only
+         *  button, so 3D matches the same zoom/fit/fullscreen block 2D
+         *  shows via xyflow's <Controls> (GraphCanvas.tsx). Those classes
+         *  are plain global CSS, not scoped to a mounted <ReactFlow>, so
+         *  they render identically here even though this canvas isn't a
+         *  react-flow instance. */}
+        <div className="react-flow__controls">
+          <button
+            type="button"
+            className="react-flow__controls-button"
+            onClick={() => handleZoomKey('in')}
+            title="Zoom in"
+            aria-label="Zoom in"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path
+                d="M12 5v14M5 12h14"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                fill="none"
+              />
+            </svg>
+          </button>
+          <button
+            type="button"
+            className="react-flow__controls-button"
+            onClick={() => handleZoomKey('out')}
+            title="Zoom out"
+            aria-label="Zoom out"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path
+                d="M5 12h14"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                fill="none"
+              />
+            </svg>
+          </button>
+          <button
+            type="button"
+            className="react-flow__controls-button"
+            onClick={handleFitAll}
+            title="Fit view"
+            aria-label="Fit view"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path
+                d="M9 3H4v5M15 3h5v5M9 21H4v-5M15 21h5v-5"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                fill="none"
+              />
+            </svg>
+          </button>
+          <button
+            type="button"
+            className="react-flow__controls-button"
+            onClick={toggleFullscreen}
+            title={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
+            aria-label={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
+          >
+            <FullscreenIcon isFullscreen={isFullscreen} />
+          </button>
+        </div>
       </div>
 
       {nodes.length > 0 && (

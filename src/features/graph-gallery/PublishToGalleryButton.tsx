@@ -97,7 +97,7 @@ export function PublishToGalleryButton({ sessionId }: { sessionId: string }) {
         }}
         disabled={!sessionId.trim()}
         title="Register this session as a named graph in the Gallery"
-        className="w-full rounded bg-surface-3 border border-border-subtle px-3 py-2 text-xs font-medium text-text-primary hover:bg-border hover:border-border disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5 transition-colors"
+        className="w-full rounded bg-surface-3 border border-border-subtle px-3 py-2 text-xs font-medium text-text-primary hover:bg-border hover:border-border disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none flex items-center justify-center gap-1.5 shadow-lg transition-colors"
       >
         <svg
           width="12"

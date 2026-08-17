@@ -308,7 +308,13 @@ export function GraphPage() {
         </div>
         {error && <p className="text-danger text-xs w-full">{error}</p>}
       </header>
-      <div className="flex-1 flex">
+      {/* min-h-0: without this, a flex item's default min-height:auto lets
+       *  its content (specifically the aside below, once the SidePanel
+       *  grows past the viewport with several sections open) push this
+       *  row -- and the whole page -- taller instead of clipping, since a
+       *  flex item won't shrink below its content's intrinsic height
+       *  unless min-height is explicitly overridden. */}
+      <div className="flex-1 flex min-h-0">
         <main className="flex-1 relative overflow-hidden">
           {viewMode === '3d' ? (
             <Suspense fallback={<GraphSkeleton />}>
@@ -372,7 +378,11 @@ export function GraphPage() {
          *  context поверх соседних элементов flex-раскладки. relative
          *  явно заводит для aside свой stacking context, а z-10 гарантирует,
          *  что панель остаётся над 3D-холстом независимо от режима. */}
-        <aside className="relative z-10 w-72 border-l border-border-subtle bg-surface-1 overflow-y-auto flex flex-col">
+        {/* min-h-0 (same reasoning as the row above) lets the aside
+         *  actually respect the row's height instead of growing to fit
+         *  the SidePanel's content -- overflow-y-auto only clips/scrolls
+         *  once the box has a real height ceiling to clip against. */}
+        <aside className="relative z-10 w-72 min-h-0 border-l border-border-subtle bg-surface-1 overflow-y-auto flex flex-col">
           <SidePanel node={selectedNode} />
           <div className="p-4 border-t border-border-subtle space-y-2 mt-auto">
             {/* Compact icon toolbar for the five most-used graph-editing
@@ -573,11 +583,17 @@ export function GraphPage() {
             )}
             <StartPipelineButton sessionId={sessionId} />
             <PublishToGalleryButton sessionId={sessionId} />
-            <div className="flex gap-1.5">
+            {/* items-center: Clear Highlight (px-3 py-2, ~34px tall) and
+             *  the Reset graph IconButton (fixed 28px) used to differ in
+             *  height, and with the row's default align-items: stretch
+             *  the shorter IconButton top-aligned instead of sitting in
+             *  the middle of the row -- see the "Reset graph not centered
+             *  relative to Clear Highlight" bug report. */}
+            <div className="flex items-center gap-1.5">
               <button
                 type="button"
                 onClick={clearHighlight}
-                className="flex-1 rounded bg-surface-3 border border-border-subtle px-3 py-2 text-xs font-medium text-text-secondary hover:text-text-primary hover:bg-border hover:border-border flex items-center justify-center gap-1.5 transition-colors"
+                className="flex-1 rounded bg-surface-3 border border-border-subtle px-3 py-2 text-xs font-medium text-text-secondary hover:text-text-primary hover:bg-border hover:border-border shadow-lg flex items-center justify-center gap-1.5 transition-colors"
               >
                 <svg
                   width="12"

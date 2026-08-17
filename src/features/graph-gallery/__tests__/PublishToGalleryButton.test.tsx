@@ -24,6 +24,14 @@ function openDialog() {
 }
 
 describe('PublishToGalleryButton', () => {
+  it('has the same shadow treatment as other sidebar buttons', () => {
+    render(<PublishToGalleryButton sessionId="sess-1" />)
+
+    expect(
+      screen.getByRole('button', { name: /publish to gallery/i }),
+    ).toHaveClass('shadow-lg')
+  })
+
   it('preserves cursor position while typing (no re-selection on each keystroke)', () => {
     const nameInput = openDialog() as HTMLInputElement
     nameInput.focus()

@@ -6,6 +6,21 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 
 ---
 
+## [0.19.1] - 2026-08-17
+
+### Fixed
+- **Inference detection via `structure.conclusion`** – SidePanel now finds InferenceStep objects that conclude the selected node using the `conclusion` field, so manually authored steps show in the Inference section and `Why this belief?`.
+- **SidePanel height** – GraphPage and SidePanel now use `min-h-0` and proper flex constraints so long panel content scrolls instead of stretching the page.
+- **3D controls** – 3D graph now uses the same zoom/fit/fullscreen controls block as 2D instead of a standalone fullscreen button.
+- **Control shadow consistency** – 2D/3D controls block now uses the standard `shadow-lg` treatment, matching other toolbar buttons.
+- **Sidebar button shadows** – Start Pipeline, Publish to Gallery, and Clear Highlight now have consistent shadows.
+- **Clear Highlight / Reset graph alignment** – the row now vertically centers the two actions.
+
+### Added
+- Tests for `conclusion` inference detection, GraphPage layout constraints, 3D controls, and button shadows.
+
+---
+
 ## [0.19.0] - 2026-08-17
 
 ### Added
