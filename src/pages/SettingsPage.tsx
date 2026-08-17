@@ -557,8 +557,19 @@ function ConnectionSection() {
 const SETUP_SNIPPETS = {
   ollama: 'ollama run llama3.2',
   anthropic: 'echo "ANTHROPIC_API_KEY=sk-ant-..." >> ~/.cks-mcp/.env',
-  openaiCompatible:
-    'echo "CKS_LLM_PROVIDER=openai_compatible\\nCKS_LLM_BASE_URL=http://localhost:1234/v1" >> ~/.cks-mcp/.env',
+  // OpenAI-compatible providers (OpenRouter, vLLM, LM Studio, etc.) need
+  // all four of these -- provider selection, base URL, key, and model --
+  // set server-side. Kept as separate copyable snippets (rather than one
+  // multi-line blob) so a user can grab just the one they still need to
+  // change, e.g. only CKS_OPENAI_MODEL when swapping models on the same
+  // OpenRouter account.
+  openaiCompatibleProvider:
+    'echo "CKS_LLM_PROVIDER=openai_compatible" >> ~/.cks-mcp/.env',
+  openaiCompatibleBaseUrl:
+    'echo "CKS_OPENAI_BASE_URL=https://openrouter.ai/api/v1" >> ~/.cks-mcp/.env',
+  openaiCompatibleApiKey: 'echo "CKS_OPENAI_API_KEY=sk-..." >> ~/.cks-mcp/.env',
+  openaiCompatibleModel:
+    'echo "CKS_OPENAI_MODEL=nvidia/nemotron-3-super-120b-a12b:free" >> ~/.cks-mcp/.env',
   httpServer: 'CKS_MCP_HTTP_PORT=8765 cks-mcp',
 }
 
@@ -596,6 +607,7 @@ function AiLlmSection() {
         />
         <Row
           label="Preferred model"
+          description="Sent to ai_chat as an optional 'model' override on every chat turn — e.g. nvidia/nemotron-3-super-120b-a12b:free. Leave blank to use the server's default for the active provider."
           control={
             <input
               type="text"
@@ -603,8 +615,8 @@ function AiLlmSection() {
               onChange={(e) =>
                 settings.setSelectedModel(e.target.value || null)
               }
-              placeholder="llama3.2"
-              className="w-40 bg-surface-2 border border-border-subtle rounded-md px-2 py-1 text-sm text-text-primary font-mono"
+              placeholder="nvidia/nemotron-3-super-120b-a12b:free"
+              className="w-64 bg-surface-2 border border-border-subtle rounded-md px-2 py-1 text-sm text-text-primary font-mono"
             />
           }
         />
@@ -623,14 +635,34 @@ function AiLlmSection() {
       <Card>
         <SectionLabel>Server Setup (informational)</SectionLabel>
         <p className="text-text-secondary text-xs mt-2">
-          The studio cannot change server environment variables — set these on
-          the machine running cks-mcp, then restart it.
+          API keys must live on the server that runs cks-mcp — Studio is a
+          browser app and can never securely hold or set{' '}
+          <code className="font-mono">CKS_OPENAI_API_KEY</code> (or any other
+          provider key) itself. The snippets below are for that machine's shell/
+          <code className="font-mono">~/.cks-mcp/.env</code>, then restart
+          cks-mcp for them to take effect.
         </p>
         <CopySnippet label="Ollama" code={SETUP_SNIPPETS.ollama} />
         <CopySnippet label="Anthropic" code={SETUP_SNIPPETS.anthropic} />
+        <p className="text-text-tertiary text-xs mt-4">
+          OpenAI-compatible (OpenRouter, vLLM, LM Studio, etc.) — needs all
+          four:
+        </p>
         <CopySnippet
-          label="OpenAI-compatible"
-          code={SETUP_SNIPPETS.openaiCompatible}
+          label="CKS_LLM_PROVIDER"
+          code={SETUP_SNIPPETS.openaiCompatibleProvider}
+        />
+        <CopySnippet
+          label="CKS_OPENAI_BASE_URL"
+          code={SETUP_SNIPPETS.openaiCompatibleBaseUrl}
+        />
+        <CopySnippet
+          label="CKS_OPENAI_API_KEY"
+          code={SETUP_SNIPPETS.openaiCompatibleApiKey}
+        />
+        <CopySnippet
+          label="CKS_OPENAI_MODEL"
+          code={SETUP_SNIPPETS.openaiCompatibleModel}
         />
         <CopySnippet
           label="HTTP server port"

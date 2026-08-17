@@ -6,6 +6,22 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 
 ---
 
+## [0.20.0] - 2026-08-17
+
+### Added
+- **Preferred model in Settings** – AI & LLM now has a local “Preferred model” field (persisted in `settingsStore`) intended to be sent to `ai_chat` as a per-call model override, e.g. `nvidia/nemotron-3-super-120b-a12b:free`.
+- **Complete OpenAI-compatible server setup snippets** – separate copyable env-var snippets for `CKS_LLM_PROVIDER`, `CKS_OPENAI_BASE_URL`, `CKS_OPENAI_API_KEY`, and `CKS_OPENAI_MODEL`, replacing the previous incorrect `CKS_LLM_BASE_URL` example.
+- **Security note** – Settings now explains that API keys must be set on the server, not in the browser.
+
+### Changed
+- Preferred model input placeholder and width updated for long provider/model prefixes.
+- OpenAI-compatible setup block now explicitly lists all four required variables.
+
+### Known note
+- Full wiring of the preferred model into actual chat sends may require a follow-up patch if `useAiChat` does not yet read `settingsStore.selectedModel`.
+
+---
+
 ## [0.19.1] - 2026-08-17
 
 ### Fixed

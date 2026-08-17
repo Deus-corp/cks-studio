@@ -220,3 +220,59 @@ describe('SettingsPage — Danger Zone reset', () => {
     expect(useSettingsStore.getState().defaultViewMode).toBe('2d')
   })
 })
+
+describe('SettingsPage — AI & LLM: Preferred model + server setup snippets', () => {
+  beforeEach(() => {
+    window.localStorage.clear()
+    useSettingsStore.getState().resetAllSettings()
+  })
+
+  afterEach(() => {
+    useSettingsStore.getState().resetAllSettings()
+  })
+
+  it('persists a typed Preferred model into settingsStore', async () => {
+    getLLMStatusMock.mockResolvedValue(ollamaStatus())
+    renderAiTab()
+
+    const input = await screen.findByPlaceholderText(
+      'nvidia/nemotron-3-super-120b-a12b:free',
+    )
+    fireEvent.change(input, {
+      target: { value: 'nvidia/nemotron-3-super-120b-a12b:free' },
+    })
+
+    expect(useSettingsStore.getState().selectedModel).toBe(
+      'nvidia/nemotron-3-super-120b-a12b:free',
+    )
+  })
+
+  it('shows correct, individually-copyable env var snippets for openai_compatible', async () => {
+    getLLMStatusMock.mockResolvedValue(ollamaStatus())
+    renderAiTab()
+
+    await screen.findByText('Local Ollama')
+
+    // Regression guard: the base URL var is CKS_OPENAI_BASE_URL, not the
+    // stale/incorrect CKS_LLM_BASE_URL that used to appear here.
+    expect(screen.getAllByText('CKS_LLM_PROVIDER').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('CKS_OPENAI_BASE_URL').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('CKS_OPENAI_API_KEY').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('CKS_OPENAI_MODEL').length).toBeGreaterThan(0)
+    expect(screen.queryByText('CKS_LLM_BASE_URL')).not.toBeInTheDocument()
+
+    expect(
+      screen.getByText(/CKS_OPENAI_BASE_URL=https:\/\/openrouter\.ai\/api\/v1/),
+    ).toBeInTheDocument()
+  })
+
+  it('explains that API keys must be set on the server, not the browser', async () => {
+    getLLMStatusMock.mockResolvedValue(ollamaStatus())
+    renderAiTab()
+
+    await screen.findByText('Local Ollama')
+    expect(
+      screen.getByText(/API keys must live on the server/),
+    ).toBeInTheDocument()
+  })
+})
