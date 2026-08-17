@@ -47,6 +47,7 @@ export function useEvolveMutation(sessionId: string) {
   const addPendingEdge = useGraphStore((s) => s.addPendingEdge)
   const commitPendingEdge = useGraphStore((s) => s.commitPendingEdge)
   const rollbackPendingEdge = useGraphStore((s) => s.rollbackPendingEdge)
+  const bumpGraphVersion = useGraphStore((s) => s.bumpGraphVersion)
 
   const reset = useCallback(() => setState(initialState), [])
 
@@ -93,6 +94,13 @@ export function useEvolveMutation(sessionId: string) {
 
         if (optimistic?.node) commitPendingNode(optimistic.node.id)
         if (optimistic?.edge) commitPendingEdge(optimistic.edge.id)
+        // Same reasoning as useAiChat's bumpGraphVersion() call: a
+        // committed evolve_knowledge changed the backend's knowledge
+        // structure, so any UI caching a read against "the current
+        // graph" (e.g. WhyThisBeliefPanel, if left open) needs to know
+        // to re-fetch even though this mutation doesn't itself touch
+        // selectedNodeId or trigger a full nodes/edges refetch here.
+        bumpGraphVersion()
         setState({
           status: 'idle',
           errorMessage: null,
@@ -122,6 +130,7 @@ export function useEvolveMutation(sessionId: string) {
       addPendingEdge,
       commitPendingEdge,
       rollbackPendingEdge,
+      bumpGraphVersion,
     ],
   )
 

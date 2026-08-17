@@ -134,6 +134,7 @@ export function useAiChat() {
   } = useChatStore()
   const setNodes = useGraphStore((s) => s.setNodes)
   const setEdges = useGraphStore((s) => s.setEdges)
+  const bumpGraphVersion = useGraphStore((s) => s.bumpGraphVersion)
   const [error, setError] = useState<ChatError | null>(null)
 
   // Load (or start) this session's saved chat history whenever the
@@ -203,6 +204,7 @@ export function useAiChat() {
           const { nodes, edges } = cksToReactFlow(subgraph)
           setNodes(nodes)
           setEdges(edges)
+          bumpGraphVersion()
         } else if (toolCallsMutatedGraph(result.tool_calls)) {
           // Same full-refetch path GraphPage.handleConnect already
           // uses -- see ADR-001 §5 for why this isn't an incremental
@@ -211,6 +213,12 @@ export function useAiChat() {
           const { nodes, edges } = cksToReactFlow(subgraph)
           setNodes(nodes)
           setEdges(edges)
+          // Lets WhyThisBeliefPanel (and anything else caching a read
+          // against "the current graph") know the underlying data just
+          // changed, even if it's already open on the same node and
+          // wouldn't otherwise re-fetch -- see graphVersion's doc
+          // comment in graphExplorerStore.
+          bumpGraphVersion()
         }
       } catch {
         // fetch() network failures, non-2xx HTTP responses, and JSON-RPC-
@@ -234,6 +242,7 @@ export function useAiChat() {
       setNodes,
       setEdges,
       setSessionId,
+      bumpGraphVersion,
     ],
   )
 

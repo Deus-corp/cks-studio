@@ -7,6 +7,7 @@ import type {
   InferenceStepNode,
   SupersededStepNode,
 } from '@/shared/types/graph'
+import { useGraphStore } from './graphExplorerStore'
 import { useExplainInference } from './useExplainInference'
 
 /** Confidence as a compact percentage; `null` (no confidence recorded on
@@ -137,15 +138,23 @@ export function WhyThisBeliefPanel({
 }: WhyThisBeliefPanelProps) {
   const [isOpen, setIsOpen] = useState(false)
   const { data, isLoading, error, refresh } = useExplainInference()
+  const graphVersion = useGraphStore((s) => s.graphVersion)
 
-  // Re-fetch whenever the panel is open and the selected node changes.
+  // Re-fetch whenever the panel is open and the selected node changes,
+  // and also whenever the underlying graph data changes (graphVersion,
+  // bumped after any committed evolve_knowledge -- see its doc comment
+  // in graphExplorerStore) while the panel is already open on the same
+  // node. Without the graphVersion dependency, adding an InferenceStep
+  // via Quick AI/Chat while "Why this belief?" was already open for
+  // that node left the panel showing its stale pre-mutation read.
   // Closing and reopening also re-fetches, since selectedNodeId being
   // unchanged while isOpen flips false->true still re-runs this effect.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: graphVersion in the deps array below is an intentional trigger-only dependency (see comment above).
   useEffect(() => {
     if (isOpen) {
       refresh(selectedNodeId)
     }
-  }, [isOpen, selectedNodeId, refresh])
+  }, [isOpen, selectedNodeId, graphVersion, refresh])
 
   if (!isOpen) {
     return (

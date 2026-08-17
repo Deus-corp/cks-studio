@@ -6,6 +6,19 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 
 ---
 
+## [0.18.2] - 2026-08-17
+
+### Fixed
+- **Why this belief? now sees freshly added InferenceSteps** – after a Chat/Quick AI turn mutates the graph via `evolve_knowledge`, the graph version is bumped so an already-open “Why this belief?” panel re-fetches and shows the new inference chain instead of stale “No inference chain found”.
+- **Version Diff crash** – `explainDiff` now normalizes missing `details` fields to empty arrays, and `countDiffChanges` defensively handles partial response shapes, preventing the full-page `Cannot read properties of undefined (reading 'added_objects')` error.
+- **Diff page stale response race** – VersionDiff now ignores out-of-order responses when switching target versions/sessions quickly.
+
+### Added
+- `graphVersion` counter in graphExplorerStore, bumped after full refetches and committed `evolve_knowledge` mutations.
+- Tests covering chat-integrated inference refresh and missing-details diff shapes.
+
+---
+
 ## [0.18.1] - 2026-08-17
 
 ### Fixed

@@ -19,7 +19,79 @@ const {
   updateGraphLifecycle,
   unregisterGraph,
   listDeadLetteredConflicts,
+  explainDiff,
 } = await import('../mcpTools')
+
+describe('explainDiff', () => {
+  it('returns the response as-is on a well-formed success shape', async () => {
+    callToolMock.mockResolvedValueOnce({
+      session_id: 's1',
+      base_version_id: 'v1',
+      summary: 'Added 1 object(s)',
+      details: {
+        added_objects: [{ id: 'a', action: 'added', type: 'Claim', name: 'A' }],
+        removed_objects: [],
+        modified_objects: [],
+        added_relations: [],
+        removed_relations: [],
+        modified_relations: [],
+        relinked_relations: [],
+        renamed_objects: [],
+        added_inference_steps: [],
+      },
+    })
+
+    const result = await explainDiff('s1', 'v1')
+
+    expect(result.details.added_objects).toHaveLength(1)
+    expect(result.summary).toBe('Added 1 object(s)')
+  })
+
+  it('passes an {error} business result through untouched', async () => {
+    callToolMock.mockResolvedValueOnce({
+      error: 'session_not_found',
+      message: "Session 's1' not found.",
+    })
+
+    const result = (await explainDiff('s1', 'v1')) as unknown as {
+      error: string
+    }
+
+    expect(result.error).toBe('session_not_found')
+  })
+
+  it('normalizes missing `details` fields to empty arrays instead of undefined (bug #2)', async () => {
+    // e.g. a partial/unexpected response shape -- must not let
+    // `diff.details.added_objects.length` reach the caller as
+    // undefined and crash the Diff page.
+    callToolMock.mockResolvedValueOnce({
+      session_id: 's1',
+      base_version_id: 'v1',
+      summary: 'No changes detected.',
+      details: {},
+    })
+
+    const result = await explainDiff('s1', 'v1')
+
+    expect(result.details.added_objects).toEqual([])
+    expect(result.details.removed_objects).toEqual([])
+    expect(result.details.renamed_objects).toEqual([])
+    expect(result.details.added_inference_steps).toEqual([])
+  })
+
+  it('normalizes an entirely missing `details` object', async () => {
+    callToolMock.mockResolvedValueOnce({
+      session_id: 's1',
+      base_version_id: 'v1',
+      summary: 'No changes detected.',
+    })
+
+    const result = await explainDiff('s1', 'v1')
+
+    expect(result.details.added_objects).toEqual([])
+    expect(result.details.modified_relations).toEqual([])
+  })
+})
 
 describe('listDeadLetteredConflicts', () => {
   it('returns tasks/count/supported as-is for a well-formed response', async () => {

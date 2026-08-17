@@ -1,8 +1,9 @@
 // Copyright (c) 2026 Deus Corp. Licensed under MIT.
 
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { useSessionStore } from '@/services/sessionStore'
+import { useGraphStore } from '../graphExplorerStore'
 import { WhyThisBeliefPanel } from '../WhyThisBeliefPanel'
 
 const { explainKnowledgeMock } = vi.hoisted(() => ({
@@ -17,6 +18,7 @@ afterEach(() => {
   cleanup()
   vi.clearAllMocks()
   useSessionStore.getState().setSessionId('')
+  useGraphStore.setState({ graphVersion: 0 })
 })
 
 describe('WhyThisBeliefPanel', () => {
@@ -130,6 +132,52 @@ describe('WhyThisBeliefPanel', () => {
     rerender(<WhyThisBeliefPanel selectedNodeId="node-b" />)
 
     expect(explainKnowledgeMock).toHaveBeenCalledWith('sess-1', 'node-b')
+  })
+
+  it('re-fetches when graphVersion bumps (e.g. an evolve_knowledge commit) while the panel stays open on the same node (bug #1)', async () => {
+    useSessionStore.getState().setSessionId('sess-1')
+    explainKnowledgeMock.mockResolvedValue({
+      object_id: 'rose',
+      exists: true,
+      has_inference: false,
+      active_steps: [],
+      superseded_steps: [],
+    })
+
+    render(<WhyThisBeliefPanel selectedNodeId="rose" />)
+    fireEvent.click(screen.getByRole('button', { name: /why this belief\?/i }))
+
+    await screen.findByText(/no inference chain found for this node/i)
+    expect(explainKnowledgeMock).toHaveBeenCalledTimes(1)
+
+    // Simulate a chat turn's evolve_knowledge call adding an
+    // InferenceStep for the still-selected/still-open node -- this is
+    // what useAiChat.bumpGraphVersion() does after a graph-mutating
+    // tool call succeeds.
+    explainKnowledgeMock.mockResolvedValue({
+      object_id: 'rose',
+      exists: true,
+      has_inference: true,
+      active_steps: [
+        {
+          step_id: 'step-new',
+          operator: 'AND',
+          confidence: 0.8,
+          justification: 'Newly added via chat',
+          alternatives_considered: [],
+          premises: [
+            { object_id: 'research-rose-82cb165f4034', has_inference: false },
+          ],
+        },
+      ],
+      superseded_steps: [],
+    })
+    act(() => {
+      useGraphStore.getState().bumpGraphVersion()
+    })
+
+    expect(await screen.findByText('step-new')).toBeInTheDocument()
+    expect(explainKnowledgeMock).toHaveBeenCalledTimes(2)
   })
 
   it('closes the panel via the close button', async () => {

@@ -58,6 +58,20 @@ export interface GraphState {
   toggleMultiSelect: (id: string) => void
   setMultiSelect: (ids: string[] | Set<string>) => void
   clearMultiSelect: () => void
+  /** Bumped every time the graph's underlying data (not just view state
+   *  like selection/viewport) is known to have changed from a
+   *  committed backend mutation -- a full refetch (session connect,
+   *  Explore neighbourhood, or a chat/Quick AI turn whose tool calls
+   *  mutated the graph, see useAiChat) or a single evolve_knowledge
+   *  commit via useEvolveMutation. Consumers that cache a read against
+   *  the current graph state but aren't otherwise re-triggered by
+   *  nodes/edges changing -- e.g. WhyThisBeliefPanel, which only
+   *  re-fetches on selectedNodeId change -- can depend on this to know
+   *  their cached read is stale even while the panel stays open on the
+   *  same node (bug: "Why this belief?" not showing an InferenceStep
+   *  just added via Quick AI while the panel was already open). */
+  graphVersion: number
+  bumpGraphVersion: () => void
 }
 
 export const useGraphStore = create<GraphState>((set) => ({
@@ -193,4 +207,8 @@ export const useGraphStore = create<GraphState>((set) => ({
     }),
   setMultiSelect: (ids) => set({ multiSelectedIds: new Set(ids) }),
   clearMultiSelect: () => set({ multiSelectedIds: new Set() }),
+
+  graphVersion: 0,
+  bumpGraphVersion: () =>
+    set((state) => ({ graphVersion: state.graphVersion + 1 })),
 }))

@@ -552,7 +552,37 @@ export async function explainDiff(
     session_id: sessionId,
     target_version_id: targetVersionId,
   })
-  return result as unknown as ExplainDiffResult
+  // callTool's return type is a loosely-typed Record<string, unknown> --
+  // an `{error: ...}` business-error result (session_not_found,
+  // missing_parameter, a failed version reconstruction/diff -- see
+  // explain_diff's handler) has no `details` field at all, and
+  // VersionDiff.tsx checks for `.error` itself before touching
+  // `.details`, so pass those through untouched here. On a genuine
+  // success shape, though, still guard each `details` array against
+  // being missing -- e.g. an older/newer backend build, a transport
+  // hiccup that returns a partial cached body, or a demo-mode mock
+  // that doesn't happen to fill in every field -- so
+  // `diff.details.added_objects.length` etc. can never throw
+  // `Cannot read properties of undefined`.
+  const raw = result as Partial<ExplainDiffResult> & { error?: string }
+  if (raw.error) return raw as unknown as ExplainDiffResult
+  const details = raw.details ?? ({} as Partial<ExplainDiffResult['details']>)
+  return {
+    session_id: raw.session_id ?? sessionId,
+    base_version_id: raw.base_version_id ?? targetVersionId,
+    summary: raw.summary ?? '',
+    details: {
+      added_objects: details.added_objects ?? [],
+      removed_objects: details.removed_objects ?? [],
+      modified_objects: details.modified_objects ?? [],
+      added_relations: details.added_relations ?? [],
+      removed_relations: details.removed_relations ?? [],
+      modified_relations: details.modified_relations ?? [],
+      relinked_relations: details.relinked_relations ?? [],
+      renamed_objects: details.renamed_objects ?? [],
+      added_inference_steps: details.added_inference_steps ?? [],
+    },
+  }
 }
 
 // ---------------------------------------------------------------------------

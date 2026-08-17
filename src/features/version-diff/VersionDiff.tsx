@@ -119,9 +119,9 @@ function DiffSection({
   modifiedEntries: DiffEntry[]
 }) {
   if (
-    addedEntries.length === 0 &&
-    removedEntries.length === 0 &&
-    modifiedEntries.length === 0
+    (addedEntries?.length ?? 0) === 0 &&
+    (removedEntries?.length ?? 0) === 0 &&
+    (modifiedEntries?.length ?? 0) === 0
   ) {
     return null
   }
@@ -131,13 +131,13 @@ function DiffSection({
         {title}
       </h3>
       <div className="space-y-1.5">
-        {addedEntries.map((e) => (
+        {(addedEntries ?? []).map((e) => (
           <AddedRow key={e.id} entry={e} />
         ))}
-        {removedEntries.map((e) => (
+        {(removedEntries ?? []).map((e) => (
           <RemovedRow key={e.id} entry={e} />
         ))}
-        {modifiedEntries.map((e) => (
+        {(modifiedEntries ?? []).map((e) => (
           <ModifiedRow key={e.id} entry={e} />
         ))}
       </div>
@@ -176,11 +176,17 @@ export function VersionDiff() {
 
   useEffect(() => {
     if (!sessionId.trim() || !targetVersionId) return
+    // Guard against a stale response clobbering a newer one -- e.g. the
+    // person flips between two target versions quickly, or switches
+    // session, before the first explain_diff call resolves. Same
+    // pattern as useExplainInference/useDeadLetterPolling's requestSeq.
+    let cancelled = false
     setIsLoadingDiff(true)
     setError(null)
     setDiff(null)
     explainDiff(sessionId.trim(), targetVersionId)
       .then((result) => {
+        if (cancelled) return
         // explain_diff возвращает ошибку внутри тела ответа ({error: "..."}),
         // не как JSON-RPC error — callTool такое не бросает как исключение.
         const maybeError = (result as unknown as { error?: string }).error
@@ -191,9 +197,15 @@ export function VersionDiff() {
         setDiff(result)
       })
       .catch((e) => {
+        if (cancelled) return
         setError(e instanceof Error ? e.message : 'Failed to load diff')
       })
-      .finally(() => setIsLoadingDiff(false))
+      .finally(() => {
+        if (!cancelled) setIsLoadingDiff(false)
+      })
+    return () => {
+      cancelled = true
+    }
   }, [sessionId, targetVersionId])
 
   if (!sessionId.trim()) {
@@ -204,7 +216,9 @@ export function VersionDiff() {
     )
   }
 
-  const counts = diff ? countDiffChanges(diff.details) : null
+  const counts = diff
+    ? countDiffChanges(diff.details ?? ({} as ExplainDiffResult['details']))
+    : null
 
   return (
     <div className="h-full flex flex-col">
@@ -283,13 +297,13 @@ export function VersionDiff() {
               modifiedEntries={diff.details.modified_relations}
             />
 
-            {diff.details.renamed_objects.length > 0 && (
+            {(diff.details?.renamed_objects?.length ?? 0) > 0 && (
               <div className="space-y-2">
                 <h3 className="text-xs uppercase tracking-wide text-text-tertiary font-semibold">
                   Renamed
                 </h3>
                 <div className="space-y-1.5">
-                  {diff.details.renamed_objects.map((r) => (
+                  {(diff.details.renamed_objects ?? []).map((r) => (
                     <div
                       key={r.id}
                       className="text-sm text-blue-300 border border-blue-800 bg-blue-900/20 rounded px-3 py-2"

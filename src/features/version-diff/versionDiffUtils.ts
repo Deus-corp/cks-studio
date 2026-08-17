@@ -27,13 +27,17 @@ export interface DiffCounts {
 export function countDiffChanges(
   details: ExplainDiffResult['details'],
 ): DiffCounts {
-  const addedObjects = details.added_objects.length
-  const removedObjects = details.removed_objects.length
-  const modifiedObjects = details.modified_objects.length
-  const addedRelations = details.added_relations.length
-  const removedRelations = details.removed_relations.length
-  const modifiedRelations = details.modified_relations.length
-  const renamedObjects = details.renamed_objects.length
+  // Defensive: normally already normalized by mcpTools.explainDiff, but
+  // this is also called directly in tests/other call sites, and a
+  // missing array here must never throw (see VersionDiff's "Cannot
+  // read properties of undefined (reading 'added_objects')" crash).
+  const addedObjects = details.added_objects?.length ?? 0
+  const removedObjects = details.removed_objects?.length ?? 0
+  const modifiedObjects = details.modified_objects?.length ?? 0
+  const addedRelations = details.added_relations?.length ?? 0
+  const removedRelations = details.removed_relations?.length ?? 0
+  const modifiedRelations = details.modified_relations?.length ?? 0
+  const renamedObjects = details.renamed_objects?.length ?? 0
 
   return {
     addedObjects,

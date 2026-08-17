@@ -99,6 +99,21 @@ describe('countDiffChanges', () => {
     expect(counts.renamedObjects).toBe(1)
     expect(counts.totalChanges).toBe(5)
   })
+
+  it('does not crash when fields are missing from details (bug #2 regression)', () => {
+    // Simulates an unexpected/partial explain_diff response shape --
+    // must not throw "Cannot read properties of undefined (reading
+    // 'added_objects')" the way VersionDiff's crash reported.
+    const partialDetails = {
+      added_objects: undefined,
+      removed_objects: undefined,
+    } as unknown as ExplainDiffResult['details']
+
+    const counts = countDiffChanges(partialDetails)
+    expect(counts.addedObjects).toBe(0)
+    expect(counts.removedObjects).toBe(0)
+    expect(counts.totalChanges).toBe(0)
+  })
 })
 
 describe('formatDiffValue', () => {
