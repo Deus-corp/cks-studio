@@ -6,6 +6,22 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 
 ---
 
+## [0.19.0] - 2026-08-17
+
+### Added
+- **Sectioned node SidePanel** – node details are now grouped into collapsible sections: Overview, Pipeline / Transitions, Agent Findings / Research, Inference, and Provenance / Verification. Overview always remains visible, so basic object info (id, type, name, structure) is no longer hidden by agent statuses.
+- **CollapsibleSection component** – reusable accessible section toggle with chevron, used by the new SidePanel.
+- **SidePanel utilities** – `findReasoningNodesFor`, `findInferenceStepsFor`, and `findProvenanceFor` for discovering related agent findings, inference steps, and verification records from the graph.
+
+### Changed
+- SidePanel now handles `ReasoningNode` findings and `InferenceStep` chains separately from transitions, with sections hidden when empty.
+- Fork nodes still use the dedicated ForkDiffPanel.
+
+### Tests
+- Added SidePanel tests for overview visibility, pipeline sections, agent findings, empty inference, hidden provenance, and collapsible toggling.
+
+---
+
 ## [0.18.3] - 2026-08-17
 
 ### Added
