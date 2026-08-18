@@ -282,6 +282,101 @@ export type ExplainInferenceResult = InferenceExplanationNode & {
   exists: boolean
 }
 
+// ---------------------------------------------------------------------------
+// arbitrate_inference_conflict / list_inference_conflicts (belief-revision
+// actions surfaced from WhyThisBeliefPanel) — see cks-mcp
+// tools/arbitrate_inference_conflict/{schema,handler}.py.
+// ---------------------------------------------------------------------------
+
+/** The caller's or auto_resolve's decision on a disputed conclusion. */
+export interface ArbitrationDecision {
+  winner_step_id: string
+  reasoning: string | null
+  runner_up_ids: string[]
+  confidence_in_decision: number | null
+  model_used?: string
+}
+
+/**
+ * Single-conclusion, non-batch response shape (session_id/conclusion_id,
+ * not conclusion_ids/results — see handler.py's single vs batch path).
+ * 'active_steps' is the exact same per-step shape explain_knowledge
+ * returns (both come from the same ExplainInferenceOperation), hence
+ * reusing InferenceStepNode rather than a parallel type.
+ */
+export interface ArbitrateConflictResponse {
+  session_id: string
+  conclusion_id: string
+  conflict: boolean
+  /** Present when conflict === false (fewer than two active steps). */
+  message?: string
+  active_steps: InferenceStepNode[]
+  policy?: string
+  decision?: ArbitrationDecision
+  decision_source?: 'caller' | 'auto_resolve'
+  /** Present only when the request also had commit: true. */
+  commit_result?: EvolveResult
+}
+
+/** One entry of a stale_premise_ids resolution ('results' in the
+ *  handler's _resolve_stale_premises response). */
+export interface StalePremiseFixItem {
+  step_id: string
+  /** Present when step_id wasn't found / wasn't an InferenceStep. */
+  error?: string
+  resolved?: boolean
+  message?: string
+  /** premise_id (stale, superseded) -> its current live successor. */
+  fixes?: Record<string, string>
+}
+
+/** Response shape when the request used 'stale_premise_ids' instead of
+ *  'conclusion_id' (mutually exclusive branch, see schema.py). */
+export interface StalePremiseResolutionResponse {
+  session_id: string
+  results: StalePremiseFixItem[]
+  /** Present only when the request also had commit: true. */
+  commit_result?: EvolveResult
+}
+
+/** Business-level failure from arbitrate_inference_conflict (e.g.
+ *  invalid_parameter, missing_decision, llm_output_parse_error) —
+ *  same 200-with-'error'-field shape as EvolveError. */
+export interface ArbitrateConflictError {
+  error: string
+  message?: string
+}
+
+export type ArbitrateInferenceConflictResult =
+  | ArbitrateConflictResponse
+  | StalePremiseResolutionResponse
+  | ArbitrateConflictError
+
+export function isArbitrateConflictError(
+  result: ArbitrateInferenceConflictResult,
+): result is ArbitrateConflictError {
+  return 'error' in result
+}
+
+export function isStalePremiseResolution(
+  result: ArbitrateInferenceConflictResult,
+): result is StalePremiseResolutionResponse {
+  return 'results' in result
+}
+
+/** One record from list_inference_conflicts's 'conflicts' array —
+ *  a background InferenceStalenessSweeper finding no one has acted on
+ *  yet. 'diagnostics' reuses EvolveDiagnostic's {code, severity,
+ *  message, location} shape (same one evolve_knowledge/validate_knowledge
+ *  already return). */
+export interface InferenceConflictRecord {
+  session_id: string
+  version_id: string
+  diagnostics: EvolveDiagnostic[]
+  detected_at: string
+  record_id: string
+}
+
 export interface ExplainDiffResult {
   session_id: string
   base_version_id: string

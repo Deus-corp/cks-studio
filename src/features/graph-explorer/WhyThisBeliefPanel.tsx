@@ -1,13 +1,15 @@
 // Copyright (c) 2026 Deus Corp. Licensed under MIT.
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { IconButton } from '@/components/common/IconButton'
+import { useSessionStore } from '@/services/sessionStore'
 import type {
   InferencePremiseNode,
   InferenceStepNode,
   SupersededStepNode,
 } from '@/shared/types/graph'
 import { useGraphStore } from './graphExplorerStore'
+import { useArbitrateInferenceConflict } from './useArbitrateInferenceConflict'
 import { useExplainInference } from './useExplainInference'
 
 /** Confidence as a compact percentage; `null` (no confidence recorded on
@@ -60,16 +62,51 @@ function PremiseChip({ premise }: { premise: InferencePremiseNode }) {
   )
 }
 
-function StepCard({ step }: { step: InferenceStepNode }) {
+function StepCard({
+  step,
+  isTopRanked,
+  isStale,
+  onRepairStalePremise,
+  isRepairing,
+}: {
+  step: InferenceStepNode
+  /** True for the single highest-entrenchment step (see rankByEntrenchment)
+   *  -- only meaningful, and only rendered, when there's more than one
+   *  active step for this conclusion (see the "Active inference" section
+   *  below, which only passes this for a real multi-step ranking). */
+  isTopRanked?: boolean
+  /** True when a background InferenceStalenessSweeper finding flags this
+   *  step as citing a since-superseded premise (CKS-EXT-STALE-PREMISE) --
+   *  see useExplainInference's staleStepIds. */
+  isStale?: boolean
+  onRepairStalePremise?: () => void
+  isRepairing?: boolean
+}) {
   return (
-    <div className="rounded border border-border-subtle bg-surface-1 p-2.5 space-y-1.5">
+    <div
+      className={`rounded border p-2.5 space-y-1.5 ${
+        isTopRanked
+          ? 'border-emerald-900/60 bg-emerald-950/10'
+          : 'border-border-subtle bg-surface-1'
+      }`}
+    >
       <div className="flex items-center justify-between gap-2">
         <span className="font-mono text-[11px] text-text-tertiary truncate">
           {step.step_id}
         </span>
-        <span className="text-[10px] font-display font-semibold uppercase tracking-wider text-text-tertiary">
-          {formatConfidence(step.confidence)}
-        </span>
+        <div className="flex items-center gap-1.5 shrink-0">
+          {isTopRanked && (
+            <span
+              title="Highest confidence among the active steps for this conclusion"
+              className="text-[9px] font-display font-semibold uppercase tracking-wider text-emerald-500 bg-emerald-950/40 border border-emerald-900/60 rounded-full px-1.5 py-0.5"
+            >
+              Most supported
+            </span>
+          )}
+          <span className="text-[10px] font-display font-semibold uppercase tracking-wider text-text-tertiary">
+            {formatConfidence(step.confidence)}
+          </span>
+        </div>
       </div>
       {step.operator && (
         <div className="text-xs">
@@ -87,6 +124,23 @@ function StepCard({ step }: { step: InferenceStepNode }) {
           {step.premises.map((premise) => (
             <PremiseChip key={premise.object_id} premise={premise} />
           ))}
+        </div>
+      )}
+      {isStale && (
+        <div className="flex items-center justify-between gap-2 rounded border border-yellow-900 bg-yellow-950/30 px-2 py-1">
+          <span className="text-[11px] text-yellow-400 leading-snug">
+            A cited premise has since been superseded.
+          </span>
+          {onRepairStalePremise && (
+            <button
+              type="button"
+              onClick={onRepairStalePremise}
+              disabled={isRepairing}
+              className="shrink-0 text-[10px] font-display font-semibold uppercase tracking-wider text-yellow-400 hover:text-yellow-300 border border-yellow-900 hover:border-yellow-700 rounded px-1.5 py-0.5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isRepairing ? 'Repairing…' : 'Repair stale premise'}
+            </button>
+          )}
         </div>
       )}
     </div>
@@ -119,6 +173,111 @@ function SupersededRow({ step }: { step: SupersededStepNode }) {
   )
 }
 
+/**
+ * Steps ranked highest-entrenchment first: confidence descending, then
+ * declared (array) order as a stable tiebreak -- mirrors cks-core's
+ * rank_by_entrenchment exactly (see reasoning.py), so the panel's
+ * ordering never disagrees with what arbitrate_inference_conflict's
+ * 'policy' itself uses to describe "already ordered by entrenchment".
+ * explain_knowledge's active_steps already arrive in this order from
+ * the backend -- this re-sort is a defensive no-op in the common case,
+ * not the panel's only source of ordering.
+ */
+function rankByEntrenchment(steps: InferenceStepNode[]): InferenceStepNode[] {
+  return steps
+    .map((step, index) => ({ step, index }))
+    .sort((a, b) => {
+      const confA = a.step.confidence
+      const confB = b.step.confidence
+      if (confA === null && confB === null) return a.index - b.index
+      if (confA === null) return 1
+      if (confB === null) return -1
+      if (confA !== confB) return confB - confA
+      return a.index - b.index
+    })
+    .map(({ step }) => step)
+}
+
+/**
+ * "Resolve conflict" action: shown only when more than one active step
+ * concludes the same object_id (data.active_steps.length > 1 is exactly
+ * arbitrate_inference_conflict's own "conflict" definition -- see
+ * handler.py's `len(active_steps) < 2` check -- so no separate detection
+ * call is needed here, unlike stale-premise detection).
+ */
+function ConflictResolver({
+  conclusionId,
+  steps,
+  onResolve,
+  isPending,
+  errorMessage,
+}: {
+  conclusionId: string
+  steps: InferenceStepNode[]
+  onResolve: (winnerId: string) => void
+  isPending: boolean
+  errorMessage: string | null
+}) {
+  const [selectedStepId, setSelectedStepId] = useState<string>(
+    steps[0]?.step_id ?? '',
+  )
+
+  return (
+    <div className="rounded border border-amber-900/60 bg-amber-950/10 p-2.5 space-y-2">
+      <div className="text-[10px] font-display font-semibold uppercase tracking-wider text-amber-500">
+        Resolve conflict
+      </div>
+      <p className="text-xs text-text-secondary leading-snug">
+        {steps.length} active steps disagree on the confidence for{' '}
+        <span className="font-mono text-text-primary">{conclusionId}</span>.
+        Pick the step that should remain the accepted conclusion.
+      </p>
+      <div className="space-y-1.5">
+        {steps.map((step) => (
+          <label
+            key={step.step_id}
+            className="flex items-start gap-2 text-xs cursor-pointer"
+          >
+            <input
+              type="radio"
+              name={`conflict-winner-${conclusionId}`}
+              value={step.step_id}
+              checked={selectedStepId === step.step_id}
+              onChange={() => setSelectedStepId(step.step_id)}
+              className="mt-0.5"
+            />
+            <span className="min-w-0">
+              <span className="font-mono text-text-primary">
+                {step.step_id}
+              </span>{' '}
+              <span className="text-text-tertiary">
+                ({formatConfidence(step.confidence)}
+                {step.operator ? `, ${step.operator}` : ''})
+              </span>
+              {step.justification && (
+                <span className="block text-text-secondary leading-snug">
+                  {step.justification}
+                </span>
+              )}
+            </span>
+          </label>
+        ))}
+      </div>
+      {errorMessage && (
+        <p className="text-[11px] text-red-400">{errorMessage}</p>
+      )}
+      <button
+        type="button"
+        onClick={() => onResolve(selectedStepId)}
+        disabled={isPending || !selectedStepId}
+        className="w-full text-[10px] font-display font-semibold uppercase tracking-wider text-amber-400 hover:text-amber-300 border border-amber-900 hover:border-amber-700 rounded px-2 py-1.5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        {isPending ? 'Resolving…' : 'Resolve conflict'}
+      </button>
+    </div>
+  )
+}
+
 export interface WhyThisBeliefPanelProps {
   /** Currently selected node's id (graphExplorerStore.selectedNodeId).
    *  The tab is disabled while this is null. */
@@ -137,8 +296,27 @@ export function WhyThisBeliefPanel({
   selectedNodeLabel,
 }: WhyThisBeliefPanelProps) {
   const [isOpen, setIsOpen] = useState(false)
-  const { data, isLoading, error, refresh } = useExplainInference()
+  const { data, isLoading, error, staleStepIds, refresh } =
+    useExplainInference()
   const graphVersion = useGraphStore((s) => s.graphVersion)
+  const sessionId = useSessionStore((s) => s.sessionId)
+  const {
+    status: mutationStatus,
+    errorMessage: mutationError,
+    resolveConflict,
+    repairStalePremise,
+    reset: resetMutation,
+  } = useArbitrateInferenceConflict(sessionId)
+  // step_id currently being repaired, so only that card's button shows
+  // "Repairing…" -- repairStalePremise takes an array for API symmetry
+  // with the backend's batch-capable stale_premise_ids, but this panel
+  // only ever repairs one step at a time (one button per stale card).
+  const [repairingStepId, setRepairingStepId] = useState<string | null>(null)
+
+  const rankedActiveSteps = useMemo(
+    () => (data ? rankByEntrenchment(data.active_steps) : []),
+    [data],
+  )
 
   // Re-fetch whenever the panel is open and the selected node changes,
   // and also whenever the underlying graph data changes (graphVersion,
@@ -155,6 +333,27 @@ export function WhyThisBeliefPanel({
       refresh(selectedNodeId)
     }
   }, [isOpen, selectedNodeId, graphVersion, refresh])
+
+  // Clear any leftover mutation status/error from a previous node's
+  // conflict/repair action when the selection changes or the panel
+  // closes, so e.g. a stale error message doesn't linger under an
+  // unrelated node.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: resetMutation is stable (useCallback with no changing deps); only isOpen/selectedNodeId should retrigger this.
+  useEffect(() => {
+    resetMutation()
+    setRepairingStepId(null)
+  }, [isOpen, selectedNodeId])
+
+  const handleResolveConflict = async (winnerId: string) => {
+    if (!selectedNodeId) return
+    await resolveConflict(selectedNodeId, winnerId)
+  }
+
+  const handleRepairStalePremise = async (stepId: string) => {
+    setRepairingStepId(stepId)
+    const ok = await repairStalePremise([stepId])
+    if (!ok) setRepairingStepId(null)
+  }
 
   if (!isOpen) {
     return (
@@ -224,17 +423,54 @@ export function WhyThisBeliefPanel({
               </p>
             ) : (
               <>
-                {data.active_steps.length > 0 && (
+                {mutationStatus === 'success' && (
+                  <p className="text-xs text-emerald-400">
+                    Applied — refreshing…
+                  </p>
+                )}
+
+                {rankedActiveSteps.length > 1 && (
+                  <ConflictResolver
+                    conclusionId={selectedNodeId ?? data.object_id}
+                    steps={rankedActiveSteps}
+                    onResolve={handleResolveConflict}
+                    isPending={mutationStatus === 'pending' && !repairingStepId}
+                    errorMessage={!repairingStepId ? mutationError : null}
+                  />
+                )}
+
+                {rankedActiveSteps.length > 0 && (
                   <div className="space-y-2">
                     <div className="text-[10px] font-display font-semibold uppercase tracking-wider text-text-tertiary">
                       Active inference{' '}
-                      {data.active_steps.length > 1
-                        ? `(${data.active_steps.length})`
+                      {rankedActiveSteps.length > 1
+                        ? `(${rankedActiveSteps.length})`
                         : ''}
                     </div>
-                    {data.active_steps.map((step) => (
-                      <StepCard key={step.step_id} step={step} />
+                    {rankedActiveSteps.map((step, index) => (
+                      <StepCard
+                        key={step.step_id}
+                        step={step}
+                        isTopRanked={
+                          index === 0 && rankedActiveSteps.length > 1
+                        }
+                        isStale={staleStepIds.has(step.step_id)}
+                        onRepairStalePremise={() =>
+                          handleRepairStalePremise(step.step_id)
+                        }
+                        isRepairing={
+                          mutationStatus === 'pending' &&
+                          repairingStepId === step.step_id
+                        }
+                      />
                     ))}
+                    {repairingStepId &&
+                      mutationStatus === 'error' &&
+                      mutationError && (
+                        <p className="text-[11px] text-red-400">
+                          {mutationError}
+                        </p>
+                      )}
                   </div>
                 )}
 

@@ -6,6 +6,25 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 
 ---
 
+## [0.21.0] - 2026-08-18
+
+### Added
+- **Belief revision actions** – “Why this belief?” is now actionable:
+  - Active inference steps are ranked by confidence with a “Most supported” badge.
+  - When multiple steps conclude the same object, a “Resolve conflict” section lets the user pick a winner and call `arbitrate_inference_conflict` with `commit: true`.
+  - Steps flagged with stale premises show a warning and a “Repair stale premise” action calling `arbitrate_inference_conflict` with `stale_premise_ids`.
+- **`useArbitrateInferenceConflict` hook** – handles resolve/repair mutations, error states, and graph refresh via `graphVersion`.
+- **Stale premise detection** – `useExplainInference` now peeks `list_inference_conflicts` to collect `CKS-EXT-STALE-PREMISE` findings for active steps without draining the queue.
+
+### Changed
+- `mcpTools` adds typed wrappers `arbitrateInferenceConflict` and `listInferenceConflicts`.
+- `shared/types/graph.ts` adds types for arbitration responses, stale-premise resolutions, and inference-conflict records.
+
+### Tests
+- Added coverage for ranking, conflict resolution, stale premise repair, and error/empty states.
+
+---
+
 ## [0.20.0] - 2026-08-17
 
 ### Added

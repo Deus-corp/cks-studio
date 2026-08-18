@@ -5,6 +5,7 @@ import type {
   PipelineStepStatus,
 } from '@/features/pipeline-runs/types'
 import type {
+  ArbitrateInferenceConflictResult,
   CksObject,
   CloneGraphResult,
   CompareGraphsResult,
@@ -15,6 +16,7 @@ import type {
   GraphHealthResult,
   GraphHealthUnavailable,
   GraphRegistryEntry,
+  InferenceConflictRecord,
   LifecycleState,
   LinkGraphsResult,
   ListVersionsResult,
@@ -622,6 +624,81 @@ export async function explainKnowledge(
     )
   }
   return (result as { explanation: ExplainInferenceResult }).explanation
+}
+
+// ---------------------------------------------------------------------------
+// arbitrate_inference_conflict / list_inference_conflicts — belief-revision
+// actions from WhyThisBeliefPanel (resolve a confidence conflict between
+// active InferenceSteps, or repair a stale premise citation).
+// ---------------------------------------------------------------------------
+
+interface ResolveConflictParams {
+  sessionId: string
+  conclusionId: string
+  winnerId?: string
+  reasoning?: string
+  autoResolve?: boolean
+  commit?: boolean
+}
+
+interface RepairStalePremiseParams {
+  sessionId: string
+  stalePremiseIds: string[]
+  commit?: boolean
+}
+
+/**
+ * Wraps arbitrate_inference_conflict's two mutually-exclusive request
+ * shapes (see cks-mcp tools/arbitrate_inference_conflict/schema.py):
+ * 'conclusionId' resolves an InferenceConfidenceConflict, while
+ * 'stalePremiseIds' resolves CKS-EXT-STALE-PREMISE findings instead --
+ * one wrapper, one tool, matching the backend's own single endpoint.
+ *
+ * Like evolveKnowledge above, a business-level failure (invalid_parameter,
+ * missing_decision, ...) comes back as a normal 200 with an 'error' field
+ * rather than a thrown exception -- callers use isArbitrateConflictError
+ * to tell it apart from a real result. try/catch here is for transport
+ * failures only.
+ */
+export async function arbitrateInferenceConflict(
+  params: ResolveConflictParams | RepairStalePremiseParams,
+): Promise<ArbitrateInferenceConflictResult> {
+  const body: Record<string, unknown> = {
+    session_id: params.sessionId,
+    commit: params.commit ?? false,
+  }
+  if ('stalePremiseIds' in params) {
+    body.stale_premise_ids = params.stalePremiseIds
+  } else {
+    body.conclusion_id = params.conclusionId
+    if (params.winnerId) body.winner_id = params.winnerId
+    if (params.reasoning) body.reasoning = params.reasoning
+    if (params.autoResolve) body.auto_resolve = params.autoResolve
+  }
+  const result = await callTool('arbitrate_inference_conflict', body)
+  return result as unknown as ArbitrateInferenceConflictResult
+}
+
+/**
+ * Peek (non-destructive by default here -- see 'peek' param) at
+ * InferenceStalenessSweeper findings via list_inference_conflicts.
+ * WhyThisBeliefPanel always calls this with peek: true: it's reading
+ * findings to decide whether to show a "stale premise" warning on a
+ * step, not claiming them for resolution, and draining someone else's
+ * (e.g. a Critic agent's) queued finding just because a user opened
+ * an inspector panel would be a surprising side effect.
+ */
+export async function listInferenceConflicts(
+  params: { sessionId?: string; peek?: boolean } = {},
+): Promise<{ conflicts: InferenceConflictRecord[]; count: number }> {
+  const result = await callTool('list_inference_conflicts', {
+    ...(params.sessionId ? { session_id: params.sessionId } : {}),
+    peek: params.peek ?? false,
+  })
+  return result as unknown as {
+    conflicts: InferenceConflictRecord[]
+    count: number
+  }
 }
 
 // ---------------------------------------------------------------------------
