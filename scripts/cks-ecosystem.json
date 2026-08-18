@@ -6540,7 +6540,8 @@
         "description": "Documentation and marketing site for the CKS ecosystem, built with Astro/Starlight; hosts docs for core, runtime, mcp, studio and an interactive demo",
         "repo_url": "https://github.com/Deus-corp/cks-website",
         "role": "documentation_site",
-        "version": "v0.1.6"
+        "version": "v0.1.6",
+        "version_source": "package.json"
       }
     },
     {

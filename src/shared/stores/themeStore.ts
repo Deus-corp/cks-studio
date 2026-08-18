@@ -16,18 +16,18 @@ export type ThemeMode = Theme | 'auto'
 const STORAGE_KEY = 'cks-studio:theme'
 
 function readStoredMode(): ThemeMode {
-  if (typeof window === 'undefined') return 'dark'
+  if (typeof window === 'undefined') return 'auto'
   const stored = window.localStorage.getItem(STORAGE_KEY)
   if (stored === 'light' || stored === 'dark' || stored === 'auto') {
     return stored
   }
-  // No explicit preference has ever been saved. Do NOT fall back to the
-  // OS setting here -- that would mean the very first module load (which
-  // can happen lazily, e.g. only once a particular route/chunk is
-  // visited) silently decides light vs dark based on prefers-color-scheme
-  // even though the user never asked for 'auto'. Default to 'dark'
-  // unconditionally instead; the user can pick 'auto' explicitly.
-  return 'dark'
+  // No explicit preference has ever been saved -- default to 'auto' so a
+  // first-time visitor gets a theme that matches their OS/browser
+  // preference rather than being forced into dark. Persist this default
+  // immediately so subsequent visits (and this same session's reads of
+  // localStorage) see an explicit 'auto' rather than re-deriving it.
+  window.localStorage.setItem(STORAGE_KEY, 'auto')
+  return 'auto'
 }
 
 function resolveTheme(mode: ThemeMode): Theme {
@@ -104,3 +104,9 @@ export function ensureAutoThemeListener() {
     useThemeStore.setState({ theme })
   })
 }
+
+// Attach the OS-preference listener as soon as this module loads, rather
+// than relying on some component to remember to call
+// ensureAutoThemeListener() on mount. Idempotent, so this is safe even if
+// a component also calls it explicitly.
+ensureAutoThemeListener()

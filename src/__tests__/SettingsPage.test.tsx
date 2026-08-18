@@ -221,7 +221,7 @@ describe('SettingsPage — Danger Zone reset', () => {
   })
 })
 
-describe('SettingsPage — AI & LLM: Preferred model + server setup snippets', () => {
+describe('SettingsPage — AI & LLM: Model + server setup snippets', () => {
   beforeEach(() => {
     window.localStorage.clear()
     useSettingsStore.getState().resetAllSettings()
@@ -231,13 +231,11 @@ describe('SettingsPage — AI & LLM: Preferred model + server setup snippets', (
     useSettingsStore.getState().resetAllSettings()
   })
 
-  it('persists a typed Preferred model into settingsStore', async () => {
+  it('persists a typed Model into settingsStore', async () => {
     getLLMStatusMock.mockResolvedValue(ollamaStatus())
     renderAiTab()
 
-    const input = await screen.findByPlaceholderText(
-      'nvidia/nemotron-3-super-120b-a12b:free',
-    )
+    const input = await screen.findByLabelText('Model')
     fireEvent.change(input, {
       target: { value: 'nvidia/nemotron-3-super-120b-a12b:free' },
     })

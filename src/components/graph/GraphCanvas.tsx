@@ -20,6 +20,7 @@ import { IconButton } from '@/components/common/IconButton'
 import { ExportControls } from '@/components/graph/ExportControls'
 import { FullscreenIcon } from '@/components/graph/FullscreenIcon'
 import { GraphEmptyState } from '@/components/graph/GraphEmptyState'
+import { GraphFocusIcon } from '@/components/graph/GraphFocusIcon'
 import { GraphSearchPalette } from '@/components/graph/GraphSearchPalette'
 import { GraphSkeleton } from '@/components/graph/GraphSkeleton'
 import { nodeTypes } from '@/components/graph/nodes'
@@ -623,29 +624,7 @@ export function GraphCanvas({
                 ? 'Focus mode on — click a node to isolate its neighborhood'
                 : 'Focus mode off — click a node to select it normally'
             }
-            icon={
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                aria-hidden="true"
-              >
-                <circle
-                  cx="12"
-                  cy="12"
-                  r="3"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                />
-                <path
-                  d="M12 3v3M12 18v3M3 12h3M18 12h3"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                />
-              </svg>
-            }
+            icon={<GraphFocusIcon />}
           />
         </Panel>
         {/* Zoom/fullscreen block, pushed down below the Focus toggle

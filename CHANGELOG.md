@@ -6,6 +6,22 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 
 ---
 
+## [0.21.2] - 2026-08-18
+
+### Fixed
+- **Theme first-visit default** – first visit now defaults to `auto` instead of forcing `dark`. The stored mode is persisted as `auto`, so the OS preference is resolved until the user explicitly picks a different mode.
+- **Theme OS-listener wiring** – `ensureAutoThemeListener()` is now called on module load, so OS theme changes are reflected automatically instead of waiting for a Settings visit.
+
+### Changed
+- **Shared Focus icon** – extracted a single `GraphFocusIcon` component and used it in both `GraphCanvas` (2D) and `GraphCanvas3D`, removing the mismatched inline SVG icons.
+- **Settings Model field** – `Preferred model` replaced by a simpler `Model` input; value still stored in `settingsStore.selectedModel` and sent to `ai_chat` as the optional `model` override when provided.
+
+### Tests
+- Added `themeStore.test.ts` covering first-visit default `auto`, persistence of explicit modes, OS-preference resolution, and idempotent listener wiring.
+- Updated `SettingsPage.test.tsx` for the renamed `Model` field.
+
+---
+
 ## [0.21.1] - 2026-08-18
 
 ### Fixed

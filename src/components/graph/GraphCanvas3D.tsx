@@ -1,4 +1,4 @@
-// Copyright (c) 2025 Deus Corp. Licensed under MIT.
+// Copyright (c) 2026 Deus Corp. Licensed under MIT.
 
 /**
  * 3D counterpart to GraphCanvas. Same data source (useGraphStore) and same
@@ -30,6 +30,7 @@ import SpriteText from 'three-spritetext'
 import { IconButton } from '@/components/common/IconButton'
 import { FullscreenIcon } from '@/components/graph/FullscreenIcon'
 import { GraphEmptyState } from '@/components/graph/GraphEmptyState'
+import { GraphFocusIcon } from '@/components/graph/GraphFocusIcon'
 import { GraphSearchPalette3D } from '@/components/graph/GraphSearchPalette3D'
 import { GraphSkeleton } from '@/components/graph/GraphSkeleton'
 import type { GraphState } from '@/features/graph-explorer/graphExplorerStore'
@@ -1820,30 +1821,7 @@ export function GraphCanvas3D({
               ? 'Focus mode on — click a node to isolate its neighborhood'
               : 'Focus mode off — click a node to select and center it'
           }
-          icon={
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              aria-hidden="true"
-            >
-              <circle
-                cx="12"
-                cy="12"
-                r="3"
-                stroke="currentColor"
-                strokeWidth="2"
-              />
-              <path
-                d="M3 9V6a3 3 0 013-3h3M15 3h3a3 3 0 013 3v3M21 15v3a3 3 0 01-3 3h-3M9 21H6a3 3 0 01-3-3v-3"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-          }
+          icon={<GraphFocusIcon />}
         />
         {/* Zoom/fit/fullscreen block -- reuses react-flow's own
          *  .react-flow__controls / .react-flow__controls-button classes

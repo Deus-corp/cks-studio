@@ -598,16 +598,16 @@ function AiLlmSection() {
           }
         />
         <Row
-          label="Preferred model"
-          description="Sent to ai_chat as an optional 'model' override on every chat turn — e.g. nvidia/nemotron-3-super-120b-a12b:free. Leave blank to use the server's default for the active provider."
+          label="Model"
+          description="Leave blank to use the server's default model."
           control={
             <input
               type="text"
+              aria-label="Model"
               value={settings.selectedModel ?? ''}
               onChange={(e) =>
                 settings.setSelectedModel(e.target.value || null)
               }
-              placeholder="nvidia/nemotron-3-super-120b-a12b:free"
               className="w-64 bg-surface-2 border border-border-subtle rounded-md px-2 py-1 text-sm text-text-primary font-mono"
             />
           }
