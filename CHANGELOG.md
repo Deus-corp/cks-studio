@@ -6,6 +6,24 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 
 ---
 
+## [0.21.1] - 2026-08-18
+
+### Fixed
+- **Theme stability** – mounting Settings no longer changes the active theme. Theme preference now has an explicit `mode` (`dark` | `light` | `auto`) and `auto` is only resolved when selected, not as a side effect of visiting Settings.
+- **Chat retry duplication** – Retry now resends the existing transcript in place instead of appending a duplicate user turn. Retry is only shown on the trailing user turn.
+- **Version Diff dropdown** – long version list now uses a custom fixed-position listbox with internal scroll, preventing options from drifting upward/out of view.
+- **3D Focus alignment** – Focus button now top-aligns with the zoom controls block instead of being vertically centered.
+- **React Flow attribution** – removed the bottom-right React Flow watermark from the 2D canvas and added a “Built with” attribution in Settings → About.
+
+### Changed
+- `useAiChat.retry()` no longer requires an existing error state; it can retry the trailing user turn as long as the last turn is still the user.
+- Theme store and Settings/Demo Settings updated to use `ThemeMode` for explicit `auto` support.
+
+### Tests
+- Added regression tests for no-theme-change-on-settings-mount, retry without duplication, and version dropdown scrollability.
+
+---
+
 ## [0.21.0] - 2026-08-18
 
 ### Added

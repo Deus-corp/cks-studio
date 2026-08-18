@@ -2,31 +2,17 @@
 
 import { useState } from 'react'
 import { listComponentVersions } from '@/services/mockClient'
-import { type Theme, useThemeStore } from '@/shared/stores/themeStore'
+import { type ThemeMode, useThemeStore } from '@/shared/stores/themeStore'
 
 const OLLAMA_SNIPPET =
   'CKS_LLM_PROVIDER=ollama CKS_OLLAMA_HOST=http://localhost:11434 npm run mcp'
 
-/** 'auto' isn't a real ThemeState value (the store only ever holds the
- *  resolved 'dark' | 'light', matching data-theme) -- it's a third,
- *  demo-only selector option that re-reads prefers-color-scheme and hands
- *  the resolved value to setTheme, same as the store's own initial-load
- *  fallback. Picking it doesn't "stick" as a live-updating auto mode; it
- *  just seeds the theme once, consistent with how the store persists a
- *  single explicit choice. */
-type ThemeChoice = Theme | 'auto'
-
-function resolveAutoTheme(): Theme {
-  if (typeof window === 'undefined') return 'dark'
-  return window.matchMedia?.('(prefers-color-scheme: light)').matches
-    ? 'light'
-    : 'dark'
-}
+type ThemeChoice = ThemeMode
 
 function ThemeSelector() {
-  const theme = useThemeStore((s) => s.theme)
+  const mode = useThemeStore((s) => s.mode)
   const setTheme = useThemeStore((s) => s.setTheme)
-  const [choice, setChoice] = useState<ThemeChoice>(theme)
+  const [choice, setChoice] = useState<ThemeChoice>(mode)
 
   const options: { value: ThemeChoice; label: string }[] = [
     { value: 'light', label: 'Light' },
@@ -36,7 +22,7 @@ function ThemeSelector() {
 
   const handleSelect = (value: ThemeChoice) => {
     setChoice(value)
-    setTheme(value === 'auto' ? resolveAutoTheme() : value)
+    setTheme(value)
   }
 
   return (

@@ -1796,7 +1796,13 @@ export function GraphCanvas3D({
         onKeyDown={handleContainerKeyDown}
       />
 
-      <div className="absolute top-3 right-3 z-10 flex items-center gap-2">
+      {/* items-start (not items-center): the zoom/fit/fullscreen block
+       *  below is a vertical stack of 4 buttons, much taller than the
+       *  single-row Focus toggle. items-center was vertically centering
+       *  Focus against that whole stack's height, making it look
+       *  shifted down instead of starting flush with the stack's top
+       *  edge. */}
+      <div className="absolute top-3 right-3 z-10 flex items-start gap-2">
         <IconButton
           onClick={() => {
             const next = !isFocusModeEnabled

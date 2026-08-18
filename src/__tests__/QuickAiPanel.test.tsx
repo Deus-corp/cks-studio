@@ -273,21 +273,23 @@ describe('QuickAiPanel', () => {
 })
 
 describe('QuickAiPanel — per-message actions', () => {
-  it("shows a Retry action for a user turn that calls send() with that turn's text", () => {
+  it("shows a Retry action for the trailing user turn that calls retry() (not send(), so it can't duplicate the turn)", () => {
     useSessionStore.getState().setSessionId('sess-1')
-    const send = vi.fn()
+    const retry = vi.fn()
     useAiChatMock.mockReturnValue(
-      aiChatState({ turns: [{ role: 'user', text: 'list open ADRs' }], send }),
+      aiChatState({
+        turns: [{ role: 'user', text: 'list open ADRs' }],
+        retry,
+      }),
     )
     renderPanel()
     fireEvent.click(screen.getByRole('button', { name: /quick ai/i }))
 
     fireEvent.click(screen.getByRole('button', { name: /retry/i }))
-    expect(send).toHaveBeenCalledTimes(1)
-    expect(send).toHaveBeenCalledWith('list open ADRs')
+    expect(retry).toHaveBeenCalledTimes(1)
   })
 
-  it('does not show a Retry action for an assistant turn', () => {
+  it('does not show a Retry action once the last turn is the assistant reply (nothing to retry without duplicating)', () => {
     useSessionStore.getState().setSessionId('sess-1')
     useAiChatMock.mockReturnValue(
       aiChatState({
@@ -300,6 +302,6 @@ describe('QuickAiPanel — per-message actions', () => {
     renderPanel()
     fireEvent.click(screen.getByRole('button', { name: /quick ai/i }))
 
-    expect(screen.getAllByRole('button', { name: /retry/i })).toHaveLength(1)
+    expect(screen.queryAllByRole('button', { name: /retry/i })).toHaveLength(0)
   })
 })

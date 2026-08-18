@@ -1,6 +1,6 @@
 // Copyright (c) 2025 Deus Corp. Licensed under MIT.
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { explainDiff, listVersions } from '@/services/mcpTools'
 import { useSessionStore } from '@/services/sessionStore'
 import type {
@@ -23,6 +23,107 @@ import {
  * всегда "текущее vs версия X", а не диапазон между двумя произвольными
  * версиями (так работает сам инструмент).
  */
+
+/**
+ * Custom replacement for a plain `<select>` for the target-version
+ * picker. A native `<select>`'s popup is drawn by the OS/embedder, and
+ * in cks-studio's embedded webview it was observed *not* staying fixed
+ * while scrolling a long version list -- entries drifted upward/out of
+ * view instead of the list staying put with an internal scrollbar. This
+ * renders our own absolutely-positioned, `max-height` + `overflow-y:
+ * auto` listbox instead, so the scroll behavior is fully within our
+ * control and consistent across embedders/themes.
+ */
+function VersionSelect({
+  versions,
+  value,
+  onChange,
+  disabled,
+}: {
+  versions: VersionEntry[]
+  value: string
+  onChange: (versionId: string) => void
+  disabled: boolean
+}) {
+  const [open, setOpen] = useState(false)
+  const containerRef = useRef<HTMLDivElement | null>(null)
+
+  useEffect(() => {
+    if (!open) return
+    function onDocMouseDown(e: MouseEvent) {
+      if (!containerRef.current?.contains(e.target as Node)) {
+        setOpen(false)
+      }
+    }
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape') setOpen(false)
+    }
+    document.addEventListener('mousedown', onDocMouseDown)
+    document.addEventListener('keydown', onKeyDown)
+    return () => {
+      document.removeEventListener('mousedown', onDocMouseDown)
+      document.removeEventListener('keydown', onKeyDown)
+    }
+  }, [open])
+
+  const selected = versions.find((v) => v.version_id === value)
+
+  function label(v: VersionEntry, idx: number) {
+    return `${idx === 0 ? '(latest) ' : ''}${v.version_id.slice(0, 10)}${
+      v.version_id.length > 10 ? '…' : ''
+    } — ${new Date(v.created_at).toLocaleString()}`
+  }
+
+  return (
+    <div className="relative" ref={containerRef}>
+      <button
+        type="button"
+        disabled={disabled || versions.length === 0}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        onClick={() => setOpen((o) => !o)}
+        className="bg-surface-2 border border-border rounded px-2 py-1 text-text-primary text-sm max-w-xs truncate text-left disabled:opacity-60"
+      >
+        {versions.length === 0
+          ? 'No versions'
+          : selected
+            ? label(selected, versions.indexOf(selected))
+            : 'Select version…'}
+      </button>
+      {open && versions.length > 0 && (
+        // position: fixed-in-place relative to the trigger (via absolute
+        // + top-full within a relative container) with its own
+        // `max-height` + `overflow-y: auto` -- the list itself never
+        // moves while its *contents* scroll internally.
+        <div
+          role="listbox"
+          className="absolute left-0 top-full mt-1 z-30 max-h-64 w-72 overflow-y-auto overscroll-contain rounded border border-border bg-surface-1 shadow-lg py-1"
+        >
+          {versions.map((v, idx) => (
+            <div key={v.version_id}>
+              <button
+                type="button"
+                role="option"
+                aria-selected={v.version_id === value}
+                onClick={() => {
+                  onChange(v.version_id)
+                  setOpen(false)
+                }}
+                className={`w-full text-left px-2 py-1.5 text-sm truncate ${
+                  v.version_id === value
+                    ? 'bg-surface-2 text-text-primary'
+                    : 'text-text-secondary hover:bg-surface-2 hover:text-text-primary'
+                }`}
+              >
+                {label(v, idx)}
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
 
 function DiffBadge({
   label,
@@ -224,22 +325,12 @@ export function VersionDiff() {
     <div className="h-full flex flex-col">
       <header className="bg-surface-1 border-b border-border-subtle px-4 py-3 flex items-center gap-3 flex-wrap">
         <h1 className="text-lg font-semibold">Version Diff</h1>
-        <select
+        <VersionSelect
+          versions={versions}
           value={targetVersionId}
-          onChange={(e) => setTargetVersionId(e.target.value)}
+          onChange={setTargetVersionId}
           disabled={isLoadingVersions || versions.length === 0}
-          className="bg-surface-2 border border-border rounded px-2 py-1 text-text-primary text-sm max-w-xs"
-        >
-          {versions.length === 0 && <option value="">No versions</option>}
-          {versions.map((v, idx) => (
-            <option key={v.version_id} value={v.version_id}>
-              {idx === 0 ? '(latest) ' : ''}
-              {v.version_id.slice(0, 10)}
-              {v.version_id.length > 10 ? '…' : ''} —{' '}
-              {new Date(v.created_at).toLocaleString()}
-            </option>
-          ))}
-        </select>
+        />
         <span className="text-xs text-text-tertiary">vs current</span>
         {counts && (
           <div className="flex gap-1.5 ml-auto">

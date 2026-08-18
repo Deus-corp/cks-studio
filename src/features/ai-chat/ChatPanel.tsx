@@ -211,7 +211,7 @@ function ChatErrorBanner({
 function TurnBubble({
   turn,
   onContinue,
-  onRepeat,
+  onRetry,
   isSending,
 }: {
   turn: ChatTurn
@@ -219,12 +219,14 @@ function TurnBubble({
    *  turn.truncated is set -- resends the transcript so the LLM can
    *  pick up where it left off. See useAiChat.continueTruncated. */
   onContinue?: () => void
-  /** Resends this exact user turn's text as a brand-new message --
-   *  distinct from onContinue (resumes a truncated assistant turn) and
-   *  from ChatErrorBanner's Retry (resends the failed transcript
-   *  as-is). Only ever passed for user turns -- see the call site
-   *  below -- so it never duplicates either of those. */
-  onRepeat?: (text: string) => void
+  /** Resends the existing transcript as-is (useAiChat.retry) -- does
+   *  NOT append a new user turn. Only ever passed for the trailing
+   *  user turn (see the call site below): retrying an older, non-
+   *  trailing user message isn't supported here (it would require
+   *  truncating everything after it), so no Retry button is shown on
+   *  those turns at all rather than falling back to something that
+   *  would duplicate the message. */
+  onRetry?: () => void
   isSending?: boolean
 }) {
   const isUser = turn.role === 'user'
@@ -282,7 +284,7 @@ function TurnBubble({
         >
           <MessageActions
             text={turn.text}
-            onRetry={isUser ? () => onRepeat?.(turn.text) : undefined}
+            onRetry={isUser ? onRetry : undefined}
             isRetrying={isSending}
           />
         </div>
@@ -469,10 +471,17 @@ export function ChatPanel() {
             key={i}
             turn={turn}
             onContinue={i === turns.length - 1 ? continueTruncated : undefined}
-            onRepeat={(text) => {
-              if (isSending) return
-              send(text)
-            }}
+            onRetry={
+              // Only the trailing user turn can be retried without
+              // duplicating it or truncating turns after it -- see
+              // TurnBubble's onRetry doc comment.
+              turn.role === 'user' && i === turns.length - 1
+                ? () => {
+                    if (isSending) return
+                    retry()
+                  }
+                : undefined
+            }
             isSending={isSending}
           />
         ))}

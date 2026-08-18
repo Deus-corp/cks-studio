@@ -17,14 +17,15 @@ const VISIBLE_TURN_COUNT = 6
 function MiniTurnBubble({
   turn,
   onContinue,
-  onRepeat,
+  onRetry,
   isSending,
 }: {
   turn: ChatTurn
   onContinue?: () => void
-  /** See TurnBubble's onRepeat in ChatPanel.tsx -- same contract, only
-   *  ever passed for user turns. */
-  onRepeat?: (text: string) => void
+  /** See TurnBubble's onRetry in ChatPanel.tsx -- same contract: resends
+   *  the existing transcript in place (no duplicate user turn), and is
+   *  only ever passed for the trailing user turn. */
+  onRetry?: () => void
   isSending?: boolean
 }) {
   const isUser = turn.role === 'user'
@@ -56,7 +57,7 @@ function MiniTurnBubble({
         >
           <MessageActions
             text={turn.text}
-            onRetry={isUser ? () => onRepeat?.(turn.text) : undefined}
+            onRetry={isUser ? onRetry : undefined}
             isRetrying={isSending}
             size="sm"
           />
@@ -224,10 +225,14 @@ export function QuickAiPanel() {
                 onContinue={
                   i === visibleTurns.length - 1 ? continueTruncated : undefined
                 }
-                onRepeat={(text) => {
-                  if (isSending) return
-                  send(text)
-                }}
+                onRetry={
+                  turn.role === 'user' && i === visibleTurns.length - 1
+                    ? () => {
+                        if (isSending) return
+                        retry()
+                      }
+                    : undefined
+                }
                 isSending={isSending}
               />
             ))}

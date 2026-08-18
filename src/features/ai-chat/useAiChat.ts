@@ -280,11 +280,25 @@ export function useAiChat() {
    * No-op if there's no error to retry, or the trailing turn somehow
    * isn't a user turn (nothing sensible to resend).
    */
+  /**
+   * Re-attempts the most recent turn -- either after a failure (from
+   * ChatErrorBanner) or via the per-message Retry button on the
+   * trailing user bubble (MessageActions) -- without appending a
+   * second copy of the user's message: `rawMessages` already ends
+   * with it (from the `send()` call that produced it), same as
+   * `turns`. No-op if the trailing turn somehow isn't a user turn
+   * (nothing sensible to resend). Deliberately does NOT require an
+   * existing `error` -- the message-level Retry button is offered on
+   * the last user turn regardless of whether that turn's reply
+   * succeeded, same as most chat UIs' "regenerate/resend" affordance,
+   * and gating it on `error` here previously forced callers to fall
+   * back to `send()` (which does append a duplicate user turn) for
+   * that case -- see the regression tests in ChatPanel/QuickAiPanel.
+   */
   const retry = useCallback(async () => {
-    if (!error || error.kind === 'no_session') return
     if (turns.length === 0 || turns[turns.length - 1].role !== 'user') return
     await attempt(rawMessages, lastModel)
-  }, [error, turns, rawMessages, lastModel, attempt])
+  }, [turns, rawMessages, lastModel, attempt])
 
   /**
    * Resumes the most recent turn after it hit ai_chat's tool-call

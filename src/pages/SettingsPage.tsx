@@ -9,35 +9,27 @@ import {
   useSettingsStore,
   type ViewMode,
 } from '@/shared/stores/settingsStore'
-import { type Theme, useThemeStore } from '@/shared/stores/themeStore'
+import { type ThemeMode, useThemeStore } from '@/shared/stores/themeStore'
 
-/** 'auto' isn't a real ThemeState value (the store only ever holds the
- *  resolved 'dark' | 'light', matching data-theme) -- it's a third,
- *  UI-only selector option that re-reads prefers-color-scheme and hands
- *  the resolved value to setTheme, mirroring the demo Settings page and
- *  the store's own initial-load fallback. */
-type ThemeChoice = Theme | 'auto'
-
-function resolveAutoTheme(): Theme {
-  if (typeof window === 'undefined') return 'dark'
-  return window.matchMedia?.('(prefers-color-scheme: light)').matches
-    ? 'light'
-    : 'dark'
-}
+type ThemeChoice = ThemeMode
 
 export function ThemeToggle() {
-  const theme = useThemeStore((s) => s.theme)
+  // Read `mode` (what the user picked, incl. 'auto') rather than the
+  // resolved `theme`, so the toggle shows "Auto" as selected instead of
+  // whichever concrete theme 'auto' currently resolves to. Reading here
+  // is purely a subscription -- it never calls setTheme itself, so
+  // mounting this component (e.g. by navigating to Settings) cannot
+  // change the active theme on its own.
+  const mode = useThemeStore((s) => s.mode)
   const setTheme = useThemeStore((s) => s.setTheme)
   const setSettingsTheme = useSettingsStore((s) => s.setTheme)
-  const [choice, setChoice] = useState<ThemeChoice>(theme)
+  const [choice, setChoice] = useState<ThemeChoice>(mode)
 
   const handleSelect = (option: ThemeChoice) => {
     setChoice(option)
-    setTheme(option === 'auto' ? resolveAutoTheme() : option)
+    setTheme(option)
     // Mirror into settingsStore too so Settings 2.0 has a single place to
-    // read "what the user picked" (incl. 'auto', which themeStore itself
-    // never stores) without themeStore needing to know settingsStore
-    // exists.
+    // read "what the user picked" for display purposes elsewhere.
     setSettingsTheme(option)
   }
 
@@ -787,6 +779,22 @@ function AboutSection() {
             </a>
           </li>
         </ul>
+      </Card>
+
+      <Card>
+        <SectionLabel>Built with</SectionLabel>
+        <p className="text-text-secondary text-sm mt-2">
+          The 2D graph view is powered by{' '}
+          <a
+            href="https://reactflow.dev"
+            target="_blank"
+            rel="noreferrer"
+            className="text-accent hover:underline"
+          >
+            React Flow
+          </a>{' '}
+          by xyflow.
+        </p>
       </Card>
     </div>
   )

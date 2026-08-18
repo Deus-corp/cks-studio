@@ -580,6 +580,13 @@ export function GraphCanvas({
         onNodeClick={handleNodeClick}
         onPaneClick={handlePaneClick}
         fitView
+        // Removes the default "React Flow" attribution watermark from
+        // the bottom-right corner of the 2D canvas. React Flow's docs
+        // ask that removal be paired with a visible mention of xyflow
+        // somewhere in the product instead (e.g. an About/credits
+        // page) rather than removing it silently -- see
+        // https://reactflow.dev/learn/troubleshooting/remove-attribution.
+        proOptions={{ hideAttribution: true }}
       >
         <Background />
         {/* top-right, not the react-flow default bottom-left: bottom-left

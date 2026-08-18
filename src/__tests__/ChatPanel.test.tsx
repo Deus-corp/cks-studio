@@ -356,12 +356,12 @@ describe('ChatPanel — model select', () => {
 })
 
 describe('ChatPanel — per-message actions', () => {
-  it("shows a Retry action for a user turn that calls send() with that turn's text", () => {
-    const sendMock = vi.fn()
+  it("shows a Retry action for the trailing user turn that calls retry() (not send(), so it can't duplicate the turn)", () => {
+    const retryMock = vi.fn()
     useAiChatMock.mockReturnValue(
       chatState({
         turns: [{ role: 'user', text: 'summarize the ADRs' }],
-        send: sendMock,
+        retry: retryMock,
       }),
     )
     useLLMStatusMock.mockReturnValue(llmStatusState())
@@ -370,11 +370,10 @@ describe('ChatPanel — per-message actions', () => {
     renderChatPanel()
 
     fireEvent.click(screen.getByRole('button', { name: /retry/i }))
-    expect(sendMock).toHaveBeenCalledTimes(1)
-    expect(sendMock).toHaveBeenCalledWith('summarize the ADRs')
+    expect(retryMock).toHaveBeenCalledTimes(1)
   })
 
-  it('does not show a Retry action for an assistant turn', () => {
+  it('does not show a Retry action once the last turn is the assistant reply (nothing to retry without duplicating)', () => {
     useAiChatMock.mockReturnValue(
       chatState({
         turns: [
@@ -388,8 +387,12 @@ describe('ChatPanel — per-message actions', () => {
 
     renderChatPanel()
 
-    // Exactly one Retry action across both turns -- the user turn's.
-    expect(screen.getAllByRole('button', { name: /retry/i })).toHaveLength(1)
+    // Regression: previously every user turn got a Retry button that
+    // called send() with its text, appending a duplicate user turn.
+    // Retry is now only offered on the trailing turn when it's still
+    // the user's (i.e. before a reply landed) -- once the assistant
+    // has replied, there's nothing to retry without duplicating.
+    expect(screen.queryAllByRole('button', { name: /retry/i })).toHaveLength(0)
   })
 
   it('every turn gets a Copy action', () => {
