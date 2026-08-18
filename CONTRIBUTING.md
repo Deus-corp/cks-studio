@@ -15,7 +15,7 @@
 
 ## Development Setup
 ```bash
-git clone https://github.com/Deus-corp/cks-studio.git
+git clone https://github.com/PunctumActus/cks-studio.git
 cd cks-studio
 npm install
 npm run dev          # dev server at localhost:5173

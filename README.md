@@ -8,7 +8,7 @@
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Status](https://img.shields.io/badge/status-v0.21.1-orange)
 
-> 🚀 **[Live demo →](https://deus-corp.github.io/cks-website/demo/demo.html)** — explore the CKS ecosystem graph directly in your browser, no server required.
+> 🚀 **[Live demo →](https://punctumactus.github.io/cks-website/demo/demo.html)** — explore the CKS ecosystem graph directly in your browser, no server required.
 
 **CKS Studio** is the graphical interface of the CKS ecosystem — a
 single-page application where you can **explore knowledge graphs**,
@@ -30,14 +30,14 @@ CKS Studio completes the CKS toolchain:
 
 | Project | Description | Repository |
 |---------|-------------|------------|
-| **cks-core** | Canonical semantic engine. | [Deus-corp/cks-core](https://github.com/Deus-corp/cks-core) |
-| **cks-runtime** | Operational environment – sessions, transactions, persistence. | [Deus-corp/cks-runtime](https://github.com/Deus-corp/cks-runtime) |
-| **cks-mcp** | MCP server – exposes CKS to LLMs and agents. | [Deus-corp/cks-mcp](https://github.com/Deus-corp/cks-mcp) |
-| **cks-studio** | Visual workspace – explore, monitor, and manage graphs. | [Deus-corp/cks-studio](https://github.com/Deus-corp/cks-studio) |
-| **cks-website** | Documentation & demo site. | [Deus-corp/cks-website](https://github.com/Deus-corp/cks-website) |
+| **cks-core** | Canonical semantic engine. | [PunctumActus/cks-core](https://github.com/PunctumActus/cks-core) |
+| **cks-runtime** | Operational environment – sessions, transactions, persistence. | [PunctumActus/cks-runtime](https://github.com/PunctumActus/cks-runtime) |
+| **cks-mcp** | MCP server – exposes CKS to LLMs and agents. | [PunctumActus/cks-mcp](https://github.com/PunctumActus/cks-mcp) |
+| **cks-studio** | Visual workspace – explore, monitor, and manage graphs. | [PunctumActus/cks-studio](https://github.com/PunctumActus/cks-studio) |
+| **cks-website** | Documentation & demo site. | [PunctumActus/cks-website](https://github.com/PunctumActus/cks-website) |
 
 📖 **Full documentation, case studies, and an interactive demo**
-are available at the **[CKS Documentation Site](https://deus-corp.github.io/cks-website/)**.
+are available at the **[CKS Documentation Site](https://punctumactus.github.io/cks-website/)**.
 
 ---
 
@@ -47,7 +47,7 @@ are available at the **[CKS Documentation Site](https://deus-corp.github.io/cks-
 > (with HTTP transport enabled).
 
 ```bash
-git clone https://github.com/Deus-corp/cks-studio.git
+git clone https://github.com/PunctumActus/cks-studio.git
 cd cks-studio
 npm install
 cp .env.example .env.local   # edit the MCP server URL
@@ -261,7 +261,7 @@ npm run ci     # biome + tsc --noEmit + vitest, same as CI
 # Contributing
 
 Contributions are welcome! Please open an issue to discuss what you'd
-like to work on. See the [CKS Core repository](https://github.com/Deus-corp/cks-core)
+like to work on. See the [CKS Core repository](https://github.com/PunctumActus/cks-core)
 for the overall project conventions.
 
 ---

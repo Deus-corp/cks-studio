@@ -57,13 +57,13 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Deus-corp/cks-studio.git"
+    "url": "git+https://github.com/PunctumActus/cks-studio.git"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/Deus-corp/cks-studio/issues"
+    "url": "https://github.com/PunctumActus/cks-studio/issues"
   },
-  "homepage": "https://github.com/Deus-corp/cks-studio#readme"
+  "homepage": "https://github.com/PunctumActus/cks-studio#readme"
 }

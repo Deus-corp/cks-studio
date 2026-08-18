@@ -4,8 +4,8 @@ message: "If you use this software, please cite it as below."
 type: software
 authors:
   - given-names: Deus Corp
-repository-code: "https://github.com/Deus-corp/cks-studio"
-url: "https://github.com/Deus-corp/cks-studio"
+repository-code: "https://github.com/PunctumActus/cks-studio"
+url: "https://github.com/PunctumActus/cks-studio"
 abstract: "Interactive visual workspace for the Canonical Knowledge Structure ecosystem."
 license: MIT
 version: 0.21.2

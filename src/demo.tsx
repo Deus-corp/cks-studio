@@ -1,4 +1,4 @@
-// Copyright (c) 2025 Deus Corp. Licensed under MIT.
+// Copyright (c) 2026 Punctum Actus. Licensed under MIT.
 
 /**
  * Entry point for the static demo (public/demo.html), built as a second
@@ -108,7 +108,7 @@ function DemoBanner() {
       Every tab shows mock/sample data derived from that graph so you can see
       what's included; connect a running server for real, live data.{' '}
       <a
-        href="https://github.com/Deus-corp/cks-studio"
+        href="https://github.com/PunctumActus/cks-studio"
         className="underline hover:text-accent-strong"
         target="_blank"
         rel="noreferrer"

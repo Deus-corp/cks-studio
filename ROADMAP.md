@@ -149,6 +149,6 @@ CKS Studio is now a full visual workspace and control surface:
   itself is structured (routing, state, MCP client layer, 2D/3D
   rendering, the static demo build), and [docs/adr/](docs/adr/) for the
   design rationale behind individual features referenced above.
-- See [cks-mcp's ROADMAP](https://github.com/Deus-corp/cks-mcp/blob/main/ROADMAP.md)
+- See [cks-mcp's ROADMAP](https://github.com/PunctumActus/cks-mcp/blob/main/ROADMAP.md)
   for backend-side work (e.g. the LCA Arbiter) that some of the items
   above build on.
