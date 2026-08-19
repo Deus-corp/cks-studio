@@ -305,3 +305,65 @@ describe('QuickAiPanel — per-message actions', () => {
     expect(screen.queryAllByRole('button', { name: /retry/i })).toHaveLength(0)
   })
 })
+
+describe('QuickAiPanel — auto-scroll', () => {
+  // jsdom has no layout engine, so scrollIntoView must be stubbed --
+  // useAutoScrollToLatest calls it on the last-turn ref whenever the
+  // panel's turn count grows.
+  it('calls scrollIntoView when a new message arrives', () => {
+    const scrollIntoView = vi.fn()
+    Element.prototype.scrollIntoView = scrollIntoView
+
+    useSessionStore.getState().setSessionId('sess-1')
+    useAiChatMock.mockReturnValue(
+      aiChatState({ turns: [{ role: 'user', text: 'hi' }] }),
+    )
+    const { rerender } = renderPanel()
+    fireEvent.click(screen.getByRole('button', { name: /quick ai/i }))
+    scrollIntoView.mockClear()
+
+    useAiChatMock.mockReturnValue(
+      aiChatState({
+        turns: [
+          { role: 'user', text: 'hi' },
+          { role: 'assistant', text: 'hello there' },
+        ],
+      }),
+    )
+    rerender(
+      <MemoryRouter>
+        <QuickAiPanel />
+      </MemoryRouter>,
+    )
+
+    expect(scrollIntoView).toHaveBeenCalledWith({
+      block: 'start',
+      behavior: 'smooth',
+    })
+  })
+
+  it('calls scrollIntoView for the "thinking…" placeholder once isSending becomes true', () => {
+    const scrollIntoView = vi.fn()
+    Element.prototype.scrollIntoView = scrollIntoView
+
+    useSessionStore.getState().setSessionId('sess-1')
+    useAiChatMock.mockReturnValue(
+      aiChatState({ turns: [{ role: 'user', text: 'hi' }], isSending: false }),
+    )
+    const { rerender } = renderPanel()
+    fireEvent.click(screen.getByRole('button', { name: /quick ai/i }))
+    scrollIntoView.mockClear()
+
+    useAiChatMock.mockReturnValue(
+      aiChatState({ turns: [{ role: 'user', text: 'hi' }], isSending: true }),
+    )
+    rerender(
+      <MemoryRouter>
+        <QuickAiPanel />
+      </MemoryRouter>,
+    )
+
+    expect(screen.getByText('thinking…')).toBeInTheDocument()
+    expect(scrollIntoView).toHaveBeenCalled()
+  })
+})

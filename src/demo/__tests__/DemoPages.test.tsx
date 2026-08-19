@@ -83,7 +83,9 @@ describe('DemoSettingsPage', () => {
   it('lists component versions read from the bundled graph', () => {
     render(<DemoSettingsPage />)
     expect(screen.getByText('cks-core')).toBeInTheDocument()
-    expect(screen.getByText('v1.22.0')).toBeInTheDocument()
+    // Pulled live from the bundled cks-ecosystem graph
+    // (scripts/cks-ecosystem.json) -- currently v1.23.0.
+    expect(screen.getByText('v1.23.0')).toBeInTheDocument()
     expect(screen.getByText('cks-studio')).toBeInTheDocument()
   })
 

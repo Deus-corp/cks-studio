@@ -416,3 +416,67 @@ describe('ChatPanel — per-message actions', () => {
     expect(screen.getAllByRole('button', { name: /^copy$/i })).toHaveLength(2)
   })
 })
+
+describe('ChatPanel — auto-scroll', () => {
+  // jsdom doesn't implement layout, so Element.prototype.scrollIntoView
+  // doesn't exist by default -- useAutoScrollToLatest calls it on the
+  // last-turn ref whenever a new turn is appended.
+  it('calls scrollIntoView when a new message arrives', () => {
+    const scrollIntoView = vi.fn()
+    Element.prototype.scrollIntoView = scrollIntoView
+
+    useAiChatMock.mockReturnValue(
+      chatState({ turns: [{ role: 'user', text: 'hi' }] }),
+    )
+    useLLMStatusMock.mockReturnValue(llmStatusState())
+    useLLMModelsMock.mockReturnValue(llmModelsState())
+
+    const { rerender } = renderChatPanel()
+    scrollIntoView.mockClear()
+
+    useAiChatMock.mockReturnValue(
+      chatState({
+        turns: [
+          { role: 'user', text: 'hi' },
+          { role: 'assistant', text: 'hello there' },
+        ],
+      }),
+    )
+    rerender(
+      <MemoryRouter>
+        <ChatPanel />
+      </MemoryRouter>,
+    )
+
+    expect(scrollIntoView).toHaveBeenCalledWith({
+      block: 'start',
+      behavior: 'smooth',
+    })
+  })
+
+  it('calls scrollIntoView for the "thinking…" placeholder once isSending becomes true', () => {
+    const scrollIntoView = vi.fn()
+    Element.prototype.scrollIntoView = scrollIntoView
+
+    useAiChatMock.mockReturnValue(
+      chatState({ turns: [{ role: 'user', text: 'hi' }], isSending: false }),
+    )
+    useLLMStatusMock.mockReturnValue(llmStatusState())
+    useLLMModelsMock.mockReturnValue(llmModelsState())
+
+    const { rerender } = renderChatPanel()
+    scrollIntoView.mockClear()
+
+    useAiChatMock.mockReturnValue(
+      chatState({ turns: [{ role: 'user', text: 'hi' }], isSending: true }),
+    )
+    rerender(
+      <MemoryRouter>
+        <ChatPanel />
+      </MemoryRouter>,
+    )
+
+    expect(screen.getByText('thinking…')).toBeInTheDocument()
+    expect(scrollIntoView).toHaveBeenCalled()
+  })
+})

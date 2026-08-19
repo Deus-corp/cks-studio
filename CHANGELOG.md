@@ -6,6 +6,25 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 
 ---
 
+## [0.21.3] - 2026-08-19
+
+### Added
+- **Google Gemini provider status** – Settings now correctly displays `Google Gemini` when the backend reports `provider: "google"` and `google_configured: true`. Includes the model name and availability dot.
+- **Preferred provider dropdown** – added `Google Gemini` to the local LLM provider preference selector.
+- **Auto-scroll for chat panels** – new `useAutoScrollToLatest` hook keeps the latest turn (or the “thinking…” placeholder while a reply is in flight) in view for both full Chat and Quick AI. Auto-scroll pauses when the user scrolls up and resumes when they return near the bottom.
+
+### Fixed
+- **Google API key setup snippet** – added a copyable `CKS_GOOGLE_API_KEY` example to Settings.
+- **Demo version test** – updated the hardcoded component version expectation from `v1.22.0` to `v1.23.0` to match the current bundled `cks-ecosystem.json`.
+
+### Tests
+- Added regression tests for:
+  - auto-scroll behavior in ChatPanel and QuickAiPanel (new message + thinking indicator)
+  - `useAutoScrollToLatest` hook (scroll on new items, pause when scrolled away, resume near bottom)
+  - Google provider status display in Settings
+
+---
+
 ## [0.21.2] - 2026-08-18
 
 ### Fixed

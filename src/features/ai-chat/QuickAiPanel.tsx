@@ -8,6 +8,7 @@ import { useSettingsStore } from '@/shared/stores/settingsStore'
 import type { ChatTurn } from './chatStore'
 import { MessageActions } from './MessageActions'
 import { useAiChat } from './useAiChat'
+import { useAutoScrollToLatest } from './useAutoScrollToLatest'
 
 /** How many of the most recent turns the compact history shows -- the
  *  full back-and-forth is still one click away via "Open full Chat",
@@ -98,6 +99,15 @@ export function QuickAiPanel() {
 
   const hasSession = Boolean(sessionId.trim())
   const visibleTurns = useMemo(() => turns.slice(-VISIBLE_TURN_COUNT), [turns])
+
+  // Keep the latest visible turn (or the "thinking…" placeholder while a
+  // reply is in flight) in view unless the user scrolled up -- same
+  // behavior as the full ChatPanel.
+  const itemCount = visibleTurns.length + (isSending ? 1 : 0)
+  const { containerRef, lastItemRef, handleScroll } = useAutoScrollToLatest<
+    HTMLDivElement,
+    HTMLDivElement
+  >(itemCount)
 
   const handleSend = () => {
     const text = input.trim()
@@ -215,6 +225,8 @@ export function QuickAiPanel() {
       ) : (
         <>
           <div
+            ref={containerRef}
+            onScroll={handleScroll}
             className="overflow-y-auto px-3 py-2 space-y-1.5"
             style={{ maxHeight: '16rem' }}
           >
@@ -240,10 +252,15 @@ export function QuickAiPanel() {
                     : undefined
                 }
                 isSending={isSending}
+                bubbleRef={
+                  !isSending && i === visibleTurns.length - 1
+                    ? lastItemRef
+                    : undefined
+                }
               />
             ))}
             {isSending && (
-              <div className="flex justify-start">
+              <div ref={lastItemRef} className="flex justify-start">
                 <div className="rounded-lg px-2.5 py-1.5 text-xs bg-surface-2 border border-border-subtle text-text-tertiary">
                   thinking…
                 </div>
