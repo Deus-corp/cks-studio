@@ -6,6 +6,16 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 
 ---
 
+## [0.21.4] - 2026-08-19
+
+### Added
+- **Regression tests for Explore Neighbourhood** – added `GraphPage.exploreNeighbours.test.tsx` covering repeated explore clicks preserving the selected node, accumulating neighbours without data loss, and the empty-neighbour case not clearing the graph.
+
+### Notes
+- No production code changes; test coverage only.
+
+---
+
 ## [0.21.3] - 2026-08-19
 
 ### Added
