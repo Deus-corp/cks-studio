@@ -125,6 +125,8 @@ function providerLabel(provider: LLMStatus['provider']): string {
       return 'Anthropic'
     case 'openai_compatible':
       return 'OpenAI-compatible'
+    case 'google':
+      return 'Google Gemini'
     default:
       return 'Not configured'
   }
@@ -140,6 +142,7 @@ function providerIsUp(status: LLMStatus): boolean {
   if (status.provider === 'anthropic') return status.anthropic_configured
   if (status.provider === 'openai_compatible')
     return status.openai_compatible_configured
+  if (status.provider === 'google') return status.google_configured
   return false
 }
 
@@ -562,6 +565,7 @@ const SETUP_SNIPPETS = {
   openaiCompatibleApiKey: 'echo "CKS_OPENAI_API_KEY=sk-..." >> ~/.cks-mcp/.env',
   openaiCompatibleModel:
     'echo "CKS_OPENAI_MODEL=nvidia/nemotron-3-super-120b-a12b:free" >> ~/.cks-mcp/.env',
+  google: 'echo "CKS_GOOGLE_API_KEY=..." >> ~/.cks-mcp/.env',
   httpServer: 'CKS_MCP_HTTP_PORT=8765 cks-mcp',
 }
 
@@ -594,6 +598,7 @@ function AiLlmSection() {
               <option value="ollama">Ollama</option>
               <option value="anthropic">Anthropic</option>
               <option value="openai_compatible">OpenAI-compatible</option>
+              <option value="google">Google Gemini</option>
             </select>
           }
         />
@@ -636,6 +641,7 @@ function AiLlmSection() {
         </p>
         <CopySnippet label="Ollama" code={SETUP_SNIPPETS.ollama} />
         <CopySnippet label="Anthropic" code={SETUP_SNIPPETS.anthropic} />
+        <CopySnippet label="Google Gemini" code={SETUP_SNIPPETS.google} />
         <p className="text-text-tertiary text-xs mt-4">
           OpenAI-compatible (OpenRouter, vLLM, LM Studio, etc.) — needs all
           four:

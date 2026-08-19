@@ -19,6 +19,7 @@ function MiniTurnBubble({
   onContinue,
   onRetry,
   isSending,
+  bubbleRef,
 }: {
   turn: ChatTurn
   onContinue?: () => void
@@ -27,10 +28,15 @@ function MiniTurnBubble({
    *  only ever passed for the trailing user turn. */
   onRetry?: () => void
   isSending?: boolean
+  /** Attached only to the last rendered turn, for auto-scroll. */
+  bubbleRef?: React.Ref<HTMLDivElement>
 }) {
   const isUser = turn.role === 'user'
   return (
-    <div className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
+    <div
+      ref={bubbleRef}
+      className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}
+    >
       <div
         className={`max-w-[85%] rounded-lg px-2.5 py-1.5 text-xs whitespace-pre-wrap break-words ${
           isUser

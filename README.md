@@ -4,7 +4,7 @@
 
 ![TypeScript](https://img.shields.io/badge/typescript-5.7%2B-blue)
 ![React](https://img.shields.io/badge/react-19-61DAFB)
-![Tests](https://img.shields.io/badge/tests-373%20passed-brightgreen)
+![Tests](https://img.shields.io/badge/tests-377%20passed-brightgreen)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Status](https://img.shields.io/badge/status-v0.21.1-orange)
 

@@ -31,6 +31,7 @@ function ollamaStatus(overrides: Partial<LLMStatus> = {}): LLMStatus {
     ollama_available: true,
     anthropic_configured: false,
     openai_compatible_configured: false,
+    google_configured: false,
     model: 'llama3.2',
     ...overrides,
   }
@@ -104,6 +105,47 @@ describe('SettingsPage — LLM Provider status', () => {
     // Ollama/Anthropic setup instructions leaking into this state.
     expect(screen.queryByText('Not configured')).not.toBeInTheDocument()
     expect(screen.queryByText(/Start Ollama/)).not.toBeInTheDocument()
+  })
+
+  it('shows "Google Gemini" and its model, configured, when google is the active provider', async () => {
+    getLLMStatusMock.mockResolvedValue(
+      ollamaStatus({
+        provider: 'google',
+        ollama_available: false,
+        anthropic_configured: false,
+        openai_compatible_configured: false,
+        google_configured: true,
+        model: 'gemini-2.5-flash',
+      }),
+    )
+    renderAiTab()
+
+    await waitFor(() => {
+      expect(screen.getByText('gemini-2.5-flash')).toBeInTheDocument()
+    })
+    expect(screen.getAllByText('Google Gemini').length).toBeGreaterThan(0)
+    // Configured and reachable: no "Not configured" fallback leaking in.
+    expect(screen.queryByText('Not configured')).not.toBeInTheDocument()
+  })
+
+  it('shows the green "available" dot only when google_configured is true', async () => {
+    getLLMStatusMock.mockResolvedValue(
+      ollamaStatus({
+        provider: 'google',
+        ollama_available: false,
+        anthropic_configured: false,
+        openai_compatible_configured: false,
+        google_configured: false,
+        model: 'gemini-2.5-flash',
+      }),
+    )
+    renderAiTab()
+
+    await waitFor(() => {
+      expect(screen.getAllByText('Google Gemini').length).toBeGreaterThan(0)
+    })
+    expect(screen.getByTitle('unavailable')).toBeInTheDocument()
+    expect(screen.queryByTitle('available')).not.toBeInTheDocument()
   })
 
   it('shows "Not configured" plus setup instructions when provider is none', async () => {
@@ -261,6 +303,25 @@ describe('SettingsPage — AI & LLM: Model + server setup snippets', () => {
 
     expect(
       screen.getByText(/CKS_OPENAI_BASE_URL=https:\/\/openrouter\.ai\/api\/v1/),
+    ).toBeInTheDocument()
+  })
+
+  it('shows a copyable CKS_GOOGLE_API_KEY setup snippet', async () => {
+    getLLMStatusMock.mockResolvedValue(ollamaStatus())
+    renderAiTab()
+
+    await screen.findByText('Local Ollama')
+    expect(screen.getAllByText('Google Gemini').length).toBeGreaterThan(0)
+    expect(screen.getByText(/CKS_GOOGLE_API_KEY/)).toBeInTheDocument()
+  })
+
+  it('lists Google Gemini as a "Preferred provider" option', async () => {
+    getLLMStatusMock.mockResolvedValue(ollamaStatus())
+    renderAiTab()
+
+    await screen.findByText('Local Ollama')
+    expect(
+      screen.getByRole('option', { name: 'Google Gemini' }),
     ).toBeInTheDocument()
   })
 

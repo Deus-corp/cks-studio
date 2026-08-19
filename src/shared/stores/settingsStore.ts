@@ -31,6 +31,7 @@ export type LLMProviderPreference =
   | 'ollama'
   | 'anthropic'
   | 'openai_compatible'
+  | 'google'
   | null
 
 export interface SettingsState {

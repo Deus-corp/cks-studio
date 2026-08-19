@@ -1195,10 +1195,11 @@ export async function aiChat(
  * 'model' — null только когда provider === 'none'.
  */
 export interface LLMStatus {
-  provider: 'ollama' | 'anthropic' | 'openai_compatible' | 'none'
+  provider: 'ollama' | 'anthropic' | 'openai_compatible' | 'google' | 'none'
   ollama_available: boolean
   anthropic_configured: boolean
   openai_compatible_configured: boolean
+  google_configured: boolean
   model: string | null
 }
 
