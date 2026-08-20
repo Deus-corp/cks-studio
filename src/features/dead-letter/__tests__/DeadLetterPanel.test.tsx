@@ -19,11 +19,13 @@ const {
   reviewDeadLetterMock,
   approveResolutionMock,
   rejectResolutionMock,
+  retryDeadLetterMock,
 } = vi.hoisted(() => ({
   listDeadLetteredConflictsMock: vi.fn(),
   reviewDeadLetterMock: vi.fn(),
   approveResolutionMock: vi.fn(),
   rejectResolutionMock: vi.fn(),
+  retryDeadLetterMock: vi.fn(),
 }))
 
 vi.mock('@/services/mcpTools', () => ({
@@ -31,6 +33,7 @@ vi.mock('@/services/mcpTools', () => ({
   reviewDeadLetter: reviewDeadLetterMock,
   approveResolution: approveResolutionMock,
   rejectResolution: rejectResolutionMock,
+  retryDeadLetter: retryDeadLetterMock,
 }))
 
 afterEach(() => {
@@ -196,5 +199,99 @@ describe('DeadLetterPanel', () => {
     await waitFor(() =>
       expect(listDeadLetteredConflictsMock).toHaveBeenCalledTimes(2),
     )
+  })
+
+  it('renders a Retry action for each dead-lettered task', async () => {
+    listDeadLetteredConflictsMock.mockResolvedValue({
+      tasks: [task({ task_id: 1 }), task({ task_id: 2 })],
+      count: 2,
+      supported: true,
+    })
+
+    render(<DeadLetterPanel />)
+
+    await screen.findByText('#1')
+    expect(screen.getAllByRole('button', { name: 'Retry' })).toHaveLength(2)
+  })
+
+  it('clicking Retry calls retryDeadLetter with the correct task id', async () => {
+    listDeadLetteredConflictsMock.mockResolvedValue({
+      tasks: [task({ task_id: 1 }), task({ task_id: 2 })],
+      count: 2,
+      supported: true,
+    })
+    retryDeadLetterMock.mockResolvedValue({ retried: true, task_id: 2 })
+
+    render(<DeadLetterPanel />)
+
+    await screen.findByText('#2')
+    const retryButtons = screen.getAllByRole('button', { name: 'Retry' })
+    fireEvent.click(retryButtons[1])
+
+    await waitFor(() => expect(retryDeadLetterMock).toHaveBeenCalledWith(2))
+  })
+
+  it('a successful retry refreshes the dead-letter list', async () => {
+    listDeadLetteredConflictsMock.mockResolvedValue({
+      tasks: [task({ task_id: 1 })],
+      count: 1,
+      supported: true,
+    })
+    retryDeadLetterMock.mockResolvedValue({ retried: true, task_id: 1 })
+
+    render(<DeadLetterPanel />)
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Retry' }))
+
+    await waitFor(() =>
+      expect(listDeadLetteredConflictsMock).toHaveBeenCalledTimes(2),
+    )
+    expect(await screen.findByText(/requeued/)).toBeInTheDocument()
+  })
+
+  it('shows an inline error message when retry fails', async () => {
+    listDeadLetteredConflictsMock.mockResolvedValue({
+      tasks: [task({ task_id: 1 })],
+      count: 1,
+      supported: true,
+    })
+    retryDeadLetterMock.mockResolvedValue({
+      retried: false,
+      error: 'task_not_found',
+      message: 'Task #1 is not currently dead-lettered.',
+    })
+
+    render(<DeadLetterPanel />)
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Retry' }))
+
+    expect(
+      await screen.findByText('Task #1 is not currently dead-lettered.'),
+    ).toBeInTheDocument()
+    // A failed retry should not trigger another list fetch.
+    expect(listDeadLetteredConflictsMock).toHaveBeenCalledTimes(1)
+  })
+
+  it('shows a helpful message when the backend does not support retry', async () => {
+    listDeadLetteredConflictsMock.mockResolvedValue({
+      tasks: [task({ task_id: 1 })],
+      count: 1,
+      supported: true,
+    })
+    retryDeadLetterMock.mockResolvedValue({
+      retried: false,
+      error: 'not_supported',
+      message: 'not supported',
+    })
+
+    render(<DeadLetterPanel />)
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Retry' }))
+
+    expect(
+      await screen.findByText(
+        'The connected storage backend does not support requeueing dead-lettered tasks.',
+      ),
+    ).toBeInTheDocument()
   })
 })

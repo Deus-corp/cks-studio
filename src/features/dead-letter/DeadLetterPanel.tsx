@@ -1,12 +1,15 @@
 // Copyright (c) 2026 Deus Corp. Licensed under MIT.
 
 import { useCallback, useEffect, useState } from 'react'
+import { IconButton } from '@/components/common/IconButton'
 import {
   approveResolution,
   type DeadLetterReviewError,
   type DeadLetterTask,
+  type RetryDeadLetterResult,
   type ReviewDeadLetterResult,
   rejectResolution,
+  retryDeadLetter,
   reviewDeadLetter,
 } from '@/services/mcpTools'
 import { useSessionStore } from '@/services/sessionStore'
@@ -28,42 +31,84 @@ function isReviewError(
   return 'error' in result && !('proposed_resolution' in result)
 }
 
+const RetryIcon = (
+  <svg
+    width="14"
+    height="14"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <path d="M3 12a9 9 0 1 0 2.64-6.36" />
+    <path d="M3 4v5h5" />
+  </svg>
+)
+
 interface TaskRowProps {
   task: DeadLetterTask
   isSelected: boolean
+  isRetrying: boolean
   onSelect: (taskId: number) => void
+  onRetry: (taskId: number) => void
 }
 
-function TaskRow({ task, isSelected, onSelect }: TaskRowProps) {
+function TaskRow({
+  task,
+  isSelected,
+  isRetrying,
+  onSelect,
+  onRetry,
+}: TaskRowProps) {
   return (
-    <button
-      type="button"
-      onClick={() => onSelect(task.task_id)}
-      aria-current={isSelected ? 'true' : undefined}
-      className={`w-full text-left px-3 py-2.5 border-b border-border-subtle transition-colors ${
+    <div
+      className={`relative border-b border-border-subtle transition-colors ${
         isSelected ? 'bg-surface-2' : 'hover:bg-surface-2/60'
       }`}
     >
-      <div className="flex items-center gap-2">
-        <span className="text-sm font-medium text-text-primary">
-          #{task.task_id}
-        </span>
-        <span className="text-xs bg-surface-3 text-text-secondary px-1.5 py-0.5 rounded">
-          {task.task_type}
-        </span>
-        {task.retry_count > 0 && (
-          <span className="ml-auto text-xs text-text-tertiary">
-            {task.retry_count} retr{task.retry_count === 1 ? 'y' : 'ies'}
+      <button
+        type="button"
+        onClick={() => onSelect(task.task_id)}
+        aria-current={isSelected ? 'true' : undefined}
+        className="w-full text-left px-3 py-2.5 pr-9"
+      >
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-medium text-text-primary">
+            #{task.task_id}
           </span>
-        )}
+          <span className="text-xs bg-surface-3 text-text-secondary px-1.5 py-0.5 rounded">
+            {task.task_type}
+          </span>
+          {task.retry_count > 0 && (
+            <span className="ml-auto text-xs text-text-tertiary">
+              {task.retry_count} retr{task.retry_count === 1 ? 'y' : 'ies'}
+            </span>
+          )}
+        </div>
+        <div className="text-xs text-text-tertiary truncate mt-0.5">
+          session: {task.session_id}
+        </div>
+        <div className="text-xs text-text-secondary truncate mt-0.5">
+          {payloadSnippet(task.payload)}
+        </div>
+      </button>
+      <div className="absolute right-2 top-2">
+        <IconButton
+          icon={RetryIcon}
+          label="Retry"
+          title="Requeue this dead-lettered task"
+          size="sm"
+          disabled={isRetrying}
+          onClick={(e) => {
+            e.stopPropagation()
+            onRetry(task.task_id)
+          }}
+        />
       </div>
-      <div className="text-xs text-text-tertiary truncate mt-0.5">
-        session: {task.session_id}
-      </div>
-      <div className="text-xs text-text-secondary truncate mt-0.5">
-        {payloadSnippet(task.payload)}
-      </div>
-    </button>
+    </div>
   )
 }
 
@@ -316,10 +361,51 @@ export function DeadLetterPanel() {
   const { tasks, supported, lastFetchedAt, error, isLoading, refresh } =
     useDeadLetterPolling(pollingIntervalMs, sessionFilter)
   const [selectedTaskId, setSelectedTaskId] = useState<number | null>(null)
+  const [retryingTaskId, setRetryingTaskId] = useState<number | null>(null)
+  const [retryStatus, setRetryStatus] = useState<{
+    kind: 'success' | 'error' | 'not_supported'
+    message: string
+  } | null>(null)
 
   const handleResolved = () => {
     setSelectedTaskId(null)
     refresh()
+  }
+
+  const handleRetry = async (taskId: number) => {
+    setRetryingTaskId(taskId)
+    setRetryStatus(null)
+    try {
+      const result: RetryDeadLetterResult = await retryDeadLetter(taskId)
+      if (result.retried) {
+        setRetryStatus({
+          kind: 'success',
+          message: `Task #${taskId} was requeued.`,
+        })
+        if (selectedTaskId === taskId) setSelectedTaskId(null)
+        refresh()
+        return
+      }
+      if (result.error === 'not_supported') {
+        setRetryStatus({
+          kind: 'not_supported',
+          message:
+            'The connected storage backend does not support requeueing dead-lettered tasks.',
+        })
+        return
+      }
+      setRetryStatus({
+        kind: 'error',
+        message: result.message || `Failed to retry task #${taskId}.`,
+      })
+    } catch (e) {
+      setRetryStatus({
+        kind: 'error',
+        message: e instanceof Error ? e.message : 'Unknown error',
+      })
+    } finally {
+      setRetryingTaskId(null)
+    }
   }
 
   return (
@@ -369,6 +455,18 @@ export function DeadLetterPanel() {
         </p>
       )}
 
+      {retryStatus && (
+        <p
+          className={`text-xs px-4 py-2 ${
+            retryStatus.kind === 'success'
+              ? 'text-text-secondary'
+              : 'text-danger'
+          }`}
+        >
+          {retryStatus.message}
+        </p>
+      )}
+
       {error && (
         <p className="text-danger text-xs px-4 py-2">
           Failed to fetch dead-lettered tasks: {error}
@@ -396,7 +494,9 @@ export function DeadLetterPanel() {
               key={task.task_id}
               task={task}
               isSelected={task.task_id === selectedTaskId}
+              isRetrying={task.task_id === retryingTaskId}
               onSelect={setSelectedTaskId}
+              onRetry={handleRetry}
             />
           ))}
         </div>

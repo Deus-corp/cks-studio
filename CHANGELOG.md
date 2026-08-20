@@ -6,6 +6,21 @@ The format is based on Keep a Changelog and this project follows Semantic Versio
 
 ---
 
+## [0.21.5] - 2026-08-20
+
+### Added
+- **Retry action in Dead Letter inbox** – each dead-lettered task now has a Retry button that calls `retry_dead_letter`, requeueing the task for another processing attempt.
+- Success/error/unsupported states are shown inline, and the list refreshes after a successful retry.
+
+### Changed
+- `mcpTools` now exposes `retryDeadLetter` with typed `RetryDeadLetterResult` shapes.
+- `DeadLetterPanel` task rows were restructured from a single button to a container with a selectable row and a separate Retry icon button, preserving existing selection behavior.
+
+### Tests
+- Added coverage for Retry button rendering, calling `retryDeadLetter` with the correct task id, list refresh after success, inline error handling, and unsupported backend messaging.
+
+---
+
 ## [0.21.4] - 2026-08-19
 
 ### Added

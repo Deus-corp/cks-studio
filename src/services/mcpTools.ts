@@ -1112,6 +1112,34 @@ export async function rejectResolution(
   return result as unknown as RejectResolutionResult
 }
 
+export interface RetryDeadLetterSuccess {
+  retried: true
+  task_id: number
+}
+
+/** `error` is `'task_not_found'` when the task isn't currently
+ *  dead-lettered (e.g. already retried/approved/rejected elsewhere), or
+ *  `'not_supported'` when the connected storage backend has no
+ *  requeueing support (cks-runtime < v1.58.0 / no outbox support). */
+export interface RetryDeadLetterFailure {
+  retried: false
+  error: 'task_not_found' | 'not_supported' | string
+  message: string
+}
+
+export type RetryDeadLetterResult =
+  | RetryDeadLetterSuccess
+  | RetryDeadLetterFailure
+
+/** Requeues a DEAD-lettered conflict task back to pending (retry_dead_letter,
+ *  cks-mcp >= v1.77.0 / cks-runtime >= v1.58.0's retry_dead_letter_task). */
+export async function retryDeadLetter(
+  taskId: number,
+): Promise<RetryDeadLetterResult> {
+  const result = await callTool('retry_dead_letter', { task_id: taskId })
+  return result as unknown as RetryDeadLetterResult
+}
+
 // ---------------------------------------------------------------------------
 // ai_chat (cks-mcp ADR-011 / cks-studio ADR-001)
 // ---------------------------------------------------------------------------
