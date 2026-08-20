@@ -8,5 +8,5 @@ repository-code: "https://github.com/PunctumActus/cks-studio"
 url: "https://github.com/PunctumActus/cks-studio"
 abstract: "Interactive visual workspace for the Canonical Knowledge Structure ecosystem."
 license: MIT
-version: 0.21.4
-date-released: 2026-08-18
+version: 0.21.5
+date-released: 2026-08-20
