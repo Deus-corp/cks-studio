@@ -15,7 +15,7 @@
       "structure": {
         "description": "Reference implementation of the Canonical Knowledge Structure specification",
         "role": "semantic_authority",
-        "version": "v1.23.0"
+        "version": "v1.23.1"
       }
     },
     {
@@ -27,7 +27,7 @@
       "structure": {
         "description": "Operational execution platform for Canonical Knowledge Structures",
         "role": "operational_layer",
-        "version": "v1.56.1"
+        "version": "v1.57.3"
       }
     },
     {
@@ -42,7 +42,7 @@
         "role": "llm_interface",
         "tool_count": 71,
         "transports": ["stdio", "http"],
-        "version": "v1.76.0"
+        "version": "v1.76.7"
       }
     },
     {
@@ -4177,7 +4177,7 @@
           "Tailwind",
           "vite-plugin-pwa"
         ],
-        "version": "v0.21.2",
+        "version": "v0.21.4",
         "version_source": "package.json"
       }
     },
