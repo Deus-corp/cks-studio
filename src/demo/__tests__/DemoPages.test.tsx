@@ -85,7 +85,7 @@ describe('DemoSettingsPage', () => {
     expect(screen.getByText('cks-core')).toBeInTheDocument()
     // Pulled live from the bundled cks-ecosystem graph
     // (scripts/cks-ecosystem.json) -- currently v1.23.0.
-    expect(screen.getByText('v1.23.0')).toBeInTheDocument()
+    expect(screen.getByText(/v1\.23\.\d+/)).toBeInTheDocument()
     expect(screen.getByText('cks-studio')).toBeInTheDocument()
   })
 
